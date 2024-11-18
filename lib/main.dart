@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'theme/theme.dart';
 
 void main() => runApp(MyApp());
 
@@ -8,37 +7,47 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'First App',
-      home: Scaffold(
-        appBar: AppBar(
-          backgroundColor: blue1,
-          elevation: 0,
-        ),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16.0),
-              color: blue1,
-              child: const Text(
-                '',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-           
-            const SizedBox(height: 20),
-            Center(
-              child: Text(
-                'Content goes here',
-                style: TextStyle(fontSize: 18),
-              ),
-            ),
-          ],
-        ),
+      home: NavigationExample(), // Gunakan widget NavigationExample
+    );
+  }
+}
+
+class NavigationExample extends StatefulWidget {
+  @override
+  _NavigationExampleState createState() => _NavigationExampleState();
+}
+
+class _NavigationExampleState extends State<NavigationExample> {
+  int currentPageIndex = 0; // Indeks halaman/tab aktif
+
+  // Daftar destinasi
+  final List<NavigationDestination> destinations = [
+    NavigationDestination(icon: Icon(Icons.inbox), label: 'Inbox'),
+    NavigationDestination(icon: Icon(Icons.favorite), label: 'Favorit'),
+    NavigationDestination(icon: Icon(Icons.settings), label: 'Setting'),
+    NavigationDestination(icon: Icon(Icons.logout), label: 'Keluar'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Color(0xFF19A7D7), // Perbaiki warna
+        elevation: 0,
+        title: Text('e'),
+      ),
+      body: Center(
+        child: Text('Page $currentPageIndex', style: TextStyle(fontSize: 18)),
+      ),
+      bottomNavigationBar: NavigationBar(
+        destinations: destinations, // Tambahkan daftar destinasi
+        selectedIndex: currentPageIndex, // Indeks aktif
+        onDestinationSelected: (int index) {
+          setState(() {
+            currentPageIndex = index; // Ubah tab aktif
+          });
+        },
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
     );
   }
