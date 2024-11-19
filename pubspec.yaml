@@ -35,7 +35,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  flutter_svg: ^2.0.9
+  flutter_svg: ^2.0.14
   google_fonts: ^6.2.1
   flutter_native_splash: ^2.4.2
 
@@ -63,7 +63,14 @@ flutter:
 
   assets:
    - assets/images/digi_image.png
-   - assets/icons/
+   - assets/icons/pig_money.svg
+   - assets/icons/emergency-svgrepo-com 1.svg
+   - assets/icons/flight-plane.svg
+   - assets/icons/flight-svgrepo-com 1.svg
+   - assets/icons/group-people-team-svgrepo-com 1.svg
+   - assets/icons/money.svg
+   - assets/icons/target_icon.svg
+
    
 
 

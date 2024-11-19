@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:async'; // Untuk Timer
-import 'main.dart'; // Mengimpor MainApp dari main.dart
+import 'dart:async'; 
+import 'main.dart'; 
 import 'theme/theme.dart';
 
 void main() => runApp(MySplash());
@@ -24,11 +24,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Navigasi otomatis ke halaman utama setelah 3 detik
-    Timer(Duration(seconds: 3), () {
+    Timer(Duration(seconds: 2), () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => NavigationExample()),
+        MaterialPageRoute(builder: (context) => dashboardMenu()),
       );
     });
   }
