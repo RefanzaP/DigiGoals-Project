@@ -16,13 +16,13 @@ class AppTextStyle {
   static const TextStyle headline1 = TextStyle(
     fontFamily: 'Roboto',
     fontWeight: FontWeight.bold,
-    fontSize: 24,
+    fontSize: 32,
     color: AppColors.textColor1,
   );
     static const TextStyle headline2 = TextStyle(
     fontFamily: 'Roboto',
     fontWeight: FontWeight.bold,
-    fontSize: 32,
+    fontSize: 24,
     color: AppColors.textColor1,
   );
   
@@ -54,24 +54,24 @@ class AppTextStyle {
     color: AppColors.textColor1,
   );
 
-      static const TextStyle bodyBText1 = TextStyle(
+      static const TextStyle bodyMText1 = TextStyle(
     fontFamily: 'Roboto',
-    fontWeight: FontWeight.bold,
+    fontWeight: FontWeight.w600,
     fontSize: 20,
-    color: AppColors.textColor1,
+    color: Colors.black,
   );
 
-      static const TextStyle bodyBText2 = TextStyle(
+      static const TextStyle bodyMText2 = TextStyle(
     fontFamily: 'Roboto',
-    fontWeight: FontWeight.bold,
+    fontWeight: FontWeight.w600,
     fontSize: 16,
-    color: AppColors.textColor1,
+    color: Colors.black,
   );
-      static const TextStyle bodyBText3 = TextStyle(
+      static const TextStyle bodyMText3 = TextStyle(
     fontFamily: 'Roboto',
-    fontWeight: FontWeight.bold,
+    fontWeight: FontWeight.w600,
     fontSize: 12,
-    color: AppColors.textColor1,
+    color: Colors.black,
   );
 }
 

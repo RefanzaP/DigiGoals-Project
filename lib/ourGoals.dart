@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'theme/theme.dart'; 
+import 'theme/theme.dart';
 
 void main() {
-  runApp(ourGoals());
+  runApp(MyGoals());
 }
 
 class MyGoals extends StatelessWidget {
@@ -11,67 +11,124 @@ class MyGoals extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Digi',
-      home: ourGoals(),
+      home: OurGoals(),
     );
   }
 }
 
-class ourGoals extends StatefulWidget {
+class OurGoals extends StatefulWidget {
   @override
   _OurGoalsState createState() => _OurGoalsState();
 }
 
-class _OurGoalsState extends State<ourGoals> {
-  @override
+class _OurGoalsState extends State<OurGoals> {
   int currentPageIndex = 0;
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.secondaryColor,
         elevation: 0,
-        toolbarHeight: 84, 
-        titleSpacing: 16, // Menghilangkan padding default
+        toolbarHeight: 84,
+        titleSpacing: 16,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Ikon panah kiri
             IconButton(
               icon: Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () {
-                Navigator.pop(context); 
+                Navigator.pop(context);
               },
             ),
-            // Teks di tengah
             Text(
               'Buat Goals',
               style: AppTextStyle.bodyText1.copyWith(color: Colors.white),
             ),
-            // Lingkaran hijau di kanan
             Container(
               height: 12,
               width: 12,
               decoration: BoxDecoration(
-                color: Colors.green, // Warna lingkaran
+                color: Colors.green,
                 shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  '', // Isi lingkaran (opsional)
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
               ),
             ),
           ],
         ),
       ),
-      body: Center(
-        child: Text('Isi Halaman'),
+      body: Column(
+        children: [
+          SizedBox(height: 16), // Jarak 16px dari AppBar
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 20), // Margin kanan-kiri 20px
+            width: MediaQuery.of(context).size.width - 40, // Responsif
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 20), // Padding atas-bawah 20px
+              child: Stack(
+                clipBehavior: Clip.none, // Membiarkan logo tetap di luar jika diperlukan
+                children: [
+                  // Logo bank bjb di pojok kanan atas
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Image.asset(
+                      'assets/images/bankbjb-logo.png',
+                      width: 51,
+                      height: 26,
+                    ),
+                  ),
+                  // Konten utama
+                  Align(
+                    alignment: Alignment.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: AppColors.yellow1,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Icon(Icons.add, size: 32, color: Colors.grey[700]),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Buat Tabungan Bersamamu!',
+                          style: AppTextStyle.bodyMText1,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Sesuaikan Goals kamu untuk hal yang kamu inginkan',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
-     bottomNavigationBar: Column(
+      bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
@@ -92,32 +149,30 @@ class _OurGoalsState extends State<ourGoals> {
               destinations: [
                 NavigationDestination(
                   icon: currentPageIndex == 0
-                      ? Icon(Icons.inbox) 
-                      : Icon(Icons.inbox_outlined), 
+                      ? Icon(Icons.inbox)
+                      : Icon(Icons.inbox_outlined),
                   label: 'Inbox',
                 ),
                 NavigationDestination(
                   icon: currentPageIndex == 1
                       ? Icon(Icons.favorite)
-                      : Icon(Icons.favorite_border), 
+                      : Icon(Icons.favorite_border),
                   label: 'Favorit',
                 ),
                 NavigationDestination(
-                  icon: currentPageIndex == 2
-                      ? Icon(Icons.qr_code_scanner) 
-                      : Icon(Icons.qr_code_scanner), 
+                  icon: Icon(Icons.qr_code_scanner),
                   label: '',
                 ),
                 NavigationDestination(
                   icon: currentPageIndex == 3
-                      ? Icon(Icons.settings) 
-                      : Icon(Icons.settings_outlined), 
+                      ? Icon(Icons.settings)
+                      : Icon(Icons.settings_outlined),
                   label: 'Setting',
                 ),
                 NavigationDestination(
                   icon: currentPageIndex == 4
-                      ? Icon(Icons.logout) 
-                      : Icon(Icons.logout), 
+                      ? Icon(Icons.logout)
+                      : Icon(Icons.logout),
                   label: 'Keluar',
                 ),
               ],
@@ -125,6 +180,7 @@ class _OurGoalsState extends State<ourGoals> {
               backgroundColor: AppColors.white,
               onDestinationSelected: (int index) {
                 setState(() {
+                  currentPageIndex = index;
                 });
               },
               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
@@ -132,9 +188,6 @@ class _OurGoalsState extends State<ourGoals> {
           ),
         ],
       ),
-    
     );
   }
-
-
 }

@@ -63,6 +63,7 @@ flutter:
 
   assets:
    - assets/images/digi_image.png
+   - assets/images/bankbjb-logo.png
    - assets/icons/pig_money.svg
    - assets/icons/emergency-svgrepo-com 1.svg
    - assets/icons/flight-plane.svg

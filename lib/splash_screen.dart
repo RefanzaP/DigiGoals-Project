@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async'; 
 import 'main.dart'; 
+import 'ourGoals.dart'; 
 import 'theme/theme.dart';
 
 void main() => runApp(MySplash());
@@ -27,7 +28,7 @@ class _SplashScreenState extends State<SplashScreen> {
     Timer(Duration(seconds: 2), () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => dashboardMenu()),
+        MaterialPageRoute(builder: (context) => OurGoals()),
       );
     });
   }
