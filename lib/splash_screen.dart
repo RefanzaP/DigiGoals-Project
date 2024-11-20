@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:async'; 
-import 'main.dart'; 
 import 'ourGoals.dart'; 
-import 'theme/theme.dart';
 
 void main() => runApp(MySplash());
 
 class MySplash extends StatelessWidget {
+  const MySplash({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -17,6 +17,8 @@ class MySplash extends StatelessWidget {
 }
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }

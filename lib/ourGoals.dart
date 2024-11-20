@@ -6,6 +6,8 @@ void main() {
 }
 
 class MyGoals extends StatelessWidget {
+  const MyGoals({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -17,6 +19,8 @@ class MyGoals extends StatelessWidget {
 }
 
 class OurGoals extends StatefulWidget {
+  const OurGoals({super.key});
+
   @override
   _OurGoalsState createState() => _OurGoalsState();
 }
