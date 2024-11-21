@@ -1,6 +1,17 @@
+import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart';
 import 'package:flutter/material.dart';
 
-class BuatTabunganBergilir extends StatelessWidget {
+class BuatTabunganBergilir extends StatefulWidget {
+  const BuatTabunganBergilir({super.key});
+
+  @override
+  _BuatTabunganBergilirState createState() => _BuatTabunganBergilirState();
+}
+
+class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
+  final _formKey = GlobalKey<FormState>();
+  final _namaTabunganController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,30 +59,40 @@ class BuatTabunganBergilir extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Nama Tabungan Bergilir",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue.shade900,
-              ),
-            ),
-            SizedBox(height: 10),
-            TextField(
-              decoration: InputDecoration(
-                fillColor: Colors.blue.shade50,
-                filled: true,
-                hintText: 'Buat Nama Tabungan Bergilir',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Nama Tabungan Bergilir",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade900,
                 ),
               ),
-            ),
-          ],
+              SizedBox(height: 10),
+              TextFormField(
+                controller: _namaTabunganController,
+                decoration: InputDecoration(
+                  fillColor: Colors.blue.shade50,
+                  filled: true,
+                  hintText: 'Buat Nama Tabungan Bergilir',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Mohon isi Nama Tabungan Bergilir';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: Padding(
@@ -81,7 +102,12 @@ class BuatTabunganBergilir extends StatelessWidget {
           height: 48,
           child: ElevatedButton(
             onPressed: () {
-              // TODO: Add action for the next step
+              if (_formKey.currentState!.validate()) {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => DetailTabunganBersama()));
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.yellow.shade700,
