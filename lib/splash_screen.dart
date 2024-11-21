@@ -1,6 +1,8 @@
+<<<<<<< Updated upstream
+=======
 import 'package:flutter/material.dart';
 import 'dart:async'; 
-import 'ourGoals.dart'; 
+import 'OurGoals.dart'; 
 
 void main() => runApp(MySplash());
 
@@ -50,3 +52,4 @@ class _SplashScreenState extends State<SplashScreen> {
       );
   }
 }
+>>>>>>> Stashed changes

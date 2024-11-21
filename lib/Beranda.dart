@@ -1,4 +1,4 @@
-import 'package:digigoals_app/ourGoals.dart';
+import 'package:digigoals_app/OurGoals.dart';
 import 'package:flutter/material.dart';
 
 class Beranda extends StatefulWidget {
