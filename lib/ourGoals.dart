@@ -1,23 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme/theme.dart';
 
-void main() {
-  runApp(MyGoals());
-}
-
-class MyGoals extends StatelessWidget {
-  const MyGoals({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Digi',
-      home: OurGoals(),
-    );
-  }
-}
-
 class OurGoals extends StatefulWidget {
   const OurGoals({super.key});
 
@@ -64,7 +47,8 @@ class _OurGoalsState extends State<OurGoals> {
         children: [
           SizedBox(height: 16), // Jarak 16px dari AppBar
           Container(
-            margin: EdgeInsets.symmetric(horizontal: 20), // Margin kanan-kiri 20px
+            margin:
+                EdgeInsets.symmetric(horizontal: 20), // Margin kanan-kiri 20px
             width: MediaQuery.of(context).size.width - 40, // Responsif
             decoration: BoxDecoration(
               color: Colors.white,
@@ -78,9 +62,11 @@ class _OurGoalsState extends State<OurGoals> {
               ],
             ),
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 20), // Padding atas-bawah 20px
+              padding:
+                  EdgeInsets.symmetric(vertical: 20), // Padding atas-bawah 20px
               child: Stack(
-                clipBehavior: Clip.none, // Membiarkan logo tetap di luar jika diperlukan
+                clipBehavior:
+                    Clip.none, // Membiarkan logo tetap di luar jika diperlukan
                 children: [
                   // Logo bank bjb di pojok kanan atas
                   Positioned(
@@ -106,7 +92,8 @@ class _OurGoalsState extends State<OurGoals> {
                             shape: BoxShape.circle,
                           ),
                           child: Center(
-                            child: Icon(Icons.add, size: 32, color: Colors.grey[700]),
+                            child: Icon(Icons.add,
+                                size: 32, color: Colors.grey[700]),
                           ),
                         ),
                         const SizedBox(height: 16),

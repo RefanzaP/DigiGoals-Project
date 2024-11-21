@@ -1,3 +1,4 @@
+import 'package:digigoals_app/ourGoals.dart';
 import 'package:flutter/material.dart';
 
 class Beranda extends StatefulWidget {
@@ -91,11 +92,6 @@ class _BerandaState extends State<Beranda> {
                 color: Colors.white,
               ),
             ),
-            // Replace the Icon above with the logo if needed
-            // Image.asset(
-            //   'assets/logo.png',
-            //   height: 50,
-            // ),
             SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -244,24 +240,78 @@ class _BerandaState extends State<Beranda> {
                   ),
                 ),
                 child: GridView.count(
-                  crossAxisCount: 4,
+                  crossAxisCount:
+                      MediaQuery.of(context).size.width > 300 ? 4 : 3,
                   padding:
                       EdgeInsets.only(top: 30, left: 10, right: 10, bottom: 10),
                   mainAxisSpacing: 15,
                   children: [
-                    _buildMenuItem(Icons.manage_accounts, 'Manajemen Keuangan'),
-                    _buildMenuItem(Icons.swap_horiz, 'Transfer'),
-                    _buildMenuItem(Icons.payment, 'Bayar'),
-                    _buildMenuItem(Icons.shopping_cart, 'Beli'),
-                    _buildMenuItem(Icons.credit_card, 'Cardless'),
-                    _buildMenuItem(Icons.account_balance, 'Buka Rekening'),
-                    _buildMenuItem(Icons.savings, 'bjb Deposito'),
-                    _buildMenuItem(Icons.compare_arrows, 'Flip'),
-                    _buildMenuItem(Icons.volunteer_activism, 'Donasi'),
-                    _buildMenuItem(Icons.money, 'Collect Dana'),
-                    _buildMenuItem(
-                        Icons.account_balance_wallet, 'Pinjaman ASN'),
-                    _buildMenuItem(Icons.flag, 'Our Goals'),
+                    _buildMenuItem(Icons.manage_accounts, 'Manajemen Keuangan',
+                        () {
+                      // Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(
+                      //         builder: (context) => ManajemenKeuanganPage()));
+                    }),
+                    _buildMenuItem(Icons.swap_horiz, 'Transfer', () {
+                      // Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(
+                      //         builder: (context) => TransferPage()));
+                    }),
+                    _buildMenuItem(Icons.payment, 'Bayar', () {
+                      // Navigator.push(context,
+                      //     MaterialPageRoute(builder: (context) => BayarPage()));
+                    }),
+                    _buildMenuItem(Icons.shopping_cart, 'Beli', () {
+                      // Navigator.push(context,
+                      //     MaterialPageRoute(builder: (context) => BeliPage()));
+                    }),
+                    _buildMenuItem(Icons.credit_card, 'Cardless', () {
+                      // Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(
+                      //         builder: (context) => CardlessPage()));
+                    }),
+                    _buildMenuItem(Icons.account_balance, 'Buka Rekening', () {
+                      // Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(
+                      //         builder: (context) => BukaRekeningPage()));
+                    }),
+                    _buildMenuItem(Icons.savings, 'bjb Deposito', () {
+                      // Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(
+                      //         builder: (context) => DepositoPage()));
+                    }),
+                    _buildMenuItem(Icons.compare_arrows, 'Flip', () {
+                      // Navigator.push(context,
+                      //     MaterialPageRoute(builder: (context) => FlipPage()));
+                    }),
+                    _buildMenuItem(Icons.volunteer_activism, 'Donasi', () {
+                      // Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(
+                      //         builder: (context) => DonasiPage()));
+                    }),
+                    _buildMenuItem(Icons.money, 'Collect Dana', () {
+                      // Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(
+                      //         builder: (context) => CollectDanaPage()));
+                    }),
+                    _buildMenuItem(Icons.account_balance_wallet, 'Pinjaman ASN',
+                        () {
+                      // Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(
+                      //         builder: (context) => PinjamanAsnPage()));
+                    }),
+                    _buildMenuItem(Icons.flag, 'Our Goals', () {
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => OurGoals()));
+                    }),
                   ],
                 ),
               ),
@@ -282,20 +332,20 @@ class _BerandaState extends State<Beranda> {
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.inbox, color: Colors.black),
+                  Icon(Icons.inbox, color: Colors.blue),
                   SizedBox(height: 4),
                   Text('Inbox',
-                      style: TextStyle(fontSize: 12, color: Colors.black)),
+                      style: TextStyle(fontSize: 12, color: Colors.blue)),
                 ],
               ),
               Column(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.favorite, color: Colors.black),
+                  Icon(Icons.favorite, color: Colors.blue),
                   SizedBox(height: 4),
                   Text('Favorite',
-                      style: TextStyle(fontSize: 12, color: Colors.black)),
+                      style: TextStyle(fontSize: 12, color: Colors.blue)),
                 ],
               ),
               SizedBox(width: 40), // Space for floating action button
@@ -303,20 +353,20 @@ class _BerandaState extends State<Beranda> {
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.settings, color: Colors.black),
+                  Icon(Icons.settings, color: Colors.blue),
                   SizedBox(height: 4),
                   Text('Settings',
-                      style: TextStyle(fontSize: 12, color: Colors.black)),
+                      style: TextStyle(fontSize: 12, color: Colors.blue)),
                 ],
               ),
               Column(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.logout, color: Colors.black),
+                  Icon(Icons.logout, color: Colors.blue),
                   SizedBox(height: 4),
                   Text('Logout',
-                      style: TextStyle(fontSize: 12, color: Colors.black)),
+                      style: TextStyle(fontSize: 12, color: Colors.blue)),
                 ],
               ),
             ],
@@ -337,46 +387,49 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String label) {
-    return Column(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.5),
-                spreadRadius: 2,
-                blurRadius: 5,
-                offset: Offset(0, 3), // changes position of shadow
-              ),
-            ],
-          ),
-          padding: EdgeInsets.all(10),
-          child: ShaderMask(
-            shaderCallback: (bounds) => LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.blue.shade700, Colors.blue.shade400],
-            ).createShader(bounds),
-            child: Icon(
-              icon,
+  Widget _buildMenuItem(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
               color: Colors.white,
-              size: 40,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.5),
+                  spreadRadius: 2,
+                  blurRadius: 5,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            padding: EdgeInsets.all(10),
+            child: ShaderMask(
+              shaderCallback: (bounds) => LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.blue.shade700, Colors.blue.shade400],
+              ).createShader(bounds),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 40,
+              ),
             ),
           ),
-        ),
-        SizedBox(height: 5),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.blue.shade700,
-            fontSize: 12,
+          SizedBox(height: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.blue.shade700,
+              fontSize: 12,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
