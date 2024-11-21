@@ -240,6 +240,7 @@
 // }
 
 import 'package:digigoals_app/Beranda.dart';
+import 'package:digigoals_app/splash_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() => runApp(const MyApp());

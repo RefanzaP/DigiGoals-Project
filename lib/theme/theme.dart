@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 class AppColors {
   static const Color primaryColor = Color(0xFF19A7D7); // Warna utama dari Figma
   static const Color secondaryColor = Color(0xFF148DC2); // Warna sekunder
-  static const Color backgroundColor =
-      Color(0xFF1597C9); // Warna latar belakang
+  static const Color backgroundColor =Color(0xFF1597C9); // Warna latar belakang
   static const Color yellow1 = Color(0xFFFFC945);
   static const Color white = Color(0xFFFFFFFF);
   static const Color textColor1 = Color(0xFF1F597F);

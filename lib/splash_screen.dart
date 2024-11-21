@@ -1,8 +1,7 @@
-<<<<<<< Updated upstream
-=======
 import 'package:flutter/material.dart';
 import 'dart:async'; 
 import 'OurGoals.dart'; 
+import 'Beranda.dart'; 
 
 void main() => runApp(MySplash());
 
@@ -32,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen> {
     Timer(Duration(seconds: 2), () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => OurGoals()),
+        MaterialPageRoute(builder: (context) => Beranda()),
       );
     });
   }
@@ -52,4 +51,3 @@ class _SplashScreenState extends State<SplashScreen> {
       );
   }
 }
->>>>>>> Stashed changes
