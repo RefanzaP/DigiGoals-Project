@@ -1,7 +1,11 @@
+import 'package:digigoals_app/TabunganBergilir/BuatTabunganBergilir.dart';
+import 'package:digigoals_app/TabunganBersama/BuatTabunganBersama.dart';
 import 'package:flutter/material.dart';
 import 'theme/theme.dart';
 
 class PilihGoals extends StatelessWidget {
+  const PilihGoals({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,7 +67,10 @@ class PilihGoals extends StatelessWidget {
             SizedBox(height: 24),
             InkWell(
               onTap: () {
-                // Handle navigation based on the selected goal option
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => BuatTabunganBersama()));
               },
               child: Container(
                 padding: EdgeInsets.all(16),
@@ -112,7 +119,10 @@ class PilihGoals extends StatelessWidget {
             SizedBox(height: 16),
             InkWell(
               onTap: () {
-                // Handle navigation based on the selected goal option
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => BuatTabunganBergilir()));
               },
               child: Container(
                 padding: EdgeInsets.all(16),
