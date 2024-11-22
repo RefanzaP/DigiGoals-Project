@@ -1,7 +1,14 @@
 import 'package:digigoals_app/TabunganBersama/UndangAnggotaBersama.dart';
 import 'package:flutter/material.dart';
 
-class DetailTabunganBersama extends StatelessWidget {
+class DetailTabunganBersama extends StatefulWidget {
+  const DetailTabunganBersama({super.key});
+
+  @override
+  State<DetailTabunganBersama> createState() => _DetailTabunganBersamaState();
+}
+
+class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -372,6 +379,8 @@ class DetailTabunganBersama extends StatelessWidget {
 }
 
 class NextPage extends StatelessWidget {
+  const NextPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

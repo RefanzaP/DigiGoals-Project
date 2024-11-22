@@ -1,4 +1,4 @@
-import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart';
+import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
 import 'package:flutter/material.dart';
 
 class BuatTabunganBergilir extends StatefulWidget {
@@ -106,7 +106,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => DetailTabunganBersama()));
+                        builder: (context) => DetailTabunganBergilir()));
               }
             },
             style: ElevatedButton.styleFrom(
