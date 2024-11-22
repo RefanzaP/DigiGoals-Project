@@ -1,3 +1,4 @@
+import 'package:digigoals_app/TabunganBersama/UndangAnggotaBersama.dart';
 import 'package:flutter/material.dart';
 
 class DetailTabunganBersama extends StatefulWidget {
@@ -93,7 +94,7 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => NextPage()));
+                                  builder: (context) => UndanganAnggota()));
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.yellow.shade700,
