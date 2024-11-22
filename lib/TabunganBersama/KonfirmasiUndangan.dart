@@ -49,7 +49,7 @@ class _KonfirmasiUndanganState extends State<KonfirmasiUndangan> {
                     color: Colors.black,
                   ),
                 ),
-                SizedBox(height: 20), 
+                SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -62,7 +62,7 @@ class _KonfirmasiUndanganState extends State<KonfirmasiUndangan> {
                         onPressed: () {
                           Navigator.pop(context); // Close the dialog
                         },
-                        style: OutlinedButton.styleFrom(
+                   style: OutlinedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           side: BorderSide(
                             color: Colors.yellow.shade700, // Yellow border
@@ -80,7 +80,7 @@ class _KonfirmasiUndanganState extends State<KonfirmasiUndangan> {
                         ),
                       ),
                     ),
-                    // Button "Ya" (No changes to this button)
+                    // Button "Ya" remains unchanged
                     Container(
                       width: 100, // Set width of button
                       height: 37, // Set height of button
@@ -88,9 +88,9 @@ class _KonfirmasiUndanganState extends State<KonfirmasiUndangan> {
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.pop(context); // Close the dialog
-                          // Add your further action for "Ya" here
+                          _showSuccessDialog(); // Show the success dialog
                         },
-                        style: ElevatedButton.styleFrom(
+                      style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.yellow.shade700,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -113,6 +113,79 @@ class _KonfirmasiUndanganState extends State<KonfirmasiUndangan> {
       },
     );
   }
+
+  // Function to show the success dialog
+ // Function to show the success dialog
+void _showSuccessDialog() {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Container(
+          width: 318, // Width of the dialog
+          height: 241,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Title of success popup
+              Text(
+                'Digi Mobile',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              SizedBox(height: 20), // Space between title and content
+              // Success message
+              Text(
+                'Anda telah berhasil mengundang UMMI',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.normal,
+                  color: Colors.black,
+                ),
+              ),
+              SizedBox(height: 20),
+              // Adjusting the button's position and size
+              Padding(
+                padding: const EdgeInsets.only(top: 24, bottom: 24), // 24px margin at the bottom
+                child: SizedBox(
+                  width: 270, // Width of the button
+                  height: 37, // Height of the button
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close the success dialog
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.yellow.shade700,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(
+                      'OK',
+                      style: TextStyle(
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
