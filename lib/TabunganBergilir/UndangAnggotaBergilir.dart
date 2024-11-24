@@ -1,16 +1,19 @@
-import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
+import 'package:digigoals_app/TabunganBergilir/KonfirmasiUndanganBergilir.dart';
+import 'package:digigoals_app/TabunganBersama/KonfirmasiUndangan.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-class BuatTabunganBergilir extends StatefulWidget {
-  const BuatTabunganBergilir({super.key});
+class UndanganAnggotaBergilir extends StatefulWidget {
+  const UndanganAnggotaBergilir({super.key});
 
   @override
-  _BuatTabunganBergilirState createState() => _BuatTabunganBergilirState();
+  _UndanganAnggotaBergilirState createState() =>
+      _UndanganAnggotaBergilirState();
 }
 
-class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
+class _UndanganAnggotaBergilirState extends State<UndanganAnggotaBergilir> {
   final _formKey = GlobalKey<FormState>();
-  final _namaTabunganController = TextEditingController();
+  final _nomorRekeningController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +39,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
           },
         ),
         title: Text(
-          'Buat Tabungan Bergilir Baru',
+          'Undang Anggota',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -65,7 +68,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Nama Tabungan Bergilir",
+                "Nomor Rekening Yang Diundang",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -74,11 +77,16 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
               ),
               SizedBox(height: 10),
               TextFormField(
-                controller: _namaTabunganController,
+                controller: _nomorRekeningController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(13),
+                ],
                 decoration: InputDecoration(
                   fillColor: Colors.blue.shade50,
                   filled: true,
-                  hintText: 'Buat Nama Tabungan Bergilir',
+                  hintText: 'Masukkan Nomor Rekening',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide.none,
@@ -86,7 +94,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Mohon isi Nama Tabungan Bergilir';
+                    return 'Kamu perlu memasukkan nomor rekening!';
                   }
                   return null;
                 },
@@ -103,10 +111,10 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
           child: ElevatedButton(
             onPressed: () {
               if (_formKey.currentState!.validate()) {
-                Navigator.pushReplacement(
+                Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => DetailTabunganBergilir()));
+                        builder: (context) => KonfirmasiUndanganBergilir()));
               }
             },
             style: ElevatedButton.styleFrom(

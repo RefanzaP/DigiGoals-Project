@@ -1,3 +1,4 @@
+import 'package:digigoals_app/TabunganBergilir/UndangAnggotaBergilir.dart';
 import 'package:flutter/material.dart';
 
 class DetailTabunganBergilir extends StatefulWidget {
@@ -32,7 +33,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
           },
         ),
         title: Text(
-          'Detail Tabungan Bersama',
+          'Detail Tabungan Bergilir',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -53,11 +54,17 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
           ),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Icon(
+              Icons.celebration,
+              size: 64,
+              color: Colors.blue.shade400,
+            ),
+            SizedBox(height: 16),
             Text(
               'Gudang Garam Jaya 🔥',
               style: TextStyle(
@@ -91,7 +98,12 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => UndanganAnggotaBergilir()));
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.yellow.shade700,
                   shape: RoundedRectangleBorder(
@@ -140,6 +152,21 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                   borderSide: BorderSide.none,
                 ),
               ),
+            ),
+            SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                FilterChip(
+                  label: Text('Semua'),
+                  onSelected: (bool value) {},
+                ),
+                SizedBox(width: 8),
+                FilterChip(
+                  label: Text('Abi'),
+                  onSelected: (bool value) {},
+                ),
+              ],
             ),
             SizedBox(height: 24),
             Text(
