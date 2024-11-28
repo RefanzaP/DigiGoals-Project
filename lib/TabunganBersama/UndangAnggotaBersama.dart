@@ -1,4 +1,3 @@
-import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart';
 import 'package:digigoals_app/TabunganBersama/KonfirmasiUndangan.dart';
 import 'package:flutter/material.dart';
 

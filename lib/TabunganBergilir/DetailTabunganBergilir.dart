@@ -1,4 +1,6 @@
+import 'package:digigoals_app/TabunganBergilir/AktivasiTabunganBergilir.dart';
 import 'package:digigoals_app/TabunganBergilir/UndangAnggotaBergilir.dart';
+import 'package:digigoals_app/OurGoals.dart';
 import 'package:flutter/material.dart';
 
 class DetailTabunganBergilir extends StatefulWidget {
@@ -29,7 +31,9 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => OurGoals()),
+                (Route<dynamic> route) => false);
           },
         ),
         title: Text(
@@ -124,7 +128,12 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => AktivasiTabunganBergilir()));
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   shape: RoundedRectangleBorder(

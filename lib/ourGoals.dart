@@ -1,3 +1,4 @@
+import 'package:digigoals_app/Beranda.dart';
 import 'package:digigoals_app/PilihGoals.dart';
 import 'package:flutter/material.dart';
 import 'theme/theme.dart';
@@ -32,7 +33,9 @@ class _OurGoalsState extends State<OurGoals> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => Beranda()),
+                (Route<dynamic> route) => false);
           },
         ),
         title: Text(

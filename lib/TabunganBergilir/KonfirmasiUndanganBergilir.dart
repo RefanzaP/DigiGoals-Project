@@ -159,10 +159,13 @@ class _KonfirmasiUndanganBergilirState
                   height: 37, // Set height of button
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => DetailTabunganBergilir()));
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => DetailTabunganBergilir()),
+                        (Route<dynamic> route) =>
+                            false, // Remove all previous routes
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.yellow.shade700,
