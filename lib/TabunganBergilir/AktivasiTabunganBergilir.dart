@@ -1,7 +1,7 @@
-import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
-import 'package:digigoals_app/ourGoals.dart';
+import 'package:digigoals_app/TabunganBergilir/AktifDetailTabunganBergilir.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 
 class AktivasiTabunganBergilir extends StatefulWidget {
   const AktivasiTabunganBergilir({super.key});
@@ -22,6 +22,198 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
   bool isDateEnabled = false;
   String? _selectedWeek;
   DateTime? _selectedDate;
+
+  @override
+  void dispose() {
+    _nominalController.dispose();
+    _jumlahAnggotaController.dispose();
+    _durasiTabunganController.dispose();
+    _periodeTabunganController.dispose();
+    _jumlahPenagihanController.dispose();
+    super.dispose();
+  }
+
+  String _formatCurrency(String value) {
+    if (value.isEmpty) return '';
+    final formatter =
+        NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
+    try {
+      final parsedValue = int.parse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+      return formatter.format(parsedValue);
+    } catch (e) {
+      return value;
+    }
+  }
+
+  void _showConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Container(
+            width: 256,
+            height: 256,
+            padding: const EdgeInsets.all(15),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'DIGI Mobile',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w100,
+                    color: Colors.black,
+                  ),
+                ),
+                SizedBox(height: 20),
+                Text(
+                  'Apakah Benar ingin Melakukan Aktivasi Tabungan Bergilir?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal,
+                    color: Colors.black,
+                  ),
+                ),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 37,
+                      margin: const EdgeInsets.only(right: 8),
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          side: BorderSide(
+                            color: Colors.yellow.shade700,
+                            width: 2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          'Tidak',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0XFF1F597F),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 100,
+                      height: 37,
+                      margin: const EdgeInsets.only(left: 8),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showSuccessDialog();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.yellow.shade700,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          'Ya',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0XFF1F597F),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Container(
+            width: 256,
+            height: 256,
+            padding: const EdgeInsets.all(15),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'DIGI Mobile',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w100,
+                    color: Colors.black,
+                  ),
+                ),
+                SizedBox(height: 20),
+                Text(
+                  'Aktivasi Tabungan Bergilir Telah Berhasil di lakukan!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal,
+                    color: Colors.black,
+                  ),
+                ),
+                SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 37,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                AktifDetailTabunganBergilir()),
+                        (Route<dynamic> route) => false,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.yellow.shade700,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(
+                      'OK',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0XFF1F597F),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   void _showPeriodePenagihanModal() {
     showModalBottomSheet(
@@ -196,12 +388,13 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                           }
                           if (_nominalController.text.isNotEmpty &&
                               _jumlahAnggotaController.text.isNotEmpty) {
-                            double nominal =
-                                double.parse(_nominalController.text);
+                            double nominal = double.parse(_nominalController
+                                .text
+                                .replaceAll(RegExp(r'[^0-9]'), ''));
                             int anggota =
                                 int.parse(_jumlahAnggotaController.text);
-                            _jumlahPenagihanController.text =
-                                (nominal / anggota).toStringAsFixed(2);
+                            _jumlahPenagihanController.text = _formatCurrency(
+                                (nominal / anggota).toStringAsFixed(0));
                           }
                         });
                       },
@@ -249,9 +442,7 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => OurGoals()),
-                (Route<dynamic> route) => false);
+            Navigator.pop(context);
           },
         ),
         title: Text(
@@ -304,29 +495,30 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none,
                     ),
-                    prefixIcon: _nominalController.text.isNotEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.only(
-                                left: 12.0, right: 4.0, top: 8.0),
-                            child: Text('Rp',
-                                style: TextStyle(
-                                    color: Colors.blue.shade900, fontSize: 16)),
-                          )
-                        : null,
                   ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
+                    TextInputFormatter.withFunction((oldValue, newValue) {
+                      return newValue.copyWith(
+                        text: _formatCurrency(newValue.text),
+                        selection: TextSelection.collapsed(
+                            offset: _formatCurrency(newValue.text).length),
+                      );
+                    }),
                   ],
                   onChanged: (value) {
                     setState(() {
                       if (_jumlahAnggotaController.text.isNotEmpty) {
                         int anggota = int.parse(_jumlahAnggotaController.text);
                         if (value.isNotEmpty &&
-                            double.tryParse(value) != null) {
-                          double nominal = double.parse(value);
-                          _jumlahPenagihanController.text =
-                              (nominal / anggota).toStringAsFixed(2);
+                            double.tryParse(
+                                    value.replaceAll(RegExp(r'[^0-9]'), '')) !=
+                                null) {
+                          double nominal = double.parse(
+                              value.replaceAll(RegExp(r'[^0-9]'), ''));
+                          _jumlahPenagihanController.text = _formatCurrency(
+                              (nominal / anggota).toStringAsFixed(0));
                         }
                       }
                     });
@@ -335,7 +527,9 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                     if (value == null || value.isEmpty) {
                       return 'Mohon isi Nominal Tabungan Bergilir';
                     }
-                    if (double.tryParse(value) == null) {
+                    if (double.tryParse(
+                            value.replaceAll(RegExp(r'[^0-9]'), '')) ==
+                        null) {
                       return 'Mohon masukkan nominal yang valid';
                     }
                     return null;
@@ -344,7 +538,7 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                 SizedBox(height: 16),
                 // Periode & Tanggal Penagihan
                 Text(
-                  "Periode Penagihan",
+                  "Periode & Tanggal Penagihan",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -408,9 +602,10 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                         _durasiTabunganController.text = '';
                       }
                       if (_nominalController.text.isNotEmpty) {
-                        double nominal = double.parse(_nominalController.text);
-                        _jumlahPenagihanController.text =
-                            (nominal / int.parse(value)).toStringAsFixed(2);
+                        double nominal = double.parse(_nominalController.text
+                            .replaceAll(RegExp(r'[^0-9]'), ''));
+                        _jumlahPenagihanController.text = _formatCurrency(
+                            (nominal / int.parse(value)).toStringAsFixed(0));
                       }
                     });
                   },
@@ -444,6 +639,7 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                       borderSide: BorderSide.none,
                     ),
                   ),
+                  readOnly: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Mohon isi Durasi Tabungan Bergilir';
@@ -473,22 +669,15 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none,
                     ),
-                    prefixIcon: _jumlahPenagihanController.text.isNotEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.only(
-                                left: 12.0, right: 4.0, top: 8.0),
-                            child: Text('Rp',
-                                style: TextStyle(
-                                    color: Colors.blue.shade900, fontSize: 16)),
-                          )
-                        : null,
                   ),
                   readOnly: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Mohon isi Jumlah Penagihan Uang';
                     }
-                    if (double.tryParse(value) == null) {
+                    if (double.tryParse(
+                            value.replaceAll(RegExp(r'[^0-9]'), '')) ==
+                        null) {
                       return 'Mohon masukkan nominal yang valid';
                     }
                     return null;
@@ -508,10 +697,7 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
           child: ElevatedButton(
             onPressed: () {
               if (_formKey.currentState!.validate()) {
-                Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => DetailTabunganBergilir()));
+                _showConfirmationDialog();
               }
             },
             style: ElevatedButton.styleFrom(
