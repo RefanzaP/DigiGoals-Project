@@ -1,3 +1,4 @@
+import 'package:digigoals_app/TabunganBersama/TambahUang.dart';
 import 'package:digigoals_app/TabunganBersama/UndangAnggotaBersama.dart';
 import 'package:flutter/material.dart';
 
@@ -353,7 +354,7 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                 child: OutlinedButton(
                   onPressed: () {
                     Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => NextPage()));
+                        MaterialPageRoute(builder: (context) => TambahUang()));
                   },
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Colors.yellow.shade700),

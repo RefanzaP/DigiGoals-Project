@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class KonfirmasiUndangan extends StatefulWidget {
-  const KonfirmasiUndangan({super.key});
+class KonfirmasiTambahUang extends StatefulWidget {
+  const KonfirmasiTambahUang({super.key});
 
   @override
-  _KonfirmasiUndanganState createState() => _KonfirmasiUndanganState();
+  _KonfirmasiTambahUangState createState() => _KonfirmasiTambahUangState();
 }
 
-class _KonfirmasiUndanganState extends State<KonfirmasiUndangan> {
+class _KonfirmasiTambahUangState extends State<KonfirmasiTambahUang> {
   final _formKey = GlobalKey<FormState>();
   final _namaTabunganController = TextEditingController();
 
-  // Function to show the pop-up dialog
   void _showConfirmationDialog() {
     showDialog(
       context: context,
@@ -41,7 +40,7 @@ class _KonfirmasiUndanganState extends State<KonfirmasiUndangan> {
                 SizedBox(height: 20), // Space between title and content
                 // Content text
                 Text(
-                  'Apakah Benar Anda Ingin Mengundang UMMI?',
+                  'Apakah Benar Anda ',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -217,9 +216,9 @@ void _showSuccessDialog() {
                         },
                       ),
                       Spacer(),
-                      // Judul "Undang Anggota"
+                    
                       Text(
-                        'Undang Anggota',
+                        'Tambah Uang',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -266,7 +265,7 @@ void _showSuccessDialog() {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Nomor Rekening : 123456789',
+                              'Nominal : Rp. 5.000.000',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -319,7 +318,7 @@ void _showSuccessDialog() {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Tabungan Tandamata - 12345678",
+                "Pilih Sumber Dana",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
