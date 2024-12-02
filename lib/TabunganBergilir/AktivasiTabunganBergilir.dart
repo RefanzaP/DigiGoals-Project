@@ -597,7 +597,7 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                           _selectedDate != null &&
                           value.isNotEmpty) {
                         int anggota = int.parse(value);
-                        _durasiTabunganController.text = '${anggota} bulan';
+                        _durasiTabunganController.text = '$anggota bulan';
                       } else {
                         _durasiTabunganController.text = '';
                       }

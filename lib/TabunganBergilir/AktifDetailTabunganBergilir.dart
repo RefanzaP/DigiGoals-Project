@@ -1,5 +1,6 @@
 import 'package:digigoals_app/OurGoals.dart';
 import 'package:flutter/material.dart';
+import 'package:digigoals_app/TabunganBergilir/RincianAnggotaBergilir.dart';
 
 class AktifDetailTabunganBergilir extends StatefulWidget {
   const AktifDetailTabunganBergilir({super.key});
@@ -124,28 +125,39 @@ class _AktifDetailTabunganBergilirState
             SizedBox(height: 16),
             Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.blue,
-                  child: Text('A', style: TextStyle(color: Colors.white)),
-                ),
-                // SizedBox(width: 8),
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.yellow,
-                  child: Text('I', style: TextStyle(color: Colors.white)),
-                ),
-                // SizedBox(width: 8),
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.pink,
-                  child: Text('U', style: TextStyle(color: Colors.white)),
-                ),
-                // SizedBox(width: 8),
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.purple,
-                  child: Text('E', style: TextStyle(color: Colors.white)),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RincianAnggotaBergilir(),
+                      ),
+                    );
+                  },
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: Colors.blue,
+                        child: Text('A', style: TextStyle(color: Colors.white)),
+                      ),
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: Colors.yellow,
+                        child: Text('I', style: TextStyle(color: Colors.white)),
+                      ),
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: Colors.pink,
+                        child: Text('U', style: TextStyle(color: Colors.white)),
+                      ),
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: Colors.purple,
+                        child: Text('E', style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
                 ),
                 Spacer(),
                 ElevatedButton(
@@ -205,6 +217,27 @@ class _AktifDetailTabunganBergilirState
                                 onPressed: () {},
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Deaktivasi Tabungan Bergilir',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton(
+                                onPressed: () {},
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),

@@ -15,9 +15,8 @@ class _BerandaState extends State<Beranda> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.blue.shade700,
         elevation: 0,
         leading: Container(
           margin: EdgeInsets.all(22),
@@ -30,42 +29,54 @@ class _BerandaState extends State<Beranda> {
         ),
         actions: [
           Container(
-            margin: EdgeInsets.only(right: 15),
+            margin: EdgeInsets.only(right: 8),
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: Colors.grey.withOpacity(0.5),
-                  spreadRadius: 2,
-                  blurRadius: 5,
-                  offset: Offset(0, 3),
+                  spreadRadius: 1,
+                  blurRadius: 2,
+                  offset: Offset(0, 2),
                 ),
               ],
             ),
             child: IconButton(
-              icon: Icon(Icons.search, color: Colors.black),
+              icon: Icon(
+                Icons.search,
+                color: Colors.black,
+                size: 20,
+              ),
               onPressed: () {
                 showSearch(context: context, delegate: CustomSearchDelegate());
               },
             ),
           ),
           Container(
-            margin: EdgeInsets.only(right: 15),
+            margin: EdgeInsets.only(right: 8),
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: Colors.grey.withOpacity(0.5),
-                  spreadRadius: 2,
-                  blurRadius: 5,
-                  offset: Offset(0, 3),
+                  spreadRadius: 1,
+                  blurRadius: 2,
+                  offset: Offset(0, 2),
                 ),
               ],
             ),
             child: IconButton(
-              icon: Icon(Icons.mic_none, color: Colors.black),
+              icon: Icon(
+                Icons.mic_none,
+                color: Colors.black,
+                size: 20,
+              ),
               onPressed: () {
                 // Voice search action
               },
@@ -82,17 +93,22 @@ class _BerandaState extends State<Beranda> {
           ),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 50),
+            // SizedBox(height: 50),
             Center(
               child: Icon(
                 Icons.account_balance_wallet,
-                size: 50,
+                size: 100,
                 color: Colors.white,
               ),
+              // To replace the icon with a logo image, use the following code:
+              // child: Image.asset(
+              //   'assets/images/logo.png', // Update the path to your logo image
+              //   height: 100,
+              //   width: 100,
+              // ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 2),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Column(
@@ -105,7 +121,7 @@ class _BerandaState extends State<Beranda> {
                       color: Colors.white,
                     ),
                   ),
-                  SizedBox(height: 5),
+                  SizedBox(height: 2),
                   Row(
                     children: [
                       Text(
@@ -160,7 +176,7 @@ class _BerandaState extends State<Beranda> {
                     Row(
                       children: [
                         Container(
-                          padding: EdgeInsets.all(10),
+                          padding: EdgeInsets.all(5),
                           decoration: BoxDecoration(
                             color: Colors.blue.shade100,
                             shape: BoxShape.circle,
@@ -168,7 +184,7 @@ class _BerandaState extends State<Beranda> {
                           child: Icon(
                             Icons.account_balance,
                             color: Colors.blue,
-                            size: 30,
+                            size: 25,
                           ),
                         ),
                         SizedBox(width: 15),
@@ -182,7 +198,7 @@ class _BerandaState extends State<Beranda> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: 5),
+                            SizedBox(height: 2),
                             Text(
                               isSaldoVisible ? 'IDR 1,000,000' : 'IDR ******',
                               style: TextStyle(
@@ -230,7 +246,7 @@ class _BerandaState extends State<Beranda> {
               ),
             ),
             SizedBox(height: 20),
-            Expanded(
+            Flexible(
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -241,12 +257,11 @@ class _BerandaState extends State<Beranda> {
                 ),
                 child: GridView.count(
                   crossAxisCount:
-                      MediaQuery.of(context).size.width > 300 ? 4 : 3,
+                      MediaQuery.of(context).size.width > 380 ? 4 : 3,
                   padding:
-                      EdgeInsets.only(top: 30, left: 10, right: 10, bottom: 10),
-                  mainAxisSpacing: 15,
+                      EdgeInsets.only(top: 10, left: 10, right: 10, bottom: 10),
                   children: [
-                    _buildMenuItem(Icons.manage_accounts, 'Manajemen Keuangan',
+                    _buildMenuItem(Icons.manage_accounts, 'Manajemen\nKeuangan',
                         () {
                       // Navigator.push(
                       //     context,
@@ -391,42 +406,49 @@ class _BerandaState extends State<Beranda> {
     return InkWell(
       onTap: onTap,
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.5),
-                  spreadRadius: 2,
-                  blurRadius: 5,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
-            padding: EdgeInsets.all(10),
-            child: ShaderMask(
-              shaderCallback: (bounds) => LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.blue.shade700, Colors.blue.shade400],
-              ).createShader(bounds),
-              child: Icon(
-                icon,
+          Flexible(
+            child: Container(
+              decoration: BoxDecoration(
                 color: Colors.white,
-                size: 40,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 2,
+                    blurRadius: 5,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              padding: EdgeInsets.all(10),
+              child: ShaderMask(
+                shaderCallback: (bounds) => LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.blue.shade700, Colors.blue.shade400],
+                ).createShader(bounds),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 30,
+                ),
               ),
             ),
           ),
           SizedBox(height: 5),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.blue.shade700,
-              fontSize: 12,
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.blue.shade700,
+                fontSize: 10,
+              ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
             ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),

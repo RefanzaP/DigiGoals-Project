@@ -1,5 +1,6 @@
 import 'package:digigoals_app/TabunganBergilir/AktivasiTabunganBergilir.dart';
 import 'package:digigoals_app/TabunganBergilir/UndangAnggotaBergilir.dart';
+import 'package:digigoals_app/TabunganBergilir/RincianAnggotaDeaktivasi.dart';
 import 'package:digigoals_app/OurGoals.dart';
 import 'package:flutter/material.dart';
 
@@ -104,9 +105,11 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => UndanganAnggotaBergilir()));
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UndanganAnggotaBergilir(),
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.yellow.shade700,
@@ -124,15 +127,55 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
               ),
             ),
             SizedBox(height: 16),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => RincianAnggotaDeaktivasi(),
+                  ),
+                );
+              },
+              child: Row(
+                children: [
+                  // Display the first five members
+                  ...List.generate(
+                    3,
+                    (index) => CircleAvatar(
+                      radius: 20,
+                      backgroundColor:
+                          Colors.primaries[index % Colors.primaries.length],
+                      child: Text(
+                        ['A', 'I', 'U', 'E', 'O'][index],
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  // Display the +N CircleAvatar if there are more than 3 members
+                  if (['A', 'I', 'U', 'E', 'O'].length > 3)
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.purple,
+                      child: Text(
+                        '+${['A', 'I', 'U', 'E', 'O'].length - 3}',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => AktivasiTabunganBergilir()));
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AktivasiTabunganBergilir(),
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
