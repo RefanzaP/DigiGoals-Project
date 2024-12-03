@@ -1,3 +1,4 @@
+import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -61,7 +62,7 @@ class _KonfirmasiTambahUangState extends State<KonfirmasiTambahUang> {
                         onPressed: () {
                           Navigator.pop(context); // Close the dialog
                         },
-                   style: OutlinedButton.styleFrom(
+                        style: OutlinedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           side: BorderSide(
                             color: Colors.yellow.shade700, // Yellow border
@@ -87,9 +88,9 @@ class _KonfirmasiTambahUangState extends State<KonfirmasiTambahUang> {
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.pop(context); // Close the dialog
-                          _showSuccessDialog(); // Show the success dialog
+                          // Removed _showSuccessDialog()
                         },
-                      style: ElevatedButton.styleFrom(
+                        style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.yellow.shade700,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -112,79 +113,6 @@ class _KonfirmasiTambahUangState extends State<KonfirmasiTambahUang> {
       },
     );
   }
-
-  // Function to show the success dialog
- // Function to show the success dialog
-void _showSuccessDialog() {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Container(
-          width: 318, // Width of the dialog
-          height: 241,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Title of success popup
-              Text(
-                'Digi Mobile',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              SizedBox(height: 20), // Space between title and content
-              // Success message
-              Text(
-                'Anda telah berhasil mengundang UMMI',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.normal,
-                  color: Colors.black,
-                ),
-              ),
-              SizedBox(height: 20),
-              // Adjusting the button's position and size
-              Padding(
-                padding: const EdgeInsets.only(top: 24, bottom: 24), // 24px margin at the bottom
-                child: SizedBox(
-                  width: 270, // Width of the button
-                  height: 37, // Height of the button
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Close the success dialog
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.yellow.shade700,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      'OK',
-                      style: TextStyle(
-                        color: Colors.blue.shade900,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -216,7 +144,6 @@ void _showSuccessDialog() {
                         },
                       ),
                       Spacer(),
-                    
                       Text(
                         'Tambah Uang',
                         style: TextStyle(
@@ -326,25 +253,49 @@ void _showSuccessDialog() {
                 ),
               ),
               SizedBox(height: 10),
+              // Rectangle Tabungan Tandamata
               Container(
-                width: double.infinity,
-                height: 47,
+                width: 389,
+                height: 122,
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Color(0xFF4F6D85),
+                    color: Colors.blue.shade300,
+                    width: 1,
                   ),
                 ),
-                alignment: Alignment.centerLeft,
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'Ummi',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Tabungan Tandamata",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w200,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      "12345678",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w200,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      "Nominal: Rp. 500.000",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0XFFF3CA61),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -358,7 +309,8 @@ void _showSuccessDialog() {
           height: 48,
           child: ElevatedButton(
             onPressed: () {
-              _showConfirmationDialog(); // Show the dialog when pressed
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => DetailTabunganBersama()));
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.yellow.shade700,

@@ -330,7 +330,7 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => NextPage()));
+                        MaterialPageRoute(builder: (context) => TambahUang()));
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.yellow.shade700,
