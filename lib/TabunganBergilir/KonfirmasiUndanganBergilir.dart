@@ -194,7 +194,8 @@ class _KonfirmasiUndanganBergilirState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(130),
+        preferredSize:
+            Size.fromHeight(MediaQuery.of(context).size.height * 0.21),
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -207,8 +208,9 @@ class _KonfirmasiUndanganBergilirState
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(height: 16),
+                  SizedBox(height: 8),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -239,74 +241,81 @@ class _KonfirmasiUndanganBergilirState
                     ],
                   ),
                   SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Container(
-                        height: 48,
-                        width: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Icon(
-                            Icons.group,
-                            color: Colors.blue.shade700,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Nomor Rekening: 1234567891011',
-                              style: TextStyle(
-                                color: Colors.white,
-                                // fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            SizedBox(
-                              height: 2,
-                            ),
-                            Text(
-                              'Nama Goals: Gudang Garam Jaya 🔥',
-                              style: TextStyle(
-                                color: Colors.white,
-                                // fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          side: BorderSide(
-                            color: Colors.white, // Yellow border
-                            width: 1,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          'Ubah',
-                          style: TextStyle(
+                  Flexible(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          height: 48,
+                          width: 48,
+                          decoration: BoxDecoration(
                             color: Colors.white,
-                            fontWeight: FontWeight.w200,
-                            fontSize: 14,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Icon(
+                              Icons.group,
+                              color: Colors.blue.shade700,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Nomor Rekening: 1234567891011',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize:
+                                      MediaQuery.of(context).size.width > 360
+                                          ? 16
+                                          : 14,
+                                ),
+                              ),
+                              SizedBox(
+                                height: 2,
+                              ),
+                              Text(
+                                'Nama Goals: Gudang Garam Jaya 🔥',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize:
+                                      MediaQuery.of(context).size.width > 360
+                                          ? 16
+                                          : 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton(
+                          onPressed: () {},
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            side: BorderSide(
+                              color: Colors.white, // Yellow border
+                              width: 1,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'Ubah',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w200,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

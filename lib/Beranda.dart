@@ -1,3 +1,4 @@
+import 'package:digigoals_app/Inbox.dart';
 import 'package:digigoals_app/OurGoals.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -197,7 +198,7 @@ class _BerandaState extends State<Beranda> {
                 ),
               ),
               SizedBox(height: 16),
-              Expanded(
+              Flexible(
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -206,117 +207,134 @@ class _BerandaState extends State<Beranda> {
                       topRight: Radius.circular(10),
                     ),
                   ),
-                  child: GridView.count(
-                    crossAxisCount:
-                        (MediaQuery.of(context).size.width / 100).floor(),
-                    padding: EdgeInsets.all(8),
-                    children: [
-                      MenuItem(
-                          icon: Icons.manage_accounts,
-                          label: 'Manajemen Keuangan',
-                          onTap: () {
-                            // Navigator.push(
-                            //     context,
-                            //     MaterialPageRoute(
-                            //         builder: (context) => ManajemenKeuanganPage()));
-                          }),
-                      MenuItem(
-                          icon: Icons.swap_horiz,
-                          label: 'Transfer',
-                          onTap: () {
-                            // Navigator.push(
-                            //     context,
-                            //     MaterialPageRoute(
-                            //         builder: (context) => TransferPage()));
-                          }),
-                      MenuItem(
-                          icon: Icons.payment,
-                          label: 'Bayar',
-                          onTap: () {
-                            // Navigator.push(context,
-                            //     MaterialPageRoute(builder: (context) => BayarPage()));
-                          }),
-                      MenuItem(
-                          icon: Icons.shopping_cart,
-                          label: 'Beli',
-                          onTap: () {
-                            // Navigator.push(context,
-                            //     MaterialPageRoute(builder: (context) => BeliPage()));
-                          }),
-                      MenuItem(
-                          icon: Icons.credit_card,
-                          label: 'Cardless',
-                          onTap: () {
-                            // Navigator.push(
-                            //     context,
-                            //     MaterialPageRoute(
-                            //         builder: (context) => CardlessPage()));
-                          }),
-                      MenuItem(
-                          icon: Icons.account_balance,
-                          label: 'Buka Rekening',
-                          onTap: () {
-                            // Navigator.push(
-                            //     context,
-                            //     MaterialPageRoute(
-                            //         builder: (context) => BukaRekeningPage()));
-                          }),
-                      MenuItem(
-                          icon: Icons.savings,
-                          label: 'bjb Deposito',
-                          onTap: () {
-                            // Navigator.push(
-                            //     context,
-                            //     MaterialPageRoute(
-                            //         builder: (context) => DepositoPage()));
-                          }),
-                      MenuItem(
-                          icon: Icons.compare_arrows,
-                          label: 'Flip',
-                          onTap: () {
-                            // Navigator.push(context,
-                            //     MaterialPageRoute(builder: (context) => FlipPage()));
-                          }),
-                      MenuItem(
-                          icon: Icons.volunteer_activism,
-                          label: 'Donasi',
-                          onTap: () {
-                            // Navigator.push(
-                            //     context,
-                            //     MaterialPageRoute(
-                            //         builder: (context) => DonasiPage()));
-                          }),
-                      MenuItem(
-                          icon: Icons.money,
-                          label: 'Collect Dana',
-                          onTap: () {
-                            // Navigator.push(
-                            //     context,
-                            //     MaterialPageRoute(
-                            //         builder: (context) => CollectDanaPage()));
-                          }),
-                      MenuItem(
-                          icon: Icons.account_balance_wallet,
-                          label: 'Pinjaman ASN',
-                          onTap: () {
-                            // Navigator.push(
-                            //     context,
-                            //     MaterialPageRoute(
-                            //         builder: (context) => PinjamanAsnPage()));
-                          }),
-                      MenuItem(
-                          icon: Icons.flag,
-                          label: 'Our Goals',
-                          onTap: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => OurGoals()));
-                          }),
-                    ],
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      int crossAxisCount =
+                          (constraints.maxWidth ~/ 100).clamp(3, 6);
+                      return GridView.count(
+                        crossAxisCount: crossAxisCount,
+                        padding: EdgeInsets.all(8),
+                        children: [
+                          MenuItem(
+                            icon: Icons.manage_accounts,
+                            label: 'Manajemen Keuangan',
+                            onTap: () {
+                              // Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //         builder: (context) => ManajemenKeuanganPage()));
+                            },
+                          ),
+                          MenuItem(
+                            icon: Icons.swap_horiz,
+                            label: 'Transfer',
+                            onTap: () {
+                              // Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //         builder: (context) => TransferPage()));
+                            },
+                          ),
+                          MenuItem(
+                            icon: Icons.payment,
+                            label: 'Bayar',
+                            onTap: () {
+                              // Navigator.push(context,
+                              //     MaterialPageRoute(builder: (context) => BayarPage()));
+                            },
+                          ),
+                          MenuItem(
+                            icon: Icons.shopping_cart,
+                            label: 'Beli',
+                            onTap: () {
+                              // Navigator.push(context,
+                              //     MaterialPageRoute(builder: (context) => BeliPage()));
+                            },
+                          ),
+                          MenuItem(
+                            icon: Icons.credit_card,
+                            label: 'Cardless',
+                            onTap: () {
+                              // Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //         builder: (context) => CardlessPage()));
+                            },
+                          ),
+                          MenuItem(
+                            icon: Icons.account_balance,
+                            label: 'Buka Rekening',
+                            onTap: () {
+                              // Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //         builder: (context) => BukaRekeningPage()));
+                            },
+                          ),
+                          MenuItem(
+                            icon: Icons.savings,
+                            label: 'bjb Deposito',
+                            onTap: () {
+                              // Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //         builder: (context) => DepositoPage()));
+                            },
+                          ),
+                          MenuItem(
+                            icon: Icons.compare_arrows,
+                            label: 'Flip',
+                            onTap: () {
+                              // Navigator.push(context,
+                              //     MaterialPageRoute(builder: (context) => FlipPage()));
+                            },
+                          ),
+                          MenuItem(
+                            icon: Icons.volunteer_activism,
+                            label: 'Donasi',
+                            onTap: () {
+                              // Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //         builder: (context) => DonasiPage()));
+                            },
+                          ),
+                          MenuItem(
+                            icon: Icons.money,
+                            label: 'Collect Dana',
+                            onTap: () {
+                              // Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //         builder: (context) => CollectDanaPage()));
+                            },
+                          ),
+                          MenuItem(
+                            icon: Icons.account_balance_wallet,
+                            label: 'Pinjaman ASN',
+                            onTap: () {
+                              // Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //         builder: (context) => PinjamanAsnPage()));
+                            },
+                          ),
+                          MenuItem(
+                            icon: Icons.flag,
+                            label: 'Our Goals',
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => OurGoals()));
+                            },
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
-              ),
+              )
             ],
           ),
         ),
@@ -329,7 +347,14 @@ class _BerandaState extends State<Beranda> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildBottomNavItem(Icons.inbox, 'Inbox'),
+                _buildBottomNavItem(Icons.inbox, 'Inbox', () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            Inbox()), // Assuming Inbox is a defined page
+                  );
+                }),
                 _buildBottomNavItem(Icons.favorite, 'Favorite'),
                 SizedBox(width: 40), // Space for floating action button
                 _buildBottomNavItem(Icons.settings, 'Settings'),
@@ -380,18 +405,22 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  Widget _buildBottomNavItem(IconData icon, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, color: Colors.blue),
-        SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: Colors.blue),
-        ),
-      ],
+  Widget _buildBottomNavItem(IconData icon, String label,
+      [VoidCallback? onTap]) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: Colors.blue),
+          SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: Colors.blue),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -402,11 +431,11 @@ class MenuItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const MenuItem({
-    Key? key,
+    super.key,
     required this.icon,
     required this.label,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -415,47 +444,36 @@ class MenuItem extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Flexible(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.5),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-              padding: EdgeInsets.all(10),
-              child: ShaderMask(
-                shaderCallback: (bounds) => LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.blue.shade700, Colors.blue.shade400],
-                ).createShader(bounds),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: MediaQuery.of(context).size.width > 380 ? 30 : 24,
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.5),
+                  spreadRadius: 2,
+                  blurRadius: 5,
+                  offset: Offset(0, 3),
                 ),
-              ),
+              ],
+            ),
+            child: Icon(
+              icon,
+              color: Colors.blue.shade700,
+              size: 40,
             ),
           ),
-          SizedBox(height: 5),
-          Flexible(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Colors.blue.shade700,
-                fontSize: MediaQuery.of(context).size.width > 380 ? 10 : 8,
-              ),
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
+          SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.blue.shade700,
+              fontSize: 12,
             ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
           ),
         ],
       ),

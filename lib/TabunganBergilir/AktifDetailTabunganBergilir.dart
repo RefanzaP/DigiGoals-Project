@@ -1,4 +1,5 @@
 import 'package:digigoals_app/OurGoals.dart';
+import 'package:digigoals_app/TabunganBergilir/GilirTabungan.dart';
 import 'package:flutter/material.dart';
 import 'package:digigoals_app/TabunganBergilir/RincianAnggotaBergilir.dart';
 
@@ -136,32 +137,42 @@ class _AktifDetailTabunganBergilirState
                   },
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.blue,
-                        child: Text('A', style: TextStyle(color: Colors.white)),
+                      // Display the first five members
+                      ...List.generate(
+                        3,
+                        (index) => CircleAvatar(
+                          radius: 20,
+                          backgroundColor:
+                              Colors.primaries[index % Colors.primaries.length],
+                          child: Text(
+                            ['A', 'I', 'U', 'E', 'O'][index],
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
                       ),
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.yellow,
-                        child: Text('I', style: TextStyle(color: Colors.white)),
-                      ),
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.pink,
-                        child: Text('U', style: TextStyle(color: Colors.white)),
-                      ),
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.purple,
-                        child: Text('E', style: TextStyle(color: Colors.white)),
-                      ),
+                      // Display the +N CircleAvatar if there are more than 3 members
+                      if (['A', 'I', 'U', 'E', 'O'].length > 3)
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Colors.purple,
+                          child: Text(
+                            '+${['A', 'I', 'U', 'E', 'O'].length - 3}',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
                     ],
                   ),
                 ),
                 Spacer(),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => GilirTabungan(),
+                      ),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.yellow.shade700,
                     shape: RoundedRectangleBorder(
@@ -382,6 +393,30 @@ class _AktifDetailTabunganBergilirState
                   borderSide: BorderSide.none,
                 ),
               ),
+            ),
+            SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                FilterChip(
+                  label: Text('Semua'),
+                  onSelected: (bool value) {},
+                ),
+                SizedBox(width: 8),
+                FilterChip(
+                  label: Text('Abi'),
+                  onSelected: (bool value) {},
+                ),
+              ],
+            ),
+            SizedBox(height: 24),
+            Text(
+              'Belum ada transaksi. Kalian bisa mulai tambah uang sekarang',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+              textAlign: TextAlign.center,
             ),
             SizedBox(height: 24),
             SizedBox(

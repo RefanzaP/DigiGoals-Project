@@ -1,3 +1,4 @@
+import 'package:digigoals_app/TabunganBergilir/UndangAnggotaBergilir.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -125,7 +126,14 @@ class _RincianAnggotaDeaktivasiState extends State<RincianAnggotaDeaktivasi> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => UndanganAnggotaBergilir(),
+                      ),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amber,
                     shape: RoundedRectangleBorder(
