@@ -1,4 +1,3 @@
-import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -11,108 +10,7 @@ class KonfirmasiTambahUang extends StatefulWidget {
 
 class _KonfirmasiTambahUangState extends State<KonfirmasiTambahUang> {
   final _formKey = GlobalKey<FormState>();
-  final _namaTabunganController = TextEditingController();
-
-  void _showConfirmationDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12), // Rounded corners
-          ),
-          child: Container(
-            width: 318, // Width of the dialog
-            height: 241, // Height of the dialog
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Title in the middle
-                Text(
-                  'Digi Mobile',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-                SizedBox(height: 20), // Space between title and content
-                // Content text
-                Text(
-                  'Apakah Benar Anda ',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.normal,
-                    color: Colors.black,
-                  ),
-                ),
-                SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Button "Tidak" with transparent background and yellow border
-                    Container(
-                      width: 100,
-                      height: 37,
-                      margin: const EdgeInsets.only(right: 8), // Space between buttons
-                      child: OutlinedButton(
-                        onPressed: () {
-                          Navigator.pop(context); // Close the dialog
-                        },
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          side: BorderSide(
-                            color: Colors.yellow.shade700, // Yellow border
-                            width: 2,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          'Tidak',
-                          style: TextStyle(
-                            color: Color(0XFF1F597F), // Yellow text color
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Button "Ya" remains unchanged
-                    Container(
-                      width: 100, // Set width of button
-                      height: 37, // Set height of button
-                      margin: const EdgeInsets.only(left: 8), // Space between buttons
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context); // Close the dialog
-                          // Removed _showSuccessDialog()
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.yellow.shade700,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          'Ya',
-                          style: TextStyle(
-                            color: Color(0XFF1F597F), // Yellow text color
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
+  int? selectedIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -132,11 +30,10 @@ class _KonfirmasiTambahUangState extends State<KonfirmasiTambahUang> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
-                  SizedBox(height: 32), // Jarak dari atas layar
+                  SizedBox(height: 32),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Ikon panah kembali
                       IconButton(
                         icon: Icon(Icons.arrow_back, color: Colors.white),
                         onPressed: () {
@@ -145,7 +42,7 @@ class _KonfirmasiTambahUangState extends State<KonfirmasiTambahUang> {
                       ),
                       Spacer(),
                       Text(
-                        'Tambah Uang',
+                        'Undang Anggota',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -153,7 +50,6 @@ class _KonfirmasiTambahUangState extends State<KonfirmasiTambahUang> {
                         ),
                       ),
                       Spacer(),
-                      // Bulatan hijau
                       Container(
                         height: 12,
                         width: 12,
@@ -164,12 +60,10 @@ class _KonfirmasiTambahUangState extends State<KonfirmasiTambahUang> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 16), // Jarak antara dua baris konten AppBar
-                  // Baris untuk status
+                  SizedBox(height: 16),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Ikon bundar
                       Container(
                         height: 48,
                         width: 48,
@@ -186,18 +80,30 @@ class _KonfirmasiTambahUangState extends State<KonfirmasiTambahUang> {
                         ),
                       ),
                       SizedBox(width: 16),
-                      // Teks atas dan bawah
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Nominal : Rp. 5.000.000',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Nomor Rekening : 123456789',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.edit, color: Colors.white),
+                                  onPressed: () {
+                                    // Tindakan untuk tombol ubah
+                                    print('Tombol Ubah ditekan');
+                                  },
+                                ),
+                              ],
                             ),
                             Text(
                               'Nama Goals : Pernikahan Kita',
@@ -208,25 +114,6 @@ class _KonfirmasiTambahUangState extends State<KonfirmasiTambahUang> {
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                      // Tombol di kanan
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          'Ubah',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w200,
-                            fontSize: 14,
-                          ),
                         ),
                       ),
                     ],
@@ -253,49 +140,55 @@ class _KonfirmasiTambahUangState extends State<KonfirmasiTambahUang> {
                 ),
               ),
               SizedBox(height: 10),
-              // Rectangle Tabungan Tandamata
-              Container(
-                width: 389,
-                height: 122,
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.blue.shade300,
-                    width: 1,
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    selectedIndex = selectedIndex == 1 ? null : 1;
+                  });
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 122,
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: selectedIndex == 1 ? Colors.orange : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.blue.shade300,
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Tabungan Tandamata",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w200,
-                        color: Colors.blue.shade900,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Tabungan Tandamata",
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w200,
+                          color: selectedIndex == 1 ? Colors.white : Colors.blue.shade900,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      "12345678",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w200,
-                        color: Colors.blue.shade900,
+                      SizedBox(height: 8),
+                      Text(
+                        "12345678",
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w200,
+                          color: selectedIndex == 1 ? Colors.white : Colors.blue.shade900,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      "Nominal: Rp. 500.000",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0XFFF3CA61),
+                      SizedBox(height: 8),
+                      Text(
+                        "Nominal: Rp. 500.000",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: selectedIndex == 1 ? Colors.white : Color(0XFFF3CA61),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -304,28 +197,56 @@ class _KonfirmasiTambahUangState extends State<KonfirmasiTambahUang> {
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton(
-            onPressed: () {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => DetailTabunganBersama()));
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.yellow.shade700,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Total',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade900,
+                    ),
+                  ),
+                  Text(
+                    'Rp 1,000,000',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade900,
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: Text(
-              'Selanjutnya',
-              style: TextStyle(
-                color: Colors.blue.shade900,
-                fontWeight: FontWeight.bold,
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Navigasi ke halaman berikutnya
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.yellow.shade700,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  'Selanjutnya',
+                  style: TextStyle(
+                    color: Colors.blue.shade900,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
