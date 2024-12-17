@@ -1,4 +1,3 @@
-import 'package:digigoals_app/Inbox.dart';
 import 'package:digigoals_app/OurGoals.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -208,49 +207,77 @@ class _BerandaState extends State<Beranda> {
                     clipBehavior: Clip.none,
                     children: [
                       MenuItem(
-                          icon: Icons.manage_accounts,
+                          // icon: Icons.manage_accounts,
+                          icon: Image.asset(
+                              'assets/icons/manajemen-keuangan@3x.png',
+                              width: 40,
+                              height: 40),
                           label: 'Manajemen Keuangan',
                           onTap: () {}),
                       MenuItem(
-                          icon: Icons.swap_horiz,
+                          // icon: Icons.swap_horiz,
+                          icon: Image.asset('assets/icons/transfer@3x.png',
+                              width: 40, height: 40),
                           label: 'Transfer',
                           onTap: () {}),
                       MenuItem(
-                          icon: Icons.payment, label: 'Bayar', onTap: () {}),
+                          // icon: Icons.payment,
+                          icon: Image.asset('assets/icons/bayar@3x.png',
+                              width: 40, height: 40),
+                          label: 'Bayar',
+                          onTap: () {}),
                       MenuItem(
-                          icon: Icons.shopping_cart,
+                          // icon: Icons.shopping_cart,
+                          icon: Image.asset('assets/icons/beli@3x.png',
+                              width: 40, height: 40),
                           label: 'Beli',
                           onTap: () {}),
                       MenuItem(
-                          icon: Icons.credit_card,
+                          // icon: Icons.credit_card,
+                          icon: Image.asset('assets/icons/cardless@3x.png',
+                              width: 40, height: 40),
                           label: 'Cardless',
                           onTap: () {}),
                       MenuItem(
-                          icon: Icons.account_balance,
+                          // icon: Icons.account_balance,
+                          icon: Image.asset('assets/icons/buka-rekening@3x.png',
+                              width: 40, height: 40),
                           label: 'Buka Rekening',
                           onTap: () {}),
                       MenuItem(
-                          icon: Icons.savings,
+                          // icon: Icons.savings,
+                          icon: Image.asset('assets/icons/bjb-deposito@3x.png',
+                              width: 40, height: 40),
                           label: 'bjb Deposito',
                           onTap: () {}),
                       MenuItem(
-                          icon: Icons.compare_arrows,
+                          // icon: Icons.compare_arrows,
+                          icon: Image.asset('assets/icons/flip.png',
+                              width: 40, height: 40),
                           label: 'Flip',
                           onTap: () {}),
                       MenuItem(
-                          icon: Icons.volunteer_activism,
+                          // icon: Icons.volunteer_activism,
+                          icon: Image.asset('assets/icons/donasi@3x.png',
+                              width: 40, height: 40),
                           label: 'Donasi',
                           onTap: () {}),
                       MenuItem(
-                          icon: Icons.money,
+                          // icon: Icons.money,
+                          icon: Image.asset('assets/icons/collect-dana.png',
+                              width: 40, height: 40),
                           label: 'Collect Dana',
                           onTap: () {}),
                       MenuItem(
-                          icon: Icons.account_balance_wallet,
+                          // icon: Icons.account_balance_wallet,
+                          icon: Image.asset('assets/icons/pinjaman asn@3x.png',
+                              width: 40, height: 40),
                           label: 'Pinjaman ASN',
                           onTap: () {}),
                       MenuItem(
-                          icon: Icons.flag,
+                          // icon: Icons.flag,
+                          icon: Image.asset('assets/icons/our-goals.png',
+                              width: 40, height: 40),
                           label: 'Our Goals',
                           onTap: () {
                             Navigator.push(
@@ -356,7 +383,7 @@ Widget _buildBottomNavItem(IconData icon, String label, [VoidCallback? onTap]) {
 }
 
 class MenuItem extends StatelessWidget {
-  final IconData icon;
+  final Widget icon; // Ganti dari IconData ke Widget
   final String label;
   final VoidCallback onTap;
 
@@ -388,11 +415,7 @@ class MenuItem extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(
-              icon,
-              color: Colors.blue.shade700,
-              size: 40,
-            ),
+            child: icon, // Widget gambar atau ikon
           ),
           SizedBox(height: 6),
           Text(
@@ -464,5 +487,432 @@ class CustomSearchDelegate extends SearchDelegate {
         );
       },
     );
+  }
+}
+
+class Inbox extends StatefulWidget {
+  const Inbox({super.key});
+
+  @override
+  _InboxState createState() => _InboxState();
+}
+
+class _InboxState extends State<Inbox> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  static const List<String> _tabs = ['Status Transaksi', 'Pending Transaksi'];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: _tabs.length, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.blue.shade700, Colors.blue.shade400],
+            ),
+          ),
+        ),
+        elevation: 0,
+        toolbarHeight: 84,
+        titleSpacing: 16,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        title: Text(
+          'Inbox',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        centerTitle: true,
+        actions: [
+          Container(
+            margin: EdgeInsets.only(right: 16),
+            height: 12,
+            width: 12,
+            decoration: BoxDecoration(
+              color: Colors.green,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: Column(
+          children: [
+            TabBar(
+              controller: _tabController,
+              tabs: _tabs.map((tab) => Tab(text: tab)).toList(),
+              indicatorColor: Colors.blue,
+              indicatorWeight: 4,
+              labelColor: Colors.blue,
+              unselectedLabelColor: Colors.blue,
+              labelStyle: TextStyle(fontWeight: FontWeight.bold),
+              indicatorPadding: EdgeInsets.zero,
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildStatusTransaksi(),
+                  _buildPendingTransaksi(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusTransaksi() {
+    List<Map<String, String>> statusTransaksi = [];
+    return statusTransaksi.isEmpty
+        ? Center(
+            child: Text(
+              'Tidak ada Transaksi Terbaru',
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
+          )
+        : ListView.builder(
+            itemCount: statusTransaksi.length,
+            itemBuilder: (context, index) {
+              return ListTile(
+                title: Text(
+                  statusTransaksi[index]['title'] ?? '',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(statusTransaksi[index]['phone'] ?? ''),
+                    Text(statusTransaksi[index]['date'] ?? ''),
+                  ],
+                ),
+                trailing: Icon(Icons.notifications, color: Colors.blue),
+              );
+            },
+          );
+  }
+
+  Widget _buildPendingTransaksi() {
+    List<Map<String, String>> pendingTransaksi = [
+      {
+        'title': 'Undangan Anggota',
+        'phone': '0123456789012',
+        'date': '01 November 2024 09:27',
+      },
+    ];
+
+    return pendingTransaksi.isEmpty
+        ? Center(
+            child: Text(
+              'Tidak ada Transaksi Terbaru',
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
+          )
+        : ListView.builder(
+            itemCount: pendingTransaksi.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Dialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Container(
+                          width: 256,
+                          height: 256,
+                          padding: const EdgeInsets.all(15),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'DIGI Mobile',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w100,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              SizedBox(height: 20),
+                              Text(
+                                'Mengundang Anda untuk bergabung pada Goals "Pernikahan Kita 💍"',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.normal,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              SizedBox(height: 20),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    width: 100,
+                                    height: 37,
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 8),
+                                    child: OutlinedButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return Dialog(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: Container(
+                                                width: 256,
+                                                height: 256,
+                                                padding:
+                                                    const EdgeInsets.all(15),
+                                                child: Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Text(
+                                                      'DIGI Mobile',
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: TextStyle(
+                                                        fontSize: 18,
+                                                        fontWeight:
+                                                            FontWeight.w100,
+                                                        color: Colors.black,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 20),
+                                                    Text(
+                                                      'Anda telah menolak undangan untuk bergabung pada Goals "Pernikahan Kita 💍"',
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.normal,
+                                                        color: Colors.black,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 20),
+                                                    SizedBox(
+                                                      width: double.infinity,
+                                                      height: 37,
+                                                      child: ElevatedButton(
+                                                        onPressed: () {
+                                                          Navigator.pop(
+                                                              context);
+                                                        },
+                                                        style: ElevatedButton
+                                                            .styleFrom(
+                                                          backgroundColor:
+                                                              Colors.yellow
+                                                                  .shade700,
+                                                          shape:
+                                                              RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        8),
+                                                          ),
+                                                        ),
+                                                        child: Text(
+                                                          'OK',
+                                                          style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Color(
+                                                                0XFF1F597F),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        side: BorderSide(
+                                          color: Colors.yellow.shade700,
+                                          width: 2,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Tidak',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0XFF1F597F),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 100,
+                                    height: 37,
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 8),
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return Dialog(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: Container(
+                                                width: 256,
+                                                height: 256,
+                                                padding:
+                                                    const EdgeInsets.all(15),
+                                                child: Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Text(
+                                                      'DIGI Mobile',
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: TextStyle(
+                                                        fontSize: 18,
+                                                        fontWeight:
+                                                            FontWeight.w100,
+                                                        color: Colors.black,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 20),
+                                                    Text(
+                                                      'Selamat! Anda telah menjadi anggota Goals "Pernikahan Kita 💍"',
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.normal,
+                                                        color: Colors.black,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 20),
+                                                    SizedBox(
+                                                      width: double.infinity,
+                                                      height: 37,
+                                                      child: ElevatedButton(
+                                                        onPressed: () {
+                                                          Navigator.pop(
+                                                              context);
+                                                        },
+                                                        style: ElevatedButton
+                                                            .styleFrom(
+                                                          backgroundColor:
+                                                              Colors.yellow
+                                                                  .shade700,
+                                                          shape:
+                                                              RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        8),
+                                                          ),
+                                                        ),
+                                                        child: Text(
+                                                          'OK',
+                                                          style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Color(
+                                                                0XFF1F597F),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.yellow.shade700,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Ya',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0XFF1F597F),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+                child: ListTile(
+                  title: Text(
+                    pendingTransaksi[index]['title'] ?? '',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(pendingTransaksi[index]['phone'] ?? ''),
+                      Text(pendingTransaksi[index]['date'] ?? ''),
+                    ],
+                  ),
+                  trailing: Icon(Icons.notifications, color: Colors.blue),
+                ),
+              );
+            },
+          );
   }
 }

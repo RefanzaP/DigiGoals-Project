@@ -1,4 +1,4 @@
-import 'package:digigoals_app/TabunganBergilir/AktifDetailTabunganBergilir.dart';
+import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' show NumberFormat;

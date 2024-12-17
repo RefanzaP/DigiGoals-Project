@@ -77,7 +77,18 @@ flutter:
    - assets/icons/target_icon.svg
    - assets/icons/logo-digi-biru.png
    - assets/icons/logo-digi-bank-bjb-home.png
-
+   - assets/icons/bayar@3x.png
+   - assets/icons/beli@3x.png
+   - assets/icons/bjb-deposito@3x.png
+   - assets/icons/buka-rekening@3x.png
+   - assets/icons/cardless@3x.png
+   - assets/icons/collect-dana.png
+   - assets/icons/donasi@3x.png
+   - assets/icons/flip.png
+   - assets/icons/manajemen-keuangan@3x.png
+   - assets/icons/pinjaman asn@3x.png
+   - assets/icons/transfer@3x.png
+   - assets/icons/our-goals.png
    
 
 
