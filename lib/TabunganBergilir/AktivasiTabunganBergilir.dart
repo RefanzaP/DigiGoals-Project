@@ -46,78 +46,199 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
   }
 
   void _showConfirmationDialog() {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Container(
-            width: 256,
-            height: 256,
-            padding: const EdgeInsets.all(15),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'DIGI Mobile',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w100,
-                    color: Colors.black,
+      barrierDismissible: true,
+      barrierLabel: "Dialog",
+      transitionDuration: Duration(milliseconds: 200),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return ScaleTransition(
+          scale: Tween(begin: 0.7, end: 1.0).animate(animation),
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Container(
+              width: 250,
+              height: 250,
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Text(
+                    'DIGI Mobile',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  'Apakah Benar ingin Melakukan Aktivasi Tabungan Bergilir?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.normal,
-                    color: Colors.black,
+                  Text(
+                    'Apakah Benar ingin Melakukan Aktivasi Tabungan Bergilir?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.normal,
+                      color: Colors.black,
+                    ),
                   ),
-                ),
-                SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 37,
-                      margin: const EdgeInsets.only(right: 8),
-                      child: OutlinedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          side: BorderSide(
-                            color: Colors.yellow.shade700,
-                            width: 2,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 100,
+                        height: 40,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: Colors.yellow.shade700),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          'Tidak',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color(0XFF1F597F),
+                          child: Text(
+                            'Tidak',
+                            style: TextStyle(
+                              color: Colors.blue.shade900,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
+                      SizedBox(width: 12),
+                      SizedBox(
+                        width: 100,
+                        height: 40,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _showSuccessDialog();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.yellow.shade700,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'Ya',
+                            style: TextStyle(
+                              color: Colors.blue.shade900,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSuccessDialog() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: "Loading",
+      transitionDuration: Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return ScaleTransition(
+          scale: Tween(begin: 0.7, end: 1.0).animate(animation),
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Container(
+              width: 250,
+              height: 250,
+              padding: const EdgeInsets.all(15),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: Colors.yellow.shade700),
+                  SizedBox(height: 20),
+                  Text(
+                    'Mengaktifkan Tabungan...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black,
                     ),
-                    Container(
-                      width: 100,
+                  ),
+                  SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    Future.delayed(Duration(seconds: 2), () {
+      Navigator.pop(context);
+      showGeneralDialog(
+        context: context,
+        barrierDismissible: false,
+        barrierLabel: "Success",
+        transitionDuration: Duration(milliseconds: 300),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return FadeTransition(
+            opacity: animation,
+            child: Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Container(
+                width: 250,
+                height: 250,
+                padding: const EdgeInsets.all(15),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'DIGI Mobile',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    Icon(
+                      Icons.check_circle_outline,
+                      color: Colors.green,
+                      size: 48,
+                    ),
+                    Text(
+                      'Aktivasi Tabungan Berhasil Dilakukan!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.normal,
+                        color: Colors.black,
+                      ),
+                    ),
+                    SizedBox(
+                      width: double.infinity,
                       height: 37,
-                      margin: const EdgeInsets.only(left: 8),
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pop(context);
-                          _showSuccessDialog();
+                          Navigator.of(context).push(PageRouteBuilder(
+                            transitionDuration: Duration(milliseconds: 400),
+                            pageBuilder:
+                                (context, animation, secondaryAnimation) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: AktifDetailTabunganBergilir(),
+                              );
+                            },
+                          ));
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.yellow.shade700,
@@ -126,7 +247,7 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                           ),
                         ),
                         child: Text(
-                          'Ya',
+                          'OK',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Color(0XFF1F597F),
@@ -136,83 +257,12 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Container(
-            width: 256,
-            height: 256,
-            padding: const EdgeInsets.all(15),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'DIGI Mobile',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w100,
-                    color: Colors.black,
-                  ),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  'Aktivasi Tabungan Bergilir Telah Berhasil di lakukan!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.normal,
-                    color: Colors.black,
-                  ),
-                ),
-                SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 37,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                                AktifDetailTabunganBergilir()),
-                        (Route<dynamic> route) => false,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.yellow.shade700,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      'OK',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0XFF1F597F),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+          );
+        },
+      );
+    });
   }
 
   void _showPeriodePenagihanModal() {
@@ -491,6 +541,7 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                     fillColor: Colors.blue.shade50,
                     filled: true,
                     hintText: 'Tentukan Nominal Tabungan Bergilir',
+                    helperText: 'Nominal minimal adalah Rp 5.000.000',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none,
@@ -509,32 +560,44 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                   ],
                   onChanged: (value) {
                     setState(() {
-                      if (_jumlahAnggotaController.text.isNotEmpty) {
-                        int anggota = int.parse(_jumlahAnggotaController.text);
+                      try {
+                        // Parsing angka dengan validasi tambahan
                         if (value.isNotEmpty &&
-                            double.tryParse(
-                                    value.replaceAll(RegExp(r'[^0-9]'), '')) !=
-                                null) {
-                          double nominal = double.parse(
+                            _jumlahAnggotaController.text.isNotEmpty) {
+                          final nominal = double.parse(
                               value.replaceAll(RegExp(r'[^0-9]'), ''));
-                          _jumlahPenagihanController.text = _formatCurrency(
-                              (nominal / anggota).toStringAsFixed(0));
+                          final anggota =
+                              int.parse(_jumlahAnggotaController.text);
+
+                          if (anggota > 0) {
+                            _jumlahPenagihanController.text = _formatCurrency(
+                                (nominal / anggota).toStringAsFixed(0));
+                          }
                         }
+                      } catch (e) {
+                        // Menangani error parsing
+                        debugPrint("Error parsing nominal: $e");
+                        _jumlahPenagihanController.text = '';
                       }
                     });
                   },
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Mohon isi Nominal Tabungan Bergilir';
-                    }
-                    if (double.tryParse(
-                            value.replaceAll(RegExp(r'[^0-9]'), '')) ==
-                        null) {
-                      return 'Mohon masukkan nominal yang valid';
+                    try {
+                      if (value == null || value.isEmpty) {
+                        return 'Nominal tabungan tidak boleh kosong';
+                      }
+                      final nominal =
+                          double.parse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+                      if (nominal < 5000000) {
+                        return 'Nominal minimal adalah Rp 5.000.000';
+                      }
+                    } catch (e) {
+                      return 'Input tidak valid, masukkan angka saja';
                     }
                     return null;
                   },
                 ),
+
                 SizedBox(height: 16),
                 // Periode & Tanggal Penagihan
                 Text(

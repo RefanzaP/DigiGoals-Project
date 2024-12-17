@@ -13,6 +13,40 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
   final _namaTabunganController = TextEditingController();
   bool _isLoading = false;
 
+  Future<void> _submitToDatabase() async {
+    try {
+      // Simulasi pengiriman data ke database
+      await Future.delayed(Duration(seconds: 1));
+      // TODO: Implementasi logika penyimpanan ke database
+      print("Nama Tabungan Bergilir: ${_namaTabunganController.text}");
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengirim data, coba lagi.'),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _navigateToDetailTabungan() async {
+    await _submitToDatabase();
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailTabunganBergilir(),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _namaTabunganController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -34,6 +68,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
             titleSpacing: 16,
             leading: IconButton(
               icon: Icon(Icons.arrow_back, color: Colors.white),
+              tooltip: 'Kembali',
               onPressed: () {
                 Navigator.pop(context);
               },
@@ -106,21 +141,17 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
               child: ElevatedButton(
                 onPressed: _isLoading
                     ? null
-                    : () {
+                    : () async {
                         if (_formKey.currentState!.validate()) {
                           setState(() {
                             _isLoading = true;
                           });
-                          Future.delayed(Duration(seconds: 1), () {
+                          await _navigateToDetailTabungan();
+                          if (mounted) {
                             setState(() {
                               _isLoading = false;
                             });
-                            Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        DetailTabunganBergilir()));
-                          });
+                          }
                         }
                       },
                 style: ElevatedButton.styleFrom(

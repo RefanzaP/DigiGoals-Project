@@ -1,5 +1,4 @@
 // import 'theme/theme.dart';
-
 import 'package:digigoals_app/SplashScreen.dart';
 import 'package:flutter/material.dart';
 

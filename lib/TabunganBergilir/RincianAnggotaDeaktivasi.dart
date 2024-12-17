@@ -1,6 +1,7 @@
 import 'package:digigoals_app/TabunganBergilir/UndangAnggotaBergilir.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:shimmer/shimmer.dart';
 
 class RincianAnggotaDeaktivasi extends StatefulWidget {
   const RincianAnggotaDeaktivasi({super.key});
@@ -13,6 +14,8 @@ class RincianAnggotaDeaktivasi extends StatefulWidget {
 class _RincianAnggotaDeaktivasiState extends State<RincianAnggotaDeaktivasi> {
   List<Map<String, dynamic>> members = [];
   bool isLoading = true;
+  String tabunganName = "Gudang Garam Jaya 🔥";
+  int jumlahAnggota = 5;
 
   @override
   void initState() {
@@ -64,6 +67,25 @@ class _RincianAnggotaDeaktivasiState extends State<RincianAnggotaDeaktivasi> {
     });
   }
 
+  Future<void> fetchDataFromDatabase() async {
+    // Example placeholder for fetching data in the future
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      // Simulated API/database fetch
+      await Future.delayed(Duration(seconds: 2));
+      // Replace with real data fetching logic
+      tabunganName = "Gudang Garam Jaya";
+      jumlahAnggota = members.length;
+      isLoading = false;
+    } catch (e) {
+      isLoading = false;
+      // Handle error state
+    }
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -109,7 +131,7 @@ class _RincianAnggotaDeaktivasiState extends State<RincianAnggotaDeaktivasi> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -117,23 +139,27 @@ class _RincianAnggotaDeaktivasiState extends State<RincianAnggotaDeaktivasi> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Flexible(
-                  child: Text(
-                    'Gudang Garam Jaya 🔥',
-                    style: TextStyle(
-                      fontSize: isSmallScreen ? 20 : 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: isLoading
+                      ? _buildShimmerLoader(height: 24, width: 200)
+                      : Text(
+                          tabunganName,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 20 : 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => UndanganAnggotaBergilir(),
-                      ),
-                    );
-                  },
+                  onPressed: isLoading
+                      ? null
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => UndanganAnggotaBergilir(),
+                            ),
+                          );
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amber,
                     shape: RoundedRectangleBorder(
@@ -141,26 +167,44 @@ class _RincianAnggotaDeaktivasiState extends State<RincianAnggotaDeaktivasi> {
                     ),
                     textStyle: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: isSmallScreen ? 12 : 14,
+                      fontSize: 14,
                     ),
                   ),
-                  child: const Text('Undang'),
+                  child: isLoading
+                      ? Shimmer.fromColors(
+                          baseColor: Colors.grey[300]!,
+                          highlightColor: Colors.grey[100]!,
+                          child: Container(
+                            height: 20,
+                            width: 60,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Undang'),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              '${members.length} Anggota Bergabung',
-              style: TextStyle(
-                fontSize: isSmallScreen ? 14 : 16,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 24),
+            isLoading
+                ? _buildShimmerLoader(height: 16, width: 150)
+                : Text(
+                    '$jumlahAnggota Anggota Bergabung',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 14 : 16,
+                      color: Colors.grey,
+                    ),
+                  ),
+            const SizedBox(height: 12),
             Expanded(
               child: isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(),
+                  ? ListView.builder(
+                      itemCount: 5,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: _buildShimmerLoader(
+                              height: 80, width: double.infinity),
+                        );
+                      },
                     )
                   : ListView.builder(
                       itemCount: members.length,
@@ -184,18 +228,33 @@ class _RincianAnggotaDeaktivasiState extends State<RincianAnggotaDeaktivasi> {
     );
   }
 
+  Widget _buildShimmerLoader({required double height, required double width}) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        height: height,
+        width: width,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMemberTile(BuildContext context, String name, String id,
       String role, String subtitle, Color color, bool isSmallScreen) {
     return Card(
       color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
       ),
       shadowColor: Colors.black.withOpacity(0.5),
       elevation: 4,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
         child: Column(
           children: [
             Row(
@@ -318,7 +377,7 @@ class DeleteConfirmationDialog extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18,
-                fontWeight: FontWeight.w100,
+                fontWeight: FontWeight.bold,
                 color: Colors.black,
               ),
             ),

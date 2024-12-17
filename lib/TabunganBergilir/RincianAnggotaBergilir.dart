@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:shimmer/shimmer.dart';
 
 class RincianAnggotaBergilir extends StatefulWidget {
   const RincianAnggotaBergilir({super.key});
@@ -11,6 +12,8 @@ class RincianAnggotaBergilir extends StatefulWidget {
 class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
   List<Map<String, dynamic>> members = [];
   bool isLoading = true;
+  String tabunganName = "Gudang Garam Jaya 🔥";
+  int jumlahAnggota = 5;
 
   @override
   void initState() {
@@ -107,7 +110,7 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -115,29 +118,40 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Flexible(
-                  child: Text(
-                    'Gudang Garam Jaya 🔥',
-                    style: TextStyle(
-                      fontSize: isSmallScreen ? 20 : 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: isLoading
+                      ? _buildShimmerLoader(height: 24, width: 200)
+                      : Text(
+                          tabunganName,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 20 : 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              '${members.length} Anggota Bergabung',
-              style: TextStyle(
-                fontSize: isSmallScreen ? 14 : 16,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 24),
+            isLoading
+                ? _buildShimmerLoader(height: 16, width: 150)
+                : Text(
+                    '$jumlahAnggota Anggota Bergabung',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 14 : 16,
+                      color: Colors.grey,
+                    ),
+                  ),
+            const SizedBox(height: 12),
             Expanded(
               child: isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(),
+                  ? ListView.builder(
+                      itemCount: 5,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: _buildShimmerLoader(
+                              height: 80, width: double.infinity),
+                        );
+                      },
                     )
                   : ListView.builder(
                       itemCount: members.length,
@@ -161,18 +175,33 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
     );
   }
 
+  Widget _buildShimmerLoader({required double height, required double width}) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        height: height,
+        width: width,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMemberTile(BuildContext context, String name, String id,
       String role, String subtitle, Color color, bool isSmallScreen) {
     return Card(
       color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
       ),
       shadowColor: Colors.black.withOpacity(0.5),
       elevation: 4,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
         child: Column(
           children: [
             Row(
@@ -233,6 +262,15 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
                     ],
                   ),
                 ),
+                // role != 'Pemilik'
+                //     ? IconButton(
+                //         icon: const Icon(Icons.delete, color: Colors.red),
+                //         onPressed: null, // Di-comment atau nonaktif
+                //       )
+                //     //  onPressed: () {
+                //     //    _showDeleteConfirmationDialog(name);
+                //     //  },
+                //     : const SizedBox.shrink(),
               ],
             ),
           ],

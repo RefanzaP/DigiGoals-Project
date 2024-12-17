@@ -10,7 +10,6 @@ class KonfirmasiUndangan extends StatefulWidget {
 
 class _KonfirmasiUndanganState extends State<KonfirmasiUndangan> {
   final _formKey = GlobalKey<FormState>();
-  final _namaTabunganController = TextEditingController();
 
   // Function to show the pop-up dialog
   void _showConfirmationDialog() {
