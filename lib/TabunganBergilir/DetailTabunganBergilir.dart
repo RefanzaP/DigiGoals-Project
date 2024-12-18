@@ -3,6 +3,7 @@ import 'package:digigoals_app/TabunganBergilir/DetailTargetTabunganBergilir.dart
 import 'package:digigoals_app/TabunganBergilir/GilirTabungan.dart';
 import 'package:digigoals_app/TabunganBergilir/RincianAnggotaBergilir.dart';
 import 'package:digigoals_app/TabunganBergilir/TambahUangBergilir.dart';
+import 'package:digigoals_app/TabunganBergilir/TarikUangBergilir.dart';
 import 'package:digigoals_app/TabunganBergilir/UndangAnggotaBergilir.dart';
 import 'package:digigoals_app/OurGoals.dart';
 import 'package:flutter/material.dart';
@@ -1232,7 +1233,15 @@ class _AktifDetailTabunganBergilirState
                         width: double.infinity,
                         height: 48,
                         child: OutlinedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push<void>(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (BuildContext context) =>
+                                    const TarikUangBergilir(),
+                              ),
+                            );
+                          },
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: Colors.yellow.shade700),
                             shape: RoundedRectangleBorder(

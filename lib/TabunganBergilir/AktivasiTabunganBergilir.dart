@@ -14,7 +14,7 @@ class AktivasiTabunganBergilir extends StatefulWidget {
 class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
   final _formKey = GlobalKey<FormState>();
   final _nominalController = TextEditingController();
-  final _jumlahAnggotaController = TextEditingController();
+  final _jumlahAnggotaController = TextEditingController(text: '5');
   final _durasiTabunganController = TextEditingController();
   final _periodeTabunganController = TextEditingController();
   final _jumlahPenagihanController = TextEditingController();
@@ -43,6 +43,40 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
     } catch (e) {
       return value;
     }
+  }
+
+  void _updateJumlahAnggota(int delta) {
+    setState(() {
+      int currentValue = int.parse(_jumlahAnggotaController.text);
+      currentValue += delta;
+      if (currentValue >= 5 && currentValue <= 25) {
+        _jumlahAnggotaController.text = currentValue.toString();
+        if (_nominalController.text.isNotEmpty) {
+          final nominal = double.parse(
+              _nominalController.text.replaceAll(RegExp(r'[^0-9]'), ''));
+          _jumlahPenagihanController.text =
+              _formatCurrency((nominal / currentValue).toStringAsFixed(0));
+        }
+        if (isWeeklyEnabled) {
+          _durasiTabunganController.text =
+              '${currentValue * (int.tryParse(_selectedWeek?.split(" ")[0] ?? "1") ?? 1)} minggu';
+        } else {
+          _durasiTabunganController.text = '$currentValue bulan';
+        }
+      }
+    });
+  }
+
+  void _updateDurasiTabungan() {
+    setState(() {
+      int anggota = int.parse(_jumlahAnggotaController.text);
+      if (isWeeklyEnabled && _selectedWeek != null) {
+        int weeks = int.parse(_selectedWeek!.split(' ')[0]);
+        _durasiTabunganController.text = '${anggota * weeks} minggu';
+      } else {
+        _durasiTabunganController.text = '${anggota} bulan';
+      }
+    });
   }
 
   void _showConfirmationDialog() {
@@ -301,6 +335,7 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                                     setModalState(() {
                                       _selectedWeek = value;
                                     });
+                                    _updateDurasiTabungan();
                                   }
                                 : null,
                             decoration: InputDecoration(
@@ -334,6 +369,7 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                               if (isWeeklyEnabled) {
                                 isDateEnabled = false;
                               }
+                              _updateDurasiTabungan();
                             });
                           },
                         ),
@@ -635,49 +671,43 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                   ),
                 ),
                 SizedBox(height: 10),
-                TextFormField(
-                  controller: _jumlahAnggotaController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    fillColor: Colors.blue.shade50,
-                    filled: true,
-                    hintText: 'Jumlah Anggota',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.remove_circle_outline),
+                      onPressed: () => _updateJumlahAnggota(-1),
                     ),
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      if (isWeeklyEnabled &&
-                          _selectedWeek != null &&
-                          value.isNotEmpty) {
-                        int weeks = int.parse(_selectedWeek!.split(' ')[0]);
-                        int anggota = int.parse(value);
-                        _durasiTabunganController.text =
-                            '${weeks * anggota} minggu';
-                      } else if (isDateEnabled &&
-                          _selectedDate != null &&
-                          value.isNotEmpty) {
-                        int anggota = int.parse(value);
-                        _durasiTabunganController.text = '$anggota bulan';
-                      } else {
-                        _durasiTabunganController.text = '';
-                      }
-                      if (_nominalController.text.isNotEmpty) {
-                        double nominal = double.parse(_nominalController.text
-                            .replaceAll(RegExp(r'[^0-9]'), ''));
-                        _jumlahPenagihanController.text = _formatCurrency(
-                            (nominal / int.parse(value)).toStringAsFixed(0));
-                      }
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Mohon isi Jumlah Anggota';
-                    }
-                    return null;
-                  },
+                    Expanded(
+                      child: TextFormField(
+                        controller: _jumlahAnggotaController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          fillColor: Colors.blue.shade50,
+                          filled: true,
+                          hintText: 'Jumlah Anggota',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        readOnly: true,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Mohon isi Jumlah Anggota';
+                          }
+                          final intValue = int.parse(value);
+                          if (intValue < 5 || intValue > 25) {
+                            return 'Jumlah Anggota harus antara 5-25';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.add_circle_outline),
+                      onPressed: () => _updateJumlahAnggota(1),
+                    ),
+                  ],
                 ),
                 SizedBox(height: 16),
                 // Durasi Tabungan Bergilir

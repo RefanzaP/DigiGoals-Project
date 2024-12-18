@@ -16,7 +16,7 @@ class _BerandaState extends State<Beranda> {
       create: (_) => BerandaState(),
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Color(0xFF007CC3), // Warna biru sesuai referensi
+          backgroundColor: Colors.blue.shade700, // Warna biru sesuai referensi
           elevation: 0,
           leading: Container(
             margin: EdgeInsets.all(22),

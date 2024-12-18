@@ -4,14 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import 'dart:math';
 
-class TambahUangBergilir extends StatefulWidget {
-  const TambahUangBergilir({super.key});
+class TarikUangBergilir extends StatefulWidget {
+  const TarikUangBergilir({super.key});
 
   @override
-  _TambahUangBergilirState createState() => _TambahUangBergilirState();
+  _TarikUangBergilirState createState() => _TarikUangBergilirState();
 }
 
-class _TambahUangBergilirState extends State<TambahUangBergilir> {
+class _TarikUangBergilirState extends State<TarikUangBergilir> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nominalController;
   late TextEditingController _waktuTransaksiController;
@@ -74,7 +74,7 @@ class _TambahUangBergilirState extends State<TambahUangBergilir> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Tambah Uang',
+          'Tarik Uang',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -102,9 +102,9 @@ class _TambahUangBergilirState extends State<TambahUangBergilir> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Nominal Tambah Uang
+                // Nominal Tarik Uang
                 Text(
-                  "Nominal Tambah Uang",
+                  "Nominal Tarik Uang",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -117,7 +117,7 @@ class _TambahUangBergilirState extends State<TambahUangBergilir> {
                   decoration: InputDecoration(
                     fillColor: Colors.blue.shade50,
                     filled: true,
-                    hintText: 'Tentukan Nominal Tambah Uang',
+                    hintText: 'Tentukan Nominal Tarik Uang',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none,
@@ -136,7 +136,7 @@ class _TambahUangBergilirState extends State<TambahUangBergilir> {
                   ],
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Nominal Tambah Uang tidak boleh kosong';
+                      return 'Nominal Tarik Uang tidak boleh kosong';
                     }
                     final nominal =
                         int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
@@ -187,7 +187,7 @@ class _TambahUangBergilirState extends State<TambahUangBergilir> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => PilihSumberDanaBergilir(
+                    builder: (context) => PilihSumberDanaTarikBergilir(
                       nominal: _nominalController.text,
                       sumberDana: 'Tabungan Tandamata',
                       saldo: 'IDR 234.567.890,00',
@@ -217,13 +217,13 @@ class _TambahUangBergilirState extends State<TambahUangBergilir> {
   }
 }
 
-class PilihSumberDanaBergilir extends StatelessWidget {
+class PilihSumberDanaTarikBergilir extends StatelessWidget {
   final String nominal;
   final String sumberDana;
   final String saldo;
   final String namaGoals;
 
-  PilihSumberDanaBergilir({
+  PilihSumberDanaTarikBergilir({
     super.key,
     required this.nominal,
     required this.sumberDana,
@@ -262,7 +262,7 @@ class PilihSumberDanaBergilir extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Tambah Uang',
+          'Tarik Uang',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -291,7 +291,7 @@ class PilihSumberDanaBergilir extends StatelessWidget {
                   radius: 24,
                   backgroundColor: Colors.white,
                   child: Icon(
-                    Icons.celebration,
+                    Icons.savings,
                     color: Colors.blue.shade700,
                     size: 28,
                   ),
@@ -472,7 +472,7 @@ class PilihSumberDanaBergilir extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Total Tambah',
+                  'Total Tarik',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey.shade600,
@@ -504,7 +504,7 @@ class PilihSumberDanaBergilir extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => KonfirmasiTambahUangBergilir(
+                      builder: (context) => KonfirmasiTarikUangBergilir(
                         nominal: nominal,
                         jenis: selectedSumberDana['jenis']!,
                         rekening: selectedSumberDana['rekening']!,
@@ -530,14 +530,14 @@ class PilihSumberDanaBergilir extends StatelessWidget {
   }
 }
 
-class KonfirmasiTambahUangBergilir extends StatelessWidget {
+class KonfirmasiTarikUangBergilir extends StatelessWidget {
   final String nominal;
   final String jenis;
   final String rekening;
   final String saldo;
   final String namaGoals;
 
-  const KonfirmasiTambahUangBergilir({
+  const KonfirmasiTarikUangBergilir({
     super.key,
     required this.nominal,
     required this.jenis,
@@ -556,7 +556,7 @@ class KonfirmasiTambahUangBergilir extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Tambah Uang',
+          'Tarik Uang',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -584,7 +584,7 @@ class KonfirmasiTambahUangBergilir extends StatelessWidget {
                   radius: 24,
                   backgroundColor: Colors.white,
                   child: Icon(
-                    Icons.celebration,
+                    Icons.savings,
                     color: Colors.blue.shade700,
                     size: 28,
                   ),
@@ -698,7 +698,7 @@ class KonfirmasiTambahUangBergilir extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Total Tambah',
+                  'Total Tarik',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey.shade600,
@@ -728,7 +728,7 @@ class KonfirmasiTambahUangBergilir extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => DetailTambahUangBergilir(
+                      builder: (context) => DetailTarikUangBergilir(
                         nominal: nominal,
                         jenis: jenis,
                         rekening: rekening,
@@ -754,7 +754,7 @@ class KonfirmasiTambahUangBergilir extends StatelessWidget {
   }
 }
 
-class DetailTambahUangBergilir extends StatelessWidget {
+class DetailTarikUangBergilir extends StatelessWidget {
   final String nominal;
   final String jenis;
   final String rekening;
@@ -766,7 +766,7 @@ class DetailTambahUangBergilir extends StatelessWidget {
   final String namaPengguna = 'ABI';
   final String tanggalTransaksi = '1 November 2024';
 
-  const DetailTambahUangBergilir({
+  const DetailTarikUangBergilir({
     super.key,
     required this.nominal,
     required this.jenis,
@@ -797,7 +797,7 @@ class DetailTambahUangBergilir extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Tambah Uang',
+          'Tarik Uang',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -886,7 +886,7 @@ class DetailTambahUangBergilir extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Nominal Tambah Uang',
+                        'Nominal Tarik Uang',
                         style: TextStyle(
                           fontSize: 13,
                         ),
@@ -933,7 +933,7 @@ class DetailTambahUangBergilir extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Total Tambah Uang',
+                        'Total Tarik Uang',
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.blue.shade900,
@@ -1030,7 +1030,7 @@ class DetailTambahUangBergilir extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => InputPin(
+                builder: (context) => InputPinTarik(
                   nominal: nominal,
                   jenis: jenis,
                   rekening: rekening,
@@ -1072,7 +1072,7 @@ class DetailTambahUangBergilir extends StatelessWidget {
   }
 }
 
-class InputPin extends StatefulWidget {
+class InputPinTarik extends StatefulWidget {
   final String nominal;
   final String jenis;
   final String rekening;
@@ -1080,7 +1080,7 @@ class InputPin extends StatefulWidget {
   final String namaGoals;
   final String jenisGoals;
 
-  const InputPin({
+  const InputPinTarik({
     super.key,
     required this.nominal,
     required this.jenis,
@@ -1091,10 +1091,10 @@ class InputPin extends StatefulWidget {
   });
 
   @override
-  _InputPinState createState() => _InputPinState();
+  _InputPinTarikState createState() => _InputPinTarikState();
 }
 
-class _InputPinState extends State<InputPin> {
+class _InputPinTarikState extends State<InputPinTarik> {
   String _pin = '';
   final int _pinLength = 6;
 
@@ -1122,7 +1122,7 @@ class _InputPinState extends State<InputPin> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => BerhasilTambahUangBergilir(
+            builder: (context) => BerhasilTarikUangBergilir(
               nominal: widget.nominal,
               jenis: widget.jenis,
               rekening: widget.rekening,
@@ -1179,40 +1179,39 @@ class _InputPinState extends State<InputPin> {
       body: Column(
         children: [
           Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.blue.shade700, Colors.blue.shade400],
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.blue.shade700, Colors.blue.shade400],
+                ),
               ),
-            ),
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 36,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                      _pinLength,
-                      (index) => Container(
-                            margin: EdgeInsets.symmetric(horizontal: 18),
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: index < _pin.length
-                                  ? Colors.amber
-                                  : Colors.grey[300],
-                            ),
-                          )),
-                ),
-                SizedBox(
-                  height: 36,
-                ),
-              ],
-            ),
-          ),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 36,
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                        _pinLength,
+                        (index) => Container(
+                              margin: EdgeInsets.symmetric(horizontal: 18),
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: index < _pin.length
+                                    ? Colors.amber
+                                    : Colors.grey[300],
+                              ),
+                            )),
+                  ),
+                  SizedBox(
+                    height: 36,
+                  ),
+                ],
+              )),
           Expanded(
             child: Container(
               padding: EdgeInsets.all(16),
@@ -1303,7 +1302,7 @@ class _InputPinState extends State<InputPin> {
   }
 }
 
-class BerhasilTambahUangBergilir extends StatelessWidget {
+class BerhasilTarikUangBergilir extends StatelessWidget {
   final String nominal;
   final String jenis;
   final String jenisGoals;
@@ -1312,7 +1311,7 @@ class BerhasilTambahUangBergilir extends StatelessWidget {
   final String tanggalTransaksi;
   final String saldo;
 
-  BerhasilTambahUangBergilir({
+  BerhasilTarikUangBergilir({
     super.key,
     required this.nominal,
     required this.jenis,
@@ -1485,7 +1484,7 @@ class BerhasilTambahUangBergilir extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Nominal Tambah Uang',
+                      'Nominal Tarik Uang',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey.shade800,
