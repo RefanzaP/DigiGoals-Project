@@ -1,6 +1,21 @@
+import 'package:digigoals_app/Inbox.dart';
 import 'package:digigoals_app/OurGoals.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:intl/intl.dart';
+
+// 1. Model Data Rekening
+class Account {
+  final String accountNumber;
+  final String accountHolder;
+  final double balance;
+
+  Account(
+      {required this.accountNumber,
+      required this.accountHolder,
+      required this.balance});
+}
 
 class Beranda extends StatefulWidget {
   const Beranda({super.key});
@@ -12,17 +27,18 @@ class Beranda extends StatefulWidget {
 class _BerandaState extends State<Beranda> {
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return ChangeNotifierProvider(
       create: (_) => BerandaState(),
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.blue.shade700, // Warna biru sesuai referensi
+          backgroundColor: Colors.blue.shade700,
           elevation: 0,
           leading: Container(
-            margin: EdgeInsets.all(22),
+            margin: const EdgeInsets.all(22),
             height: 8,
             width: 8,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.green,
               shape: BoxShape.circle,
             ),
@@ -42,8 +58,8 @@ class _BerandaState extends State<Beranda> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.blue.shade700, // Warna biru atas
-                Colors.blue.shade400, // Warna biru bawah
+                Colors.blue.shade700,
+                Colors.blue.shade400,
               ],
             ),
           ),
@@ -62,29 +78,45 @@ class _BerandaState extends State<Beranda> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'ABI',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                    Consumer<BerandaState>(
+                      builder: (context, state, _) {
+                        if (state.errorMessage != null) {
+                          return Text(
+                            state.errorMessage!,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                            ),
+                          );
+                        }
+                        return state.isLoading
+                            ? _buildShimmerText(width: 150, height: 20)
+                            : Text(
+                                state.account?.accountHolder ?? 'Nama Pengguna',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              );
+                      },
                     ),
                     Row(
                       children: [
-                        Text(
+                        const Text(
                           'Loyalty Point',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.white,
                           ),
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         ElevatedButton.icon(
                           onPressed: () {},
-                          icon: Icon(Icons.refresh,
+                          icon: const Icon(Icons.refresh,
                               color: Colors.white, size: 18),
-                          label: Text(
+                          label: const Text(
                             'Reload',
                             style: TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.bold),
@@ -95,7 +127,7 @@ class _BerandaState extends State<Beranda> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 10),
                           ),
                         ),
@@ -104,91 +136,15 @@ class _BerandaState extends State<Beranda> {
                   ],
                 ),
               ),
-              Card(
-                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8),
-                  child: Consumer<BerandaState>(
-                    builder: (_, state, __) => Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 5,
-                            ),
-                            Image.asset(
-                              'assets/icons/logo-digi-biru.png',
-                              width: 35,
-                              height: 35,
-                              fit: BoxFit.contain,
-                            ),
-                            SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '0123456789012',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  state.isSaldoVisible
-                                      ? 'IDR 1,000,000'
-                                      : 'IDR ******',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.blue.shade700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                state.isSaldoVisible
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                                color: Colors.blue,
-                              ),
-                              tooltip: 'Toggle Balance Visibility',
-                              onPressed: state.toggleSaldoVisibility,
-                            ),
-                            SizedBox(width: 5),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Color.fromARGB(255, 238, 202, 25),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: IconButton(
-                                icon: Icon(Icons.arrow_forward_ios,
-                                    size: 20, color: Colors.blue),
-                                onPressed: () {
-                                  // Navigate to account list
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              Consumer<BerandaState>(
+                builder: (context, state, _) => state.isLoading
+                    ? const AccountCardShimmer()
+                    : const AccountCard(),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Expanded(
                 child: Container(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(10),
@@ -196,18 +152,17 @@ class _BerandaState extends State<Beranda> {
                     ),
                   ),
                   child: GridView.count(
-                    crossAxisCount:
-                        MediaQuery.of(context).size.width > 600 ? 6 : 4,
+                    crossAxisCount: screenWidth > 600 ? 6 : 4,
                     mainAxisSpacing: 12.0,
                     crossAxisSpacing: 8.0,
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 10),
                     childAspectRatio: 0.838,
                     shrinkWrap: true,
-                    physics: ClampingScrollPhysics(),
+                    physics: const ClampingScrollPhysics(),
                     clipBehavior: Clip.none,
                     children: [
                       MenuItem(
-                          // icon: Icons.manage_accounts,
                           icon: Image.asset(
                               'assets/icons/manajemen-keuangan@3x.png',
                               width: 40,
@@ -215,67 +170,56 @@ class _BerandaState extends State<Beranda> {
                           label: 'Manajemen Keuangan',
                           onTap: () {}),
                       MenuItem(
-                          // icon: Icons.swap_horiz,
                           icon: Image.asset('assets/icons/transfer@3x.png',
                               width: 40, height: 40),
                           label: 'Transfer',
                           onTap: () {}),
                       MenuItem(
-                          // icon: Icons.payment,
                           icon: Image.asset('assets/icons/bayar@3x.png',
                               width: 40, height: 40),
                           label: 'Bayar',
                           onTap: () {}),
                       MenuItem(
-                          // icon: Icons.shopping_cart,
                           icon: Image.asset('assets/icons/beli@3x.png',
                               width: 40, height: 40),
                           label: 'Beli',
                           onTap: () {}),
                       MenuItem(
-                          // icon: Icons.credit_card,
                           icon: Image.asset('assets/icons/cardless@3x.png',
                               width: 40, height: 40),
                           label: 'Cardless',
                           onTap: () {}),
                       MenuItem(
-                          // icon: Icons.account_balance,
                           icon: Image.asset('assets/icons/buka-rekening@3x.png',
                               width: 40, height: 40),
                           label: 'Buka Rekening',
                           onTap: () {}),
                       MenuItem(
-                          // icon: Icons.savings,
                           icon: Image.asset('assets/icons/bjb-deposito@3x.png',
                               width: 40, height: 40),
                           label: 'bjb Deposito',
                           onTap: () {}),
                       MenuItem(
-                          // icon: Icons.compare_arrows,
                           icon: Image.asset('assets/icons/flip.png',
                               width: 40, height: 40),
                           label: 'Flip',
                           onTap: () {}),
                       MenuItem(
-                          // icon: Icons.volunteer_activism,
                           icon: Image.asset('assets/icons/donasi@3x.png',
                               width: 40, height: 40),
                           label: 'Donasi',
                           onTap: () {}),
                       MenuItem(
-                          // icon: Icons.money,
                           icon: Image.asset('assets/icons/collect-dana.png',
                               width: 40, height: 40),
                           label: 'Collect Dana',
                           onTap: () {}),
                       MenuItem(
-                          // icon: Icons.account_balance_wallet,
                           icon: Image.asset('assets/icons/pinjaman asn@3x.png',
                               width: 40, height: 40),
                           label: 'Pinjaman ASN',
                           onTap: () {}),
                       MenuItem(
-                          // icon: Icons.flag,
                           icon: Image.asset('assets/icons/our-goals.png',
                               width: 40, height: 40),
                           label: 'Our Goals',
@@ -293,7 +237,7 @@ class _BerandaState extends State<Beranda> {
           ),
         ),
         bottomNavigationBar: BottomAppBar(
-          shape: CircularNotchedRectangle(),
+          shape: const CircularNotchedRectangle(),
           notchMargin: 10,
           color: Colors.white,
           child: SizedBox(
@@ -308,7 +252,7 @@ class _BerandaState extends State<Beranda> {
                   );
                 }),
                 _buildBottomNavItem(Icons.favorite, 'Favorite'),
-                SizedBox(width: 40),
+                const SizedBox(width: 40),
                 _buildBottomNavItem(Icons.settings, 'Settings'),
                 _buildBottomNavItem(Icons.logout, 'Logout'),
               ],
@@ -317,15 +261,46 @@ class _BerandaState extends State<Beranda> {
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         floatingActionButton: FloatingActionButton(
-          shape: CircleBorder(),
-          backgroundColor: Colors.white,
+          shape: const CircleBorder(),
           elevation: 4,
           onPressed: () {},
           tooltip: 'Scan QR Code',
-          child: Icon(
-            Icons.qr_code_scanner,
-            color: Colors.black,
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  Colors.blue.shade700,
+                  Colors.blue.shade400,
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Icon(
+                Icons.qr_code_scanner,
+                color: Colors.white,
+              ),
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // Widget untuk menampilkan Shimmer
+  Widget _buildShimmerText({double? width, double? height}) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        width: width ?? 100, // Default width jika tidak ada input
+        height: height ?? 16,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(4),
         ),
       ),
     );
@@ -334,7 +309,7 @@ class _BerandaState extends State<Beranda> {
   Widget _buildIconButton(BuildContext context, IconData icon,
       VoidCallback onPressed, String tooltip) {
     return Container(
-      margin: EdgeInsets.only(right: 8),
+      margin: const EdgeInsets.only(right: 8),
       width: 36,
       height: 36,
       decoration: BoxDecoration(
@@ -345,7 +320,7 @@ class _BerandaState extends State<Beranda> {
             color: Colors.grey.withOpacity(0.2),
             spreadRadius: 1,
             blurRadius: 5,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -356,34 +331,55 @@ class _BerandaState extends State<Beranda> {
       ),
     );
   }
-}
 
-Widget _buildBottomNavItem(IconData icon, String label, [VoidCallback? onTap]) {
-  return InkWell(
-    onTap: onTap,
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          icon,
-          color: Colors.blue.shade700,
-        ),
-        SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.blue.shade700,
+  Widget _buildBottomNavItem(IconData icon, String label,
+      [VoidCallback? onTap]) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [
+                Colors.blue.shade700,
+                Colors.blue.shade400,
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ).createShader(bounds),
+            child: Icon(
+              icon,
+              color: Colors.white, // Warna harus putih agar gradient terlihat
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 4),
+          ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [
+                Colors.blue.shade700,
+                Colors.blue.shade400,
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ).createShader(bounds),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.white, // Warna harus putih agar gradient terlihat
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class MenuItem extends StatelessWidget {
-  final Widget icon; // Ganti dari IconData ke Widget
+  final Widget icon;
   final String label;
   final VoidCallback onTap;
 
@@ -402,7 +398,7 @@ class MenuItem extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(15),
@@ -411,13 +407,13 @@ class MenuItem extends StatelessWidget {
                   color: Colors.grey.withOpacity(0.3),
                   spreadRadius: 1,
                   blurRadius: 3,
-                  offset: Offset(0, 2),
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: icon, // Widget gambar atau ikon
+            child: icon,
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
             label,
             style: TextStyle(
@@ -433,13 +429,54 @@ class MenuItem extends StatelessWidget {
   }
 }
 
+// 2. BerandaState yang Diperbarui
 class BerandaState with ChangeNotifier {
+  Account? _account;
   bool isOnline = true;
   bool isSaldoVisible = false;
+  bool isLoading = true;
+  String? errorMessage;
+  late Future<void> _fetchDataFuture;
+
+  Account? get account => _account;
+  Future<void> get fetchDataFuture => _fetchDataFuture;
+
+  void setAccount(Account account) {
+    _account = account;
+    isLoading = false;
+    errorMessage = null;
+    notifyListeners();
+  }
+
+  void setError(String message) {
+    isLoading = false;
+    errorMessage = message;
+    notifyListeners();
+  }
 
   void toggleSaldoVisibility() {
     isSaldoVisible = !isSaldoVisible;
     notifyListeners();
+  }
+
+  Future<void> fetchAccountData() async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      await Future.delayed(const Duration(seconds: 1));
+      Account dummyAccount = Account(
+          accountNumber: "0123456789012",
+          accountHolder: "ABI",
+          balance: 1000000.00);
+
+      setAccount(dummyAccount);
+    } catch (e) {
+      setError("Failed to fetch account data: $e");
+    }
+  }
+
+  BerandaState() {
+    _fetchDataFuture = fetchAccountData();
   }
 }
 
@@ -448,7 +485,7 @@ class CustomSearchDelegate extends SearchDelegate {
   List<Widget> buildActions(BuildContext context) {
     return [
       IconButton(
-        icon: Icon(Icons.clear),
+        icon: const Icon(Icons.clear),
         onPressed: () {
           query = '';
         },
@@ -459,7 +496,7 @@ class CustomSearchDelegate extends SearchDelegate {
   @override
   Widget buildLeading(BuildContext context) {
     return IconButton(
-      icon: Icon(Icons.arrow_back),
+      icon: const Icon(Icons.arrow_back),
       onPressed: () {
         close(context, null);
       },
@@ -490,96 +527,185 @@ class CustomSearchDelegate extends SearchDelegate {
   }
 }
 
-class Inbox extends StatefulWidget {
-  const Inbox({super.key});
-
-  @override
-  _InboxState createState() => _InboxState();
-}
-
-class _InboxState extends State<Inbox> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  static const List<String> _tabs = ['Status Transaksi', 'Pending Transaksi'];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+// Widget Account Card
+class AccountCard extends StatelessWidget {
+  const AccountCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.blue.shade700, Colors.blue.shade400],
-            ),
-          ),
-        ),
-        elevation: 0,
-        toolbarHeight: 84,
-        titleSpacing: 16,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        title: Text(
-          'Inbox',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        centerTitle: true,
-        actions: [
-          Container(
-            margin: EdgeInsets.only(right: 16),
-            height: 12,
-            width: 12,
-            decoration: BoxDecoration(
-              color: Colors.green,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        child: Column(
-          children: [
-            TabBar(
-              controller: _tabController,
-              tabs: _tabs.map((tab) => Tab(text: tab)).toList(),
-              indicatorColor: Colors.blue,
-              indicatorWeight: 4,
-              labelColor: Colors.blue,
-              unselectedLabelColor: Colors.blue,
-              labelStyle: TextStyle(fontWeight: FontWeight.bold),
-              indicatorPadding: EdgeInsets.zero,
-            ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8),
+        child: Consumer<BerandaState>(
+          builder: (_, state, __) => Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
                 children: [
-                  _buildStatusTransaksi(),
-                  _buildPendingTransaksi(),
+                  const SizedBox(
+                    width: 5,
+                  ),
+                  Image.asset(
+                    'assets/icons/logo-digi-biru.png',
+                    width: 35,
+                    height: 35,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        state.account?.accountNumber ?? 'Nomor Rekening',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      ShaderMask(
+                        shaderCallback: (bounds) => LinearGradient(
+                          colors: [
+                            Colors.blue.shade700,
+                            Colors.blue.shade400,
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ).createShader(bounds),
+                        child: Text(
+                          state.isSaldoVisible
+                              ? NumberFormat.currency(
+                                      locale: 'id_ID',
+                                      symbol: 'IDR ',
+                                      decimalDigits: 2)
+                                  .format(state.account?.balance)
+                              : 'IDR ******',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
+              Row(
+                children: [
+                  IconButton(
+                    icon: ShaderMask(
+                      shaderCallback: (bounds) => LinearGradient(
+                        colors: [
+                          Colors.blue.shade700,
+                          Colors.blue.shade400,
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ).createShader(bounds),
+                      child: Icon(
+                        state.isSaldoVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color: Colors.white,
+                      ),
+                    ),
+                    tooltip: 'Toggle Balance Visibility',
+                    onPressed: state.toggleSaldoVisibility,
+                  ),
+                  const SizedBox(width: 5),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 238, 202, 25),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: IconButton(
+                      icon: ShaderMask(
+                        shaderCallback: (bounds) => LinearGradient(
+                          colors: [
+                            Colors.blue.shade700,
+                            Colors.blue.shade400,
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ).createShader(bounds),
+                        child: const Icon(Icons.arrow_forward_ios,
+                            size: 20, color: Colors.white),
+                      ),
+                      onPressed: () {
+                        // Navigate to account list
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class AccountCardShimmer extends StatelessWidget {
+  const AccountCardShimmer({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const SizedBox(
+                  width: 5,
+                ),
+                Image.asset(
+                  'assets/icons/logo-digi-biru.png',
+                  width: 35,
+                  height: 35,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildShimmerText(
+                        width: 120, height: 18), // Shimmer untuk nomor rekening
+                    _buildShimmerText(
+                        width: 150, height: 18), // Shimmer untuk saldo
+                  ],
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Shimmer.fromColors(
+                  baseColor: Colors.grey[300]!,
+                  highlightColor: Colors.grey[100]!,
+                  child: const Icon(
+                    Icons.visibility_off,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Shimmer.fromColors(
+                  baseColor: Colors.grey[300]!,
+                  highlightColor: Colors.grey[100]!,
+                  child: const Icon(Icons.arrow_forward_ios,
+                      size: 20, color: Colors.white),
+                ),
+              ],
             ),
           ],
         ),
@@ -587,332 +713,18 @@ class _InboxState extends State<Inbox> with SingleTickerProviderStateMixin {
     );
   }
 
-  Widget _buildStatusTransaksi() {
-    List<Map<String, String>> statusTransaksi = [];
-    return statusTransaksi.isEmpty
-        ? Center(
-            child: Text(
-              'Tidak ada Transaksi Terbaru',
-              style: TextStyle(color: Colors.grey, fontSize: 16),
-            ),
-          )
-        : ListView.builder(
-            itemCount: statusTransaksi.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                title: Text(
-                  statusTransaksi[index]['title'] ?? '',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(statusTransaksi[index]['phone'] ?? ''),
-                    Text(statusTransaksi[index]['date'] ?? ''),
-                  ],
-                ),
-                trailing: Icon(Icons.notifications, color: Colors.blue),
-              );
-            },
-          );
-  }
-
-  Widget _buildPendingTransaksi() {
-    List<Map<String, String>> pendingTransaksi = [
-      {
-        'title': 'Undangan Anggota',
-        'phone': '0123456789012',
-        'date': '01 November 2024 09:27',
-      },
-    ];
-
-    return pendingTransaksi.isEmpty
-        ? Center(
-            child: Text(
-              'Tidak ada Transaksi Terbaru',
-              style: TextStyle(color: Colors.grey, fontSize: 16),
-            ),
-          )
-        : ListView.builder(
-            itemCount: pendingTransaksi.length,
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return Dialog(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Container(
-                          width: 256,
-                          height: 256,
-                          padding: const EdgeInsets.all(15),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'DIGI Mobile',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w100,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              SizedBox(height: 20),
-                              Text(
-                                'Mengundang Anda untuk bergabung pada Goals "Pernikahan Kita 💍"',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.normal,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              SizedBox(height: 20),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 100,
-                                    height: 37,
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 8),
-                                    child: OutlinedButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                        showDialog(
-                                          context: context,
-                                          builder: (BuildContext context) {
-                                            return Dialog(
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                              ),
-                                              child: Container(
-                                                width: 256,
-                                                height: 256,
-                                                padding:
-                                                    const EdgeInsets.all(15),
-                                                child: Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Text(
-                                                      'DIGI Mobile',
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      style: TextStyle(
-                                                        fontSize: 18,
-                                                        fontWeight:
-                                                            FontWeight.w100,
-                                                        color: Colors.black,
-                                                      ),
-                                                    ),
-                                                    SizedBox(height: 20),
-                                                    Text(
-                                                      'Anda telah menolak undangan untuk bergabung pada Goals "Pernikahan Kita 💍"',
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      style: TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.normal,
-                                                        color: Colors.black,
-                                                      ),
-                                                    ),
-                                                    SizedBox(height: 20),
-                                                    SizedBox(
-                                                      width: double.infinity,
-                                                      height: 37,
-                                                      child: ElevatedButton(
-                                                        onPressed: () {
-                                                          Navigator.pop(
-                                                              context);
-                                                        },
-                                                        style: ElevatedButton
-                                                            .styleFrom(
-                                                          backgroundColor:
-                                                              Colors.yellow
-                                                                  .shade700,
-                                                          shape:
-                                                              RoundedRectangleBorder(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        8),
-                                                          ),
-                                                        ),
-                                                        child: Text(
-                                                          'OK',
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            color: Color(
-                                                                0XFF1F597F),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        );
-                                      },
-                                      style: OutlinedButton.styleFrom(
-                                        side: BorderSide(
-                                          color: Colors.yellow.shade700,
-                                          width: 2,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'Tidak',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0XFF1F597F),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    width: 100,
-                                    height: 37,
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 8),
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                        showDialog(
-                                          context: context,
-                                          builder: (BuildContext context) {
-                                            return Dialog(
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                              ),
-                                              child: Container(
-                                                width: 256,
-                                                height: 256,
-                                                padding:
-                                                    const EdgeInsets.all(15),
-                                                child: Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Text(
-                                                      'DIGI Mobile',
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      style: TextStyle(
-                                                        fontSize: 18,
-                                                        fontWeight:
-                                                            FontWeight.w100,
-                                                        color: Colors.black,
-                                                      ),
-                                                    ),
-                                                    SizedBox(height: 20),
-                                                    Text(
-                                                      'Selamat! Anda telah menjadi anggota Goals "Pernikahan Kita 💍"',
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      style: TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.normal,
-                                                        color: Colors.black,
-                                                      ),
-                                                    ),
-                                                    SizedBox(height: 20),
-                                                    SizedBox(
-                                                      width: double.infinity,
-                                                      height: 37,
-                                                      child: ElevatedButton(
-                                                        onPressed: () {
-                                                          Navigator.pop(
-                                                              context);
-                                                        },
-                                                        style: ElevatedButton
-                                                            .styleFrom(
-                                                          backgroundColor:
-                                                              Colors.yellow
-                                                                  .shade700,
-                                                          shape:
-                                                              RoundedRectangleBorder(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        8),
-                                                          ),
-                                                        ),
-                                                        child: Text(
-                                                          'OK',
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            color: Color(
-                                                                0XFF1F597F),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        );
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.yellow.shade700,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'Ya',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0XFF1F597F),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-                child: ListTile(
-                  title: Text(
-                    pendingTransaksi[index]['title'] ?? '',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(pendingTransaksi[index]['phone'] ?? ''),
-                      Text(pendingTransaksi[index]['date'] ?? ''),
-                    ],
-                  ),
-                  trailing: Icon(Icons.notifications, color: Colors.blue),
-                ),
-              );
-            },
-          );
+  Widget _buildShimmerText({double? width, double? height}) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        width: width ?? 100,
+        height: height ?? 16,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
+    );
   }
 }
