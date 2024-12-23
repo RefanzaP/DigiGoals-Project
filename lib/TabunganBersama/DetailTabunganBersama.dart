@@ -1,3 +1,4 @@
+import 'package:digigoals_app/TabunganBersama/RincianAnggotaBersama.dart';
 import 'package:digigoals_app/TabunganBersama/TambahUang.dart';
 import 'package:digigoals_app/TabunganBersama/UndangAnggotaBersama.dart';
 import 'package:flutter/material.dart';
@@ -201,7 +202,7 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                         Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => NextPage()));
+                                builder: (context) => RincianAnggotaBersama()));
                       },
                       child: Container(
                         margin: EdgeInsets.symmetric(horizontal: 20),
