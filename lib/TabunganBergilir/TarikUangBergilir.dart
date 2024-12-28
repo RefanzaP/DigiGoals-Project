@@ -1311,7 +1311,7 @@ class BerhasilTarikUangBergilir extends StatelessWidget {
   final String tanggalTransaksi;
   final String saldo;
 
-  BerhasilTarikUangBergilir({
+  const BerhasilTarikUangBergilir({
     super.key,
     required this.nominal,
     required this.jenis,
