@@ -1,8 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:math';
+
+class Account {
+  final String namaRekening;
+  final String nomorRekening;
+  Account({
+    required this.namaRekening,
+    required this.nomorRekening,
+  });
+}
 
 class DetailTargetTabunganBergilir extends StatefulWidget {
-  const DetailTargetTabunganBergilir({super.key});
+  final Map<String, dynamic> goalsData;
+  final bool isActive;
+
+  const DetailTargetTabunganBergilir({
+    super.key,
+    required this.goalsData,
+    required this.isActive,
+  });
 
   @override
   State<DetailTargetTabunganBergilir> createState() =>
@@ -14,75 +31,95 @@ class _DetailTargetTabunganBergilirState
   List<Map<String, dynamic>> anggotaData = [];
   List<Map<String, dynamic>> filteredData = [];
   String selectedFilter = 'None';
-  double targetTotal = 100000000;
+  late double targetTotal;
+  late double saldoTabungan;
   bool isLoading = true;
+  late String goalsName;
+  late String statusTabungan;
+  late double progressTabungan;
+  late String durasiTabungan;
+  late List<String> members;
+  late List<Map<String, dynamic>> historiTransaksi;
+  late String memberName;
+  late List<String> _allMembers;
+
+  final _dummyAccountData = Account(
+    namaRekening: "ABI",
+    nomorRekening: '0123456789012',
+  );
 
   @override
   void initState() {
     super.initState();
+    _initializeData();
     _fetchData();
+  }
+
+  void _initializeData() {
+    goalsName = widget.goalsData['goalsName'];
+    saldoTabungan = widget.goalsData['saldoTabungan'];
+    statusTabungan = widget.isActive ? 'Aktif' : 'Tidak Aktif';
+    progressTabungan = widget.goalsData['progressTabungan'];
+    targetTotal = widget.goalsData['targetTabungan'];
+    durasiTabungan = widget.goalsData['durasiTabungan'];
+    members = List<String>.from(widget.goalsData['members']);
+    historiTransaksi =
+        List<Map<String, dynamic>>.from(widget.goalsData['transactions']);
+    memberName = widget.goalsData['members'].first;
+    _allMembers = [_dummyAccountData.namaRekening, ...members];
   }
 
   Future<void> _fetchData() async {
     try {
       setState(() => isLoading = true);
-      // Placeholder for fetching data from any source (API, SQLite, Firestore, etc.)
-      // Replace this part when integrating with a specific database
       await Future.delayed(
-          Duration(seconds: 2)); // Simulate network or DB delay
+          const Duration(seconds: 1)); // Simulate network or DB delay
 
-      // Sample static data for now
-      anggotaData = [
-        {
-          'name': 'ABI',
-          'id': '0123456789001',
-          'role': 'Pemilik',
-          'color': Colors.blue,
-          'amount': 10000000,
-          'status': 'Belum Lunas'
-        },
-        {
-          'name': 'INTAN',
-          'id': '0123456789002',
-          'role': 'Anggota',
-          'color': Colors.orange,
-          'amount': 5000000,
-          'status': 'Lunas'
-        },
-        {
-          'name': 'UMI',
-          'id': '0123456789003',
-          'role': 'Anggota',
-          'color': Colors.pink,
-          'amount': 10000000,
-          'status': 'Belum Lunas'
-        },
-        {
-          'name': 'EDI',
-          'id': '0123456789004',
-          'role': 'Anggota',
-          'color': Colors.purple,
-          'amount': 2000000,
-          'status': 'Lunas'
-        },
-        {
-          'name': 'OMEN',
-          'id': '0123456789005',
-          'role': 'Anggota',
-          'color': Colors.deepOrange,
-          'amount': 10000000,
-          'status': 'Belum Lunas'
-        },
-      ];
+      // Calculate the total target per member (including the owner/dummy account)
+      final double targetPerMember = targetTotal / _allMembers.length;
 
+      anggotaData = _allMembers.map((member) {
+        double amount = 0;
+        String nomerRekening = _generateRandomAccountNumber();
+
+        if (member == _dummyAccountData.namaRekening) {
+          amount = saldoTabungan * progressTabungan;
+          nomerRekening = _dummyAccountData.nomorRekening;
+        } else {
+          amount = targetPerMember * progressTabungan;
+        }
+
+        return {
+          'name': member,
+          'id': nomerRekening,
+          'role':
+              member == _dummyAccountData.namaRekening ? 'Pemilik' : 'Anggota',
+          'color': _generateRandomColor(), // Generate random color
+          'amount': amount,
+          'status': (amount >= targetPerMember) ? 'Lunas' : 'Belum Lunas',
+        };
+      }).toList();
       setState(() {
         filteredData = List.from(anggotaData);
         isLoading = false;
       });
     } catch (e) {
-      print('Error fetching data: $e');
       setState(() => isLoading = false);
     }
+  }
+
+  String _generateRandomAccountNumber() {
+    Random random = Random();
+    String accountNumber = '';
+    for (int i = 0; i < 15; i++) {
+      accountNumber += random.nextInt(10).toString();
+    }
+    return accountNumber;
+  }
+
+  Color _generateRandomColor() {
+    // Generate a random color
+    return Color((Random().nextDouble() * 0xFFFFFF).toInt()).withOpacity(1.0);
   }
 
   void _filterAnggota(String query) {
@@ -125,20 +162,15 @@ class _DetailTargetTabunganBergilirState
     });
   }
 
-  String _formatCurrency(int amount) {
+  String _formatCurrency(double amount) {
     return NumberFormat.currency(locale: 'id', symbol: 'Rp. ', decimalDigits: 0)
-        .format(amount);
-  }
-
-  double _calculateProgress() {
-    double totalContributed =
-        anggotaData.fold(0, (sum, item) => sum + item['amount']);
-    return totalContributed / targetTotal;
+        .format(amount.round());
   }
 
   @override
   Widget build(BuildContext context) {
-    double overallProgress = _calculateProgress();
+    double overallProgress = progressTabungan;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -223,7 +255,7 @@ class _DetailTargetTabunganBergilirState
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    '${_formatCurrency((overallProgress * targetTotal).toInt())} / ${_formatCurrency(targetTotal.toInt())}',
+                    '${_formatCurrency((overallProgress * targetTotal))} / ${_formatCurrency(targetTotal)}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -339,15 +371,15 @@ class _DetailTargetTabunganBergilirState
               ],
             ),
             const SizedBox(height: 16),
-            // Daftar anggota
             Expanded(
               child: isLoading
-                  ? Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
                       itemCount: filteredData.length,
                       itemBuilder: (context, index) {
                         final anggota = filteredData[index];
-                        double progress = anggota['amount'] / targetTotal;
+                        double progress = anggota['amount'] /
+                            (targetTotal / _allMembers.length);
                         return Card(
                           color: Colors.white,
                           elevation: 1,
@@ -413,7 +445,7 @@ class _DetailTargetTabunganBergilirState
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  '${_formatCurrency(anggota['amount'])} / ${_formatCurrency(targetTotal.toInt())}',
+                                  '${_formatCurrency(anggota['amount'])} / ${_formatCurrency(targetTotal / _allMembers.length)}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 18,
@@ -451,10 +483,9 @@ class _DetailTargetTabunganBergilirState
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      '${(progress * 100).toStringAsFixed(1)}% Tercapai',
-                                      style: const TextStyle(
-                                          fontSize: 12, color: Colors.grey),
-                                    ),
+                                        '${(progress * 100).toStringAsFixed(1)}% Tercapai',
+                                        style: const TextStyle(
+                                            fontSize: 12, color: Colors.grey)),
                                     Text(
                                       anggota['status'],
                                       style: TextStyle(

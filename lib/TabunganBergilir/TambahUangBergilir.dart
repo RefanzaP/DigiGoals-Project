@@ -1312,7 +1312,7 @@ class BerhasilTambahUangBergilir extends StatelessWidget {
   final String tanggalTransaksi;
   final String saldo;
 
-  BerhasilTambahUangBergilir({
+  const BerhasilTambahUangBergilir({
     super.key,
     required this.nominal,
     required this.jenis,

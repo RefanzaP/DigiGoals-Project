@@ -86,9 +86,10 @@ class _PilihGoalsState extends State<PilihGoals> {
         if (_isLoading)
           Container(
             color: Colors.black.withOpacity(0.5),
-            child: const Center(
+            child: Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(Colors.yellow.shade700),
               ),
             ),
           )

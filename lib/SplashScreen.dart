@@ -1,6 +1,6 @@
+import 'package:digigoals_app/LoginDigi.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'Beranda.dart';
 
 class MySplash extends StatelessWidget {
   const MySplash({super.key});
@@ -40,7 +40,7 @@ class _SplashScreenState extends State<SplashScreen>
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => Beranda(),
+          pageBuilder: (context, animation, secondaryAnimation) => LoginDigi(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(
               opacity: animation,

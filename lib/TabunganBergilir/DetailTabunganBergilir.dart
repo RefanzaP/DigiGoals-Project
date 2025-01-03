@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:digigoals_app/TabunganBergilir/AktivasiTabunganBergilir.dart';
 import 'package:digigoals_app/TabunganBergilir/DetailTargetTabunganBergilir.dart';
 import 'package:digigoals_app/TabunganBergilir/GilirTabungan.dart';
@@ -6,9 +8,17 @@ import 'package:digigoals_app/TabunganBergilir/TambahUangBergilir.dart';
 import 'package:digigoals_app/TabunganBergilir/TarikUangBergilir.dart';
 import 'package:digigoals_app/TabunganBergilir/UndangAnggotaBergilir.dart';
 import 'package:digigoals_app/OurGoals.dart';
-import 'package:digigoals_app/data/goal_data.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+
+class Account {
+  final String namaRekening;
+
+  Account({
+    required this.namaRekening,
+  });
+}
 
 class DetailTabunganBergilir extends StatefulWidget {
   final bool isActive;
@@ -20,21 +30,34 @@ class DetailTabunganBergilir extends StatefulWidget {
 }
 
 class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
-  final TextEditingController searchController = TextEditingController();
-  final TextEditingController _tabunganNameController = TextEditingController();
+  final TextEditingController cariTransaksiController = TextEditingController();
+  final TextEditingController _goalsNameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  List<String> members = [];
-  List<Map<String, dynamic>> transactions = [];
   bool isLoading = true;
-  String? _tabunganNameError;
+  String? _goalsNameError;
 
-  late String tabunganName;
-  late String saldo;
-  late String status;
-  double targetProgress = 0.0;
-  String targetAmount = 'Rp. 0';
-  String targetDuration = '0 Bulan';
-  Map<String, dynamic>? _goalData; // Menyimpan data goal
+  late String goalsName;
+  late double saldoTabungan;
+  late String statusTabungan;
+  double progressTabungan = 0.0;
+  late double targetSaldoTabungan;
+  String? durasiTabungan;
+  List<String> members = [];
+  List<Map<String, dynamic>> historiTransaksi = [];
+  late String memberName;
+  Map<String, dynamic> _goalsData = {};
+
+  late List<String> _allMembers;
+
+  // Format mata uang Rupiah dengan IDR
+  final NumberFormat currencyFormat = NumberFormat.currency(
+    locale: 'id_ID',
+    symbol: 'IDR ',
+    decimalDigits: 2,
+  );
+
+  // Format tanggal
+  final DateFormat dateFormat = DateFormat('dd MMM yyyy');
 
   @override
   void initState() {
@@ -47,63 +70,59 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
       isLoading = true;
     });
 
+    // Simulate loading
     await Future.delayed(const Duration(seconds: 2));
 
-    final data = await _getTabunganData();
-    if (data != null) {
-      setState(() {
-        _goalData = data; // Simpan data goal
-        tabunganName = data['goalName'] ?? 'Gudang Garam Jaya 🔥';
-        _tabunganNameController.text = tabunganName;
-        saldo = data['saldo'] ?? 'IDR 0,00';
-        status = data['status'] ?? (widget.isActive ? 'Aktif' : 'Tidak Aktif');
-        targetProgress = data['progress'] ?? 0.0;
-        targetAmount = data['targetAmount'] ?? 'Rp. 100.000.000';
-        targetDuration = data['targetDuration'] ?? '5 Bulan';
-        members = (data['members'] as List<dynamic>?)
-                ?.map((member) => member['name'] as String)
-                .toList() ??
-            [];
-        transactions = (data['transactions'] as List<dynamic>?)
-                ?.map((transaction) => transaction as Map<String, dynamic>)
-                .toList() ??
-            [];
-        isLoading = false;
-      });
-    } else {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to load tabungan data.'),
-        ),
-      );
-    }
-  }
-
-  Future<Map<String, dynamic>?> _getTabunganData() async {
-    try {
-      final goals = await fetchGoalsFromApiOrDatabase();
-      // Ambil data goal berdasarkan nama tabungan yang dikirim dari BuatTabunganBergilir
-      // Mengambil data terakhir karena data baru akan berada di akhir list setelah di buat
-      final tabunganData = goals.lastWhere(
-        (goal) => goal['type'] == 'Tabungan Bergilir',
-      );
-      return tabunganData;
-    } catch (e) {
-      print('Error fetching tabungan data: $e');
-      return null;
-    }
+    // Static data for demonstration
+    _goalsData = {
+      'goalsName': 'Gudang Garam Jaya 🔥',
+      'goalsType': 'Tabungan Bergilir',
+      'creationDate': '24-05-2024',
+      'members': ['Fafa', 'Gina', 'Hani', 'Olaf'],
+      'saldoTabungan': 20000000.00,
+      'statusTabungan': widget.isActive ? 'Aktif' : 'Tidak Aktif',
+      'progressTabungan': 0.4,
+      'targetTabungan': 50000000.00,
+      'durasiTabungan': '5 Bulan',
+      'transactions': [
+        {
+          'jenisTransaksi': 'Setoran',
+          'tanggalTransaksi': DateTime(2024, 12, 10),
+          'jumlahTransaksi': 500000.00
+        },
+        {
+          'jenisTransaksi': 'Penarikan',
+          'tanggalTransaksi': DateTime(2024, 12, 12),
+          'jumlahTransaksi': 300000.00,
+        },
+      ],
+    };
+    // Initialize data from the static data
+    setState(() {
+      goalsName = _goalsData['goalsName'];
+      _goalsNameController.text = goalsName;
+      saldoTabungan = _goalsData['saldoTabungan'];
+      statusTabungan = _goalsData['statusTabungan'];
+      progressTabungan = _goalsData['progressTabungan'];
+      targetSaldoTabungan = _goalsData['targetTabungan'];
+      durasiTabungan = _goalsData['durasiTabungan'];
+      members = List<String>.from(_goalsData['members']);
+      historiTransaksi =
+          List<Map<String, dynamic>>.from(_goalsData['transactions']);
+      isLoading = false;
+      memberName = _goalsData['members'].first;
+      _allMembers = List<String>.from(members);
+    });
   }
 
   @override
   void dispose() {
-    searchController.dispose();
-    _tabunganNameController.dispose();
+    cariTransaksiController.dispose();
+    _goalsNameController.dispose();
     super.dispose();
   }
 
+  /// Menampilkan modal bottom sheet untuk pengaturan tabungan.
   void _showSettingsModal() {
     showModalBottomSheet(
       context: context,
@@ -179,7 +198,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                             widget.isActive
                                 ? 'Deaktivasi Tabungan Bergilir'
                                 : 'Hapus Tabungan Bergilir',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -203,7 +222,10 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
     );
   }
 
+  /// Menampilkan modal bottom sheet untuk edit nama tabungan.
   void _showEditTabunganModal() {
+    _goalsNameController.text =
+        goalsName; // Set text field with current goalsName
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -238,7 +260,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text(
-                                'DIGI Mobile',
+                                'Edit Tabungan Bergilir',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 18,
@@ -260,7 +282,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                                   ),
                                   const SizedBox(height: 10),
                                   TextFormField(
-                                    controller: _tabunganNameController,
+                                    controller: _goalsNameController,
                                     validator: (value) {
                                       if (value == null || value.isEmpty) {
                                         return 'Nama Tabungan tidak boleh kosong';
@@ -280,7 +302,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                                       contentPadding:
                                           const EdgeInsets.symmetric(
                                               vertical: 10, horizontal: 12),
-                                      errorText: _tabunganNameError,
+                                      errorText: _goalsNameError,
                                       errorMaxLines: 2,
                                     ),
                                   ),
@@ -294,12 +316,8 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                                   onPressed: () async {
                                     if (_formKey.currentState!.validate()) {
                                       setState(() {
-                                        tabunganName =
-                                            _tabunganNameController.text;
-                                        if (_goalData != null) {
-                                          _goalData!['goalName'] = tabunganName;
-                                          _updateGoalData(_goalData!);
-                                        }
+                                        goalsName = _goalsNameController.text;
+                                        _goalsData['goalsName'] = goalsName;
                                       });
                                       Navigator.pop(context);
                                     }
@@ -333,27 +351,12 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
       },
     ).whenComplete(() {
       setState(() {
-        _tabunganNameError = null;
+        _goalsNameError = null;
       });
     });
   }
 
-  Future<void> _updateGoalData(Map<String, dynamic> updatedGoal) async {
-    try {
-      final goals = await fetchGoalsFromApiOrDatabase();
-      final index = goals.indexWhere((goal) =>
-          goal['type'] == 'Tabungan Bergilir' &&
-          goal['goalName'] == _goalData!['goalName']);
-      if (index != -1) {
-        goals[index] = updatedGoal;
-      } else {
-        print("Data tidak ditemukan");
-      }
-    } catch (e) {
-      print('Gagal mengupdate data: $e');
-    }
-  }
-
+  /// Menampilkan dialog konfirmasi deaktivasi tabungan.
   void _showDeactivationConfirmation() {
     showGeneralDialog(
       context: context,
@@ -422,6 +425,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.pop(context);
+                            _deactivateSavings();
                             _showLoadingAndSuccess();
                           },
                           style: ElevatedButton.styleFrom(
@@ -450,6 +454,15 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
     );
   }
 
+  /// Fungsi untuk menonaktifkan tabungan dan mengubah status.
+  Future<void> _deactivateSavings() async {
+    setState(() {
+      statusTabungan = 'Tidak Aktif';
+      _goalsData['statusTabungan'] = 'Tidak Aktif';
+    });
+  }
+
+  /// Menampilkan dialog loading dan simulasi proses deaktivasi.
   void _showLoadingAndSuccess() {
     showGeneralDialog(
       context: context,
@@ -540,12 +553,11 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                     height: 40,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
+                        Navigator.of(context).pushAndRemoveUntil(
                           MaterialPageRoute(
-                            builder: (context) =>
-                                const DetailTabunganBergilir(),
-                          ),
+                              builder: (context) =>
+                                  DetailTabunganBergilir(isActive: false)),
+                          (Route<dynamic> route) => false,
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -620,39 +632,39 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
           ),
         ],
       ),
-      body: isLoading
-          ? _buildShimmerPlaceholder()
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Stack(
-                children: [
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: IconButton(
-                      icon: Icon(Icons.settings, color: Colors.blue.shade900),
-                      onPressed: _showSettingsModal,
-                    ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Stack(
+          children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: Icon(Icons.settings, color: Colors.blue.shade900),
+                onPressed: _showSettingsModal,
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Icon(
+                  Icons.celebration,
+                  size: 64,
+                  color: Colors.blue.shade400,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isLoading ? ' ' : goalsName,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Icon(
-                        Icons.celebration,
-                        size: 64,
-                        color: Colors.blue.shade400,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        tabunganName,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        saldo,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                isLoading
+                    ? _buildShimmerText(height: 32)
+                    : Text(
+                        currencyFormat.format(saldoTabungan),
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -660,441 +672,453 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        status,
+                const SizedBox(height: 8),
+                Text(
+                  isLoading ? ' ' : statusTabungan,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: widget.isActive ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                if (!widget.isActive)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => UndangAnggotaBergilir(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.yellow.shade700,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Undang Anggota',
                         style: TextStyle(
-                          fontSize: 16,
-                          color: widget.isActive ? Colors.green : Colors.red,
+                          color: Colors.blue.shade900,
                           fontWeight: FontWeight.bold,
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 24),
-                      if (!widget.isActive)
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      UndanganAnggotaBergilir(),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.yellow.shade700,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Text(
-                              'Undang Anggota',
-                              style: TextStyle(
-                                color: Colors.blue.shade900,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      if (!widget.isActive) const SizedBox(height: 16),
+                    ),
+                  ),
+                if (!widget.isActive) const SizedBox(height: 16),
+                // Circle Avatar Anggota Tabungan (muncul sebelum tombol aktivasi ketika tidak aktif)
+                if (!widget.isActive)
+                  Row(
+                    children: [
                       GestureDetector(
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => RincianAnggotaDeaktivasi(),
+                              builder: (context) => RincianAnggotaBergilir(
+                                goalsData: _goalsData,
+                                isActive: widget.isActive,
+                              ),
                             ),
                           );
                         },
                         child: Row(
-                          children: [
-                            ...members.take(2).map((member) => CircleAvatar(
-                                  radius: 20,
-                                  backgroundColor: Colors.primaries[
-                                      members.indexOf(member) %
-                                          Colors.primaries.length],
-                                  child: Text(
-                                    member,
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                )),
-                            if (members.length > 3)
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundColor: Colors.purple,
-                                child: Text(
-                                  '+${members.length - 2}',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      if (!widget.isActive) const SizedBox(height: 16),
-                      if (!widget.isActive)
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      AktivasiTabunganBergilir(),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text(
-                              'Aktivasi Tabungan Bergilir',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      if (widget.isActive)
-                        Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        RincianAnggotaBergilir(),
-                                  ),
-                                );
-                              },
-                              child: Row(
-                                children: [
-                                  ...members.take(2).map((member) =>
-                                      CircleAvatar(
-                                        radius: 20,
-                                        backgroundColor: Colors.primaries[
-                                            members.indexOf(member) %
-                                                Colors.primaries.length],
-                                        child: Text(
-                                          member,
-                                          style: TextStyle(color: Colors.white),
+                          children: isLoading
+                              ? _buildShimmerCircleAvatars()
+                              : [
+                                  ..._allMembers.take(2).map(
+                                        (member) => CircleAvatar(
+                                          radius: 20,
+                                          backgroundColor: Colors.primaries[
+                                              _allMembers.indexOf(member) %
+                                                  Colors.primaries.length],
+                                          child: Text(
+                                            member.isNotEmpty
+                                                ? member[0].toUpperCase()
+                                                : 'U',
+                                            style: const TextStyle(
+                                                color: Colors.white),
+                                          ),
                                         ),
-                                      )),
-                                  if (members.length > 3)
+                                      ),
+                                  if (_allMembers.length > 3)
                                     CircleAvatar(
                                       radius: 20,
                                       backgroundColor: Colors.purple,
                                       child: Text(
-                                        '+${members.length - 2}',
-                                        style: TextStyle(color: Colors.white),
+                                        '+${_allMembers.length - 2}',
+                                        style: const TextStyle(
+                                            color: Colors.white),
                                       ),
                                     ),
                                 ],
-                              ),
-                            ),
-                            const Spacer(),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute<void>(
-                                    builder: (BuildContext context) =>
-                                        GilirTabungan(),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.yellow.shade700,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: Text(
-                                'Gilir Tabungan',
-                                style: TextStyle(
-                                  color: Colors.blue.shade900,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
                         ),
-                      if (widget.isActive) const SizedBox(height: 12),
-                      if (widget.isActive)
-                        InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (BuildContext context) =>
-                                    DetailTargetTabunganBergilir(),
-                              ),
-                            );
-                          },
-                          child: Card(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      ),
+                    ],
+                  ),
+                if (!widget.isActive) const SizedBox(height: 16),
+                if (!widget.isActive)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AktivasiTabunganBergilir(
+                              allMembers: _allMembers,
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.track_changes,
-                                            color: Colors.blue,
-                                            size: 24,
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Aktivasi Tabungan Bergilir',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                // Circle Avatar Anggota Tabungan (hanya satu baris ketika aktif)
+                if (widget.isActive)
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RincianAnggotaBergilir(
+                                goalsData: _goalsData,
+                                isActive: widget.isActive,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Row(
+                          children: isLoading
+                              ? _buildShimmerCircleAvatars()
+                              : [
+                                  ..._allMembers.take(2).map(
+                                        (member) => CircleAvatar(
+                                          radius: 20,
+                                          backgroundColor: Colors.primaries[
+                                              _allMembers.indexOf(member) %
+                                                  Colors.primaries.length],
+                                          child: Text(
+                                            member.isNotEmpty
+                                                ? member[0].toUpperCase()
+                                                : 'U',
+                                            style: const TextStyle(
+                                                color: Colors.white),
                                           ),
-                                          const SizedBox(width: 8),
-                                          const Text(
-                                            'Progress Tabungan',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const Tooltip(
-                                        message:
-                                            'Total progress dari semua anggota',
-                                        child: Icon(
-                                          Icons.info_outline,
-                                          color: Colors.blue,
                                         ),
                                       ),
-                                    ],
+                                  if (_allMembers.length > 3)
+                                    CircleAvatar(
+                                      radius: 20,
+                                      backgroundColor: Colors.purple,
+                                      child: Text(
+                                        '+${_allMembers.length - 2}',
+                                        style: const TextStyle(
+                                            color: Colors.white),
+                                      ),
+                                    ),
+                                ],
+                        ),
+                      ),
+                      const Spacer(),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute<void>(
+                              builder: (BuildContext context) => GilirTabungan(
+                                goalsData: _goalsData,
+                                isActive: widget.isActive,
+                              ),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.yellow.shade700,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          'Gilir Tabungan',
+                          style: TextStyle(
+                            color: Colors.blue.shade900,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                if (widget.isActive) const SizedBox(height: 12),
+                if (widget.isActive)
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (BuildContext context) =>
+                              DetailTargetTabunganBergilir(
+                            goalsData: _goalsData, // Mengirim data goalsData
+                            isActive: widget.isActive, // Mengirim data isActive
+                          ),
+                        ),
+                      );
+                    },
+                    child: Card(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.track_changes,
+                                      color: Colors.blue,
+                                      size: 24,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Progress Tabungan',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const Tooltip(
+                                  message: 'Total progress dari semua anggota',
+                                  child: Icon(
+                                    Icons.info_outline,
+                                    color: Colors.blue,
                                   ),
-                                  const SizedBox(height: 14),
-                                  Text(
-                                    targetAmount,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            isLoading
+                                ? _buildShimmerText(height: 18)
+                                : Text(
+                                    '${currencyFormat.format(saldoTabungan)} / ${currencyFormat.format(targetSaldoTabungan)}',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 18,
                                       color: Colors.blue.shade900,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  LinearProgressIndicator(
-                                    value: targetProgress,
-                                    backgroundColor: Colors.grey.shade300,
-                                    color: Colors.blue.shade400,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(targetDuration,
-                                          style: TextStyle(
-                                              color: Colors.blue.shade700)),
-                                      Text('${(targetProgress * 100).toInt()}%',
-                                          style: TextStyle(
-                                              color: Colors.blue.shade700)),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                            const SizedBox(height: 8),
+                            LinearProgressIndicator(
+                              value: isLoading
+                                  ? 0
+                                  : (saldoTabungan / targetSaldoTabungan)
+                                      .clamp(0.0, 1.0),
+                              backgroundColor: Colors.grey.shade300,
+                              color: Colors.blue.shade400,
                             ),
-                          ),
-                        ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: searchController,
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.search),
-                          fillColor: Colors.blue.shade50,
-                          filled: true,
-                          hintText: 'Cari Transaksi',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(_goalsData['durasiTabungan'] ?? '',
+                                    style:
+                                        TextStyle(color: Colors.blue.shade700)),
+                                Text(
+                                  isLoading
+                                      ? '0%'
+                                      : '${((saldoTabungan / targetSaldoTabungan) * 100).toStringAsFixed(2)}%',
+                                  style: TextStyle(color: Colors.blue.shade700),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      transactions.isEmpty
-                          ? Padding(
-                              padding: const EdgeInsets.only(top: 24.0),
-                              child: Text(
-                                'Belum ada transaksi',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            )
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: transactions.length,
-                              itemBuilder: (context, index) {
-                                final transaction = transactions[index];
-                                return ListTile(
-                                  title: Text(transaction['title']),
-                                  subtitle: Text(transaction['subtitle']),
-                                  trailing: Text(transaction['amount']),
-                                );
-                              },
-                            ),
-                      if (widget.isActive)
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push<void>(
-                                context,
-                                MaterialPageRoute<void>(
-                                  builder: (BuildContext context) =>
-                                      const TambahUangBergilir(),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.yellow.shade700,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Text(
-                              'Tambah Uang',
-                              style: TextStyle(
-                                color: Colors.blue.shade900,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      if (widget.isActive) const SizedBox(height: 16),
-                      if (widget.isActive)
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              Navigator.push<void>(
-                                context,
-                                MaterialPageRoute<void>(
-                                  builder: (BuildContext context) =>
-                                      const TarikUangBergilir(),
-                                ),
-                              );
-                            },
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: Colors.yellow.shade700),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Text(
-                              'Tarik Uang',
-                              style: TextStyle(
-                                color: Colors.yellow.shade700,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        )
-                    ],
+                    ),
                   ),
-                ],
-              ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: cariTransaksiController,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    fillColor: Colors.blue.shade50,
+                    filled: true,
+                    hintText: 'Cari Transaksi',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                isLoading
+                    ? _buildShimmerTransactionHistory()
+                    : historiTransaksi.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 24.0),
+                            child: Text(
+                              'Belum ada transaksi',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: historiTransaksi.length,
+                            itemBuilder: (context, index) {
+                              final transaction = historiTransaksi[index];
+                              return ListTile(
+                                title: Text(transaction['jenisTransaksi']),
+                                subtitle: Text(dateFormat
+                                    .format(transaction['tanggalTransaksi'])),
+                                trailing: Text(currencyFormat
+                                    .format(transaction['jumlahTransaksi'])),
+                              );
+                            },
+                          ),
+                if (widget.isActive)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push<void>(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (BuildContext context) =>
+                                const TambahUangBergilir(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.yellow.shade700,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Tambah Uang',
+                        style: TextStyle(
+                          color: Colors.blue.shade900,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (widget.isActive) const SizedBox(height: 16),
+                if (widget.isActive)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.push<void>(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (BuildContext context) =>
+                                const TarikUangBergilir(),
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.yellow.shade700),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Tarik Uang',
+                        style: TextStyle(
+                          color: Colors.yellow.shade700,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  )
+              ],
             ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildShimmerPlaceholder() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
+  Widget _buildShimmerText({double height = 20}) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        width: double.infinity,
+        height: height,
+        color: Colors.grey,
+      ),
+    );
+  }
+
+  List<Widget> _buildShimmerCircleAvatars() {
+    return List.generate(
+      3,
+      (index) => Padding(
+        padding: const EdgeInsets.only(right: 8.0),
+        child: Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: CircleAvatar(
+            radius: 20,
+            backgroundColor: Colors.grey,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerTransactionHistory() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Shimmer.fromColors(
-            baseColor: Colors.grey[300]!,
-            highlightColor: Colors.grey[100]!,
+        children: List.generate(
+          5,
+          (index) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Container(
-              width: 200,
-              height: 20,
+              height: 60,
               color: Colors.grey,
             ),
           ),
-          const SizedBox(height: 16),
-          Shimmer.fromColors(
-            baseColor: Colors.grey[300]!,
-            highlightColor: Colors.grey[100]!,
-            child: Container(
-              width: 150,
-              height: 30,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Shimmer.fromColors(
-            baseColor: Colors.grey[300]!,
-            highlightColor: Colors.grey[100]!,
-            child: Container(
-              width: 100,
-              height: 20,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: List.generate(
-              3,
-              (index) => Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: Shimmer.fromColors(
-                  baseColor: Colors.grey[300]!,
-                  highlightColor: Colors.grey[100]!,
-                  child: CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Colors.grey,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          Expanded(
-            child: ListView.builder(
-              itemCount: 5,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Shimmer.fromColors(
-                    baseColor: Colors.grey[300]!,
-                    highlightColor: Colors.grey[100]!,
-                    child: Container(
-                      height: 60,
-                      color: Colors.grey,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

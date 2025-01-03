@@ -1,7 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:digigoals_app/Beranda.dart';
 import 'package:digigoals_app/PilihGoals.dart';
+import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
+import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart';
 import 'package:flutter/material.dart';
-import 'theme/theme.dart';
+import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 
 class OurGoals extends StatefulWidget {
@@ -15,98 +18,100 @@ class _OurGoalsState extends State<OurGoals> {
   bool _isLoading = true;
   bool _isNavigating = false;
   String? _errorMessage;
-  Future<List<Map<String, dynamic>>>? _goalsFuture;
+
+  // List statis untuk menyimpan data goals
+  final List<Map<String, dynamic>> _databaseGoals = [
+    {
+      'goalsType': 'Tabungan Bersama',
+      'goalsName': 'Liburan Keluarga 🏖️',
+      'saldoTabungan': 7000000.00,
+      'targetTabungan': 20000000.00,
+      'progress': 0.3,
+      'daysLeft': 90,
+      'members': ['Fafa', 'Gina', 'Hani', 'Olaf'],
+      'creationDate': '23-05-2024',
+    },
+    {
+      'goalsType': 'Tabungan Bergilir',
+      'goalsName': 'Gudang Garam Jaya 🔥',
+      'saldoTabungan': 20000000.00,
+      'targetTabungan': 50000000.00,
+      'progress': 0.4,
+      'daysLeft': 100,
+      'members': [
+        'Fafa',
+        'Gina',
+        'Hani',
+        'Olaf',
+      ],
+      'creationDate': '24-05-2024',
+    },
+  ];
 
   @override
   void initState() {
     super.initState();
-    _goalsFuture = _fetchGoalsFromDatabase();
+    _loadGoals();
   }
 
-  // Fungsi ini tidak lagi digunakan, karena data diambil dari _fetchGoalsFromDatabase()
-  // Future<void> fetchGoalsData() async {
-  //   try {
-  //     setState(() {
-  //       _isLoading = true;
-  //       _errorMessage = null;
-  //     });
-  //     // Simulate API call/Database fetch
-  //     await Future.delayed(const Duration(seconds: 1));
-  //     setState(() {
-  //       goalsList = [
-  //         {
-  //           'title': 'Tabungan Bersama',
-  //           'goalName': 'Pernikahan Kita',
-  //           'amount': 'IDR 160.000.00 / 200.000.000,00',
-  //           'progress': 0.8,
-  //           'daysLeft': 340,
-  //           'members': [
-  //             {'initial': 'A', 'color': Colors.blue},
-  //             {'initial': 'U', 'color': Colors.orange},
-  //             {'initial': '+2', 'color': Colors.grey},
-  //           ],
-  //         },
-  //       ];
-  //       _isLoading = false;
-  //     });
-  //   } catch (e) {
-  //     setState(() {
-  //       _isLoading = false;
-  //       _errorMessage = 'Failed to load goals.';
-  //     });
-  //   }
-  // }
+  // Fungsi untuk load goals dan memicu rebuild
+  void _loadGoals() async {
+    await Future.delayed(const Duration(seconds: 2)); // Simulate loading
+    setState(() {
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.blue.shade700, Colors.blue.shade400],
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            flexibleSpace: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.blue.shade700, Colors.blue.shade400],
+                ),
+              ),
             ),
-          ),
-        ),
-        elevation: 0,
-        toolbarHeight: 84,
-        titleSpacing: 16,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const Beranda()),
-                (Route<dynamic> route) => false);
-          },
-        ),
-        title: Text(
-          'Our Goals',
-          style: AppTextStyle.bodyText1.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        centerTitle: true,
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            height: 12,
-            width: 12,
-            decoration: const BoxDecoration(
-              color: Colors.green,
-              shape: BoxShape.circle,
+            elevation: 0,
+            toolbarHeight: 84,
+            titleSpacing: 16,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const Beranda()),
+                    (Route<dynamic> route) => false);
+              },
             ),
+            title: Text(
+              'Our Goals',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            centerTitle: true,
+            actions: [
+              Container(
+                margin: const EdgeInsets.only(right: 16),
+                height: 12,
+                width: 12,
+                decoration: const BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          Column(
+          body: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
@@ -116,111 +121,79 @@ class _OurGoalsState extends State<OurGoals> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
                   'Goals Kamu Saat Ini',
-                  style: AppTextStyle.bodyText1.copyWith(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
+                    color: Colors.black,
                   ),
                 ),
               ),
               const SizedBox(height: 16),
               Expanded(
                 child: _isLoading
-                    ? _buildShimmerLoader(5) // Selalu tampilkan 5 shimmer
+                    ? _buildShimmerLoader(5)
                     : _errorMessage != null
                         ? Center(
                             child: Text(_errorMessage!),
                           )
-                        : FutureBuilder<List<Map<String, dynamic>>>(
-                            future: _goalsFuture,
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return _buildShimmerLoader(
-                                    5); // Tetap tampilkan 5 shimmer saat menunggu
-                              } else if (snapshot.hasError) {
-                                return const Center(
-                                  child: Text('Failed to load goals.'),
-                                );
-                              } else if (snapshot.hasData &&
-                                  snapshot.data!.isNotEmpty) {
-                                return ListView.builder(
-                                  key: const Key('goalsListView'),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 20),
-                                  itemCount: snapshot.data!.length,
-                                  itemBuilder: (context, index) {
-                                    final goal = snapshot.data![index];
-                                    return GoalCard(
-                                      goal: goal,
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                GoalDetail(goal: goal),
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                );
-                              } else {
-                                return const Center(
-                                  child: Text('No goals available.'),
-                                );
-                              }
-                            },
-                          ),
+                        : _databaseGoals.isNotEmpty
+                            ? ListView.builder(
+                                key: const Key('goalsListView'),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 20),
+                                itemCount: _databaseGoals.length,
+                                itemBuilder: (context, index) {
+                                  final goal = _databaseGoals[index];
+                                  return GoalCard(
+                                    goal: goal,
+                                    onTap: () {
+                                      _navigateToDetail(context, goal);
+                                    },
+                                  );
+                                },
+                              )
+                            : const Center(
+                                child: Text('No goals available.'),
+                              ),
               )
             ],
           ),
-          if (_isNavigating)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: const Center(
+        ),
+        if (_isNavigating)
+          Stack(
+            children: [
+              ModalBarrier(
+                color: Colors.black.withOpacity(0.5),
+                dismissible: false,
+              ),
+              Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.blue), // Set warna biru
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(Colors.yellow.shade700),
                 ),
               ),
-            ),
-        ],
-      ),
+            ],
+          ),
+      ],
     );
   }
 
-  Future<List<Map<String, dynamic>>> _fetchGoalsFromDatabase() async {
-    await Future.delayed(const Duration(seconds: 2)); // Simulate database fetch
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final List<Map<String, dynamic>> data = [
-        {
-          'title': 'Tabungan Bersama',
-          'goalName': 'Pernikahan Kita',
-          'amount': 'IDR 160.000.000,00 / 200.000.000,00',
-          'progress': 0.8,
-          'daysLeft': 340,
-          'members': [
-            {'initial': 'A', 'color': Colors.blue},
-            {'initial': 'U', 'color': Colors.orange},
-            {'initial': '+2', 'color': Colors.grey},
-          ],
-        },
-      ];
-
-      setState(() {
-        _isLoading = false;
-      });
-      return data;
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Failed to load goals.';
-      });
-      return [];
+  // Function to navigate to the detail page based on goal type
+  void _navigateToDetail(BuildContext context, Map<String, dynamic> goal) {
+    if (goal['goalsType'] == 'Tabungan Bersama') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const DetailTabunganBersama(),
+        ),
+      );
+    } else if (goal['goalsType'] == 'Tabungan Bergilir') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const DetailTabunganBergilir(),
+        ),
+      );
     }
   }
 
@@ -275,7 +248,7 @@ class _OurGoalsState extends State<OurGoals> {
                       width: 62,
                       height: 62,
                       decoration: const BoxDecoration(
-                        color: AppColors.yellow1,
+                        color: Color(0xFFFFC945),
                         shape: BoxShape.circle,
                       ),
                       child: const Center(
@@ -284,7 +257,7 @@ class _OurGoalsState extends State<OurGoals> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Buat Tabungan Bersamamu!',
+                      'Buat Goals Kamu!',
                       style:
                           TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
@@ -331,12 +304,61 @@ class _OurGoalsState extends State<OurGoals> {
 
 class GoalCard extends StatelessWidget {
   final Map<String, dynamic> goal;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
-  const GoalCard({required this.goal, super.key, required this.onTap});
+  const GoalCard({required this.goal, super.key, this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    // Inisialisasi formatter untuk mata uang Rupiah
+    final currencyFormat = NumberFormat.currency(
+        locale: 'id_ID', symbol: 'IDR ', decimalDigits: 2);
+
+    // Format saldo dan target tabungan ke mata uang Rupiah
+    final formattedSaldo = currencyFormat.format(goal['saldoTabungan']);
+    final formattedTarget = currencyFormat.format(goal['targetTabungan']);
+
+    // Inisialisasi list untuk menyimpan widget circle avatar
+    List<Widget> memberAvatars = [];
+
+    // Batasi hanya menampilkan 2 avatar dan sisanya tampilkan dalam 1 avatar
+    int maxAvatars = 2;
+    int displayedCount = 0; //untuk menghitung jumlah avatar yang ditampilkan
+    if (goal['members'] != null) {
+      for (int i = 0; i < goal['members'].length; i++) {
+        String memberName = goal['members'][i];
+        if (displayedCount < maxAvatars) {
+          memberAvatars.add(
+            CircleAvatar(
+              radius: 12,
+              backgroundColor: Colors.primaries[
+                  i % Colors.primaries.length], // Memberikan warna otomatis
+              child: Text(
+                memberName
+                    .substring(0, 1)
+                    .toUpperCase(), // Mengambil huruf pertama dan uppercase
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ),
+          );
+          displayedCount++;
+        }
+      }
+      if (goal['members'].length > maxAvatars) {
+        int remainingMembers = goal['members'].length - maxAvatars;
+        memberAvatars.add(
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: Colors.grey,
+            child: Text(
+              '+$remainingMembers',
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+        );
+      }
+    }
+
     return Card(
       color: Colors.white,
       margin: const EdgeInsets.only(bottom: 16),
@@ -357,46 +379,44 @@ class GoalCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(
-                        Icons.groups,
+                      // Menggunakan conditional untuk memilih icon
+                      Icon(
+                        goal['goalsType'] == 'Tabungan Bergilir'
+                            ? Icons.celebration
+                            : Icons.groups,
                         color: Colors.blue,
                         size: 24,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        goal['title'],
-                        style: AppTextStyle.bodyMText1.copyWith(fontSize: 14),
+                        goal['goalsType'], // Menampilkan jenis tabungan
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: Colors.black),
                       ),
                     ],
                   ),
-                  Row(
-                    children: goal['members']
-                        .map<Widget>((member) => CircleAvatar(
-                              radius: 12,
-                              backgroundColor: member['color'],
-                              child: Text(
-                                member['initial'],
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 12),
-                              ),
-                            ))
-                        .toList(),
-                  ),
+                  Row(children: memberAvatars // Menggunakan list circle avatar
+                      ),
                 ],
               ),
               const SizedBox(height: 5),
               Text(
-                goal['goalName'],
-                style: AppTextStyle.bodyText1.copyWith(
+                goal['goalsName'],
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
+                  color: Color(0xFF1F597F),
                 ),
               ),
               const SizedBox(height: 14),
               Text(
-                goal['amount'],
-                style: AppTextStyle.bodyMText1
-                    .copyWith(color: Colors.grey[800], fontSize: 12),
+                '$formattedSaldo / $formattedTarget', // Menampilkan saldo dan target dengan format Rupiah
+                style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    color: Colors.grey[800]),
               ),
               const SizedBox(height: 8),
               Stack(
@@ -409,7 +429,7 @@ class GoalCard extends StatelessWidget {
                     ),
                   ),
                   FractionallySizedBox(
-                    widthFactor: goal['progress'],
+                    widthFactor: goal['progress'] ?? 0.0,
                     child: Container(
                       height: 8,
                       decoration: BoxDecoration(
@@ -425,11 +445,14 @@ class GoalCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '${(goal['progress'] * 100).toStringAsFixed(0)}%',
-                    style: AppTextStyle.bodyMText1.copyWith(fontSize: 12),
+                    '${((goal['progress'] ?? 0.0) * 100).toStringAsFixed(0)}%',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: Colors.black),
                   ),
                   Text(
-                    'Sisa ${goal['daysLeft']} hari',
+                    'Sisa ${goal['daysLeft'] ?? '-'} hari',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Colors.red,
@@ -440,23 +463,6 @@ class GoalCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// Tambahkan halaman detail
-class GoalDetail extends StatelessWidget {
-  final Map<String, dynamic> goal;
-  const GoalDetail({super.key, required this.goal});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(goal['goalName']),
-      ),
-      body: Center(
-        child: Text('Halaman Detail Goal: ${goal['goalName']}'),
       ),
     );
   }

@@ -1,8 +1,25 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
 import 'package:flutter/material.dart';
 
+class Account {
+  final String nomorRekening;
+  final String namaRekening;
+  final String jenisTabungan;
+
+  Account(
+      {required this.nomorRekening,
+      required this.namaRekening,
+      required this.jenisTabungan});
+}
+
 class KonfirmasiUndanganBergilir extends StatefulWidget {
-  const KonfirmasiUndanganBergilir({super.key});
+  final String nomorRekeningDiundang;
+  const KonfirmasiUndanganBergilir({
+    super.key,
+    required this.nomorRekeningDiundang,
+  });
 
   @override
   _KonfirmasiUndanganBergilirState createState() =>
@@ -12,12 +29,19 @@ class KonfirmasiUndanganBergilir extends StatefulWidget {
 class _KonfirmasiUndanganBergilirState
     extends State<KonfirmasiUndanganBergilir> {
   final bool _isLoading = false;
-
   // Data static sementara, nantinya akan dipanggil dari database
-  final String _nomorRekening = '1234567891011';
-  final String _namaGoals = 'Gudang Garam Jaya';
-  final String _jenisTabungan = 'Tabungan Tandamata';
-  final String _namaPemilikRekening = 'UMMI';
+  late Account _account;
+  final String _goalsName = 'Gudang Garam Jaya'; // sementara
+
+  @override
+  void initState() {
+    super.initState();
+    _account = Account(
+      nomorRekening: widget.nomorRekeningDiundang,
+      namaRekening: 'UMMI', // Data nama pemilik rekening (sementara)
+      jenisTabungan: 'Tabungan Tandamata', // Data jenis tabungan (sementara)
+    );
+  }
 
   void _showConfirmationDialog() {
     showGeneralDialog(
@@ -48,7 +72,7 @@ class _KonfirmasiUndanganBergilirState
                     ),
                   ),
                   Text(
-                    'Apakah Benar Anda Ingin Mengundang $_namaPemilikRekening?',
+                    'Apakah Benar Anda Ingin Mengundang ${_account.namaRekening}?',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
@@ -301,7 +325,7 @@ class _KonfirmasiUndanganBergilirState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Nomor Rekening: $_nomorRekening',
+                            'Nomor Rekening: ${_account.nomorRekening}',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 13,
@@ -311,7 +335,7 @@ class _KonfirmasiUndanganBergilirState
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'Nama Goals: $_namaGoals',
+                            'Nama Goals: $_goalsName',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 13,
@@ -351,7 +375,7 @@ class _KonfirmasiUndanganBergilirState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '$_jenisTabungan - $_nomorRekening',
+                        '${_account.jenisTabungan} - ${_account.nomorRekening}',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
@@ -369,7 +393,7 @@ class _KonfirmasiUndanganBergilirState
                         alignment: Alignment.centerLeft,
                         padding: EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          _namaPemilikRekening,
+                          _account.namaRekening,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w400,

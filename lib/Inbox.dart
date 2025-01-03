@@ -14,10 +14,12 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
   // Data statis awal untuk pending transaksi
   final List<Map<String, dynamic>> _pendingTransaksi = [
     {
-      'title': 'Undangan Anggota',
-      'phone': '0123456789012',
-      'date': '01 November 2024 09:27',
-      'status': 'pending',
+      'goalsName': 'Gudang Garam Jaya 🔥', // Nama Goals
+      'message': 'Undangan Anggota', // Nama pesan
+      'accountNumber': '0123456789012', // Nomor rekening
+      'date': '01 November 2024 09:27', // tanggal undangan diterima/dikirim
+      'status': 'pending', // status undangan di inbox
+      'inviterName': 'John Doe', // Menambahkan nama pengirim undangan
     },
   ];
 
@@ -250,10 +252,10 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
                         ),
                         child: Container(
                           width: 256,
-                          height:
-                              300, //Adjust the height to accommodate the icon
                           padding: const EdgeInsets.all(15),
                           child: Column(
+                            mainAxisSize:
+                                MainAxisSize.min, // Use min to adjust height
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
@@ -268,13 +270,32 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
                               const SizedBox(height: 8),
                               Icon(Icons.mail_outline,
                                   size: 64, color: Colors.blue), // Ikon disini
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 8),
                               Text(
-                                'Mengundang Anda untuk bergabung pada Goals "${transaction['title']}"',
+                                transaction['inviterName'] ??
+                                    'Tidak Diketahui', // Menampilkan nama pengirim
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontSize: 16,
-                                  fontWeight: FontWeight.normal,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              Text(
+                                transaction['accountNumber'] ?? '',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Mengundang Anda untuk bergabung pada Goals "${transaction['goalsName']}"',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  // fontWeight: FontWeight.w500,
                                   color: Colors.black,
                                 ),
                               ),
@@ -370,9 +391,9 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
           ),
           child: Container(
             width: 256,
-            height: 300,
             padding: const EdgeInsets.all(15),
             child: Column(
+              mainAxisSize: MainAxisSize.min, // Set mainAxisSize
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const CircularProgressIndicator(
@@ -384,7 +405,6 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.normal,
                     color: Colors.grey.shade700,
                   ),
                 ),
@@ -416,12 +436,12 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
           icon = Icons.check_circle_outline;
           iconColor = Colors.green;
           resultText =
-              'Selamat! Anda telah menjadi anggota Goals "${transaction['title']}"';
+              'Selamat! Anda telah menjadi anggota Goals "${transaction['goalsName']}"';
         } else {
           icon = Icons.cancel_outlined;
           iconColor = Colors.red;
           resultText =
-              'Anda telah menolak undangan untuk bergabung pada Goals "${transaction['title']}"';
+              'Anda telah menolak undangan untuk bergabung pada Goals "${transaction['goalsName']}"';
         }
         return Dialog(
           shape: RoundedRectangleBorder(
@@ -429,9 +449,9 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
           ),
           child: Container(
             width: 256,
-            height: 300,
             padding: const EdgeInsets.all(15),
             child: Column(
+              mainAxisSize: MainAxisSize.min, // Set mainAxisSize
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
@@ -451,7 +471,6 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.normal,
                     color: Colors.black,
                   ),
                 ),
@@ -532,7 +551,7 @@ class TransactionCard extends StatelessWidget {
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               title: Text(
-                transaction['title'] ?? '',
+                transaction['message'] ?? '', // Menampilkan nama pesan
                 style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -542,7 +561,8 @@ class TransactionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    transaction['phone'] ?? '',
+                    transaction['accountNumber'] ??
+                        '', // Menampilkan nomor rekening
                     style: const TextStyle(
                         fontSize: 14, overflow: TextOverflow.ellipsis),
                   ),

@@ -1,5 +1,18 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
-import 'DetailTabunganBergilir.dart';
+import 'package:intl/intl.dart';
+import '../OurGoals.dart';
+
+class Account {
+  final String nomorRekening;
+  final String namaRekening;
+
+  Account({
+    required this.nomorRekening,
+    required this.namaRekening,
+  });
+}
 
 class BuatTabunganBergilir extends StatefulWidget {
   const BuatTabunganBergilir({super.key});
@@ -10,9 +23,34 @@ class BuatTabunganBergilir extends StatefulWidget {
 
 class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
   final _formKey = GlobalKey<FormState>();
-  final _namaTabunganController = TextEditingController();
+  final _namaTabunganBergilirController = TextEditingController();
   bool _isLoading = false;
   bool _termsAccepted = false;
+  String _namaTabunganBergilir = '';
+
+  // Data Tabungan
+  late String _creationDate;
+  late String _member; // ID Member (nomor rekening)
+  final String _goalsType = 'Tabungan Bergilir';
+  final double _saldoTabungan = 0.0;
+  final String _statusTabungan = 'Tidak Aktif';
+  final double _progressTabungan = 0.0;
+  final double _targetSaldoTabungan = 0.0;
+  final String? _durasiTabungan = null;
+  final List _historiTransaksi = [];
+
+  // Dummy account data (ganti dengan data pengguna yang login)
+  final Account _dummyAccountData = Account(
+    nomorRekening: '0123456789012',
+    namaRekening: "ABI",
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _creationDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
+    _member = _dummyAccountData.nomorRekening;
+  }
 
   Future<void> _submitToDatabase() async {
     setState(() {
@@ -22,30 +60,43 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
       // Simulasi pengiriman data ke database
       await Future.delayed(const Duration(seconds: 1));
 
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      // Data Tabungan yang akan disimpan ke database
+      final Map<String, dynamic> dataTabunganBergilir = {
+        'goalsName': _namaTabunganBergilir,
+        'goalsType': _goalsType,
+        'creationDate': _creationDate,
+        'member': _member,
+        'saldoTabungan': _saldoTabungan,
+        'statusTabungan': _statusTabungan,
+        'progressTabungan': _progressTabungan,
+        'targetSaldoTabungan': _targetSaldoTabungan,
+        'durasiTabungan': _durasiTabungan,
+        'historiTransaksi': _historiTransaksi,
+        'members': [_dummyAccountData.namaRekening],
+      };
+      print(
+          'Data Tabungan yang akan disimpan ke database: $dataTabunganBergilir');
+      setState(() {
+        _isLoading = false;
+      });
+
+      // Navigasi ke OurGoals setelah tabungan berhasil dibuat
+      _navigateToOurGoals();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text('Gagal mengirim data, coba lagi. Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('Gagal mengirim data, coba lagi. Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-  Future<void> _navigateToDetailTabungan() async {
-    await _submitToDatabase();
-    if (!mounted) return;
+  Future<void> _navigateToOurGoals() async {
     if (!_isLoading) {
       _showSuccessDialog();
     }
@@ -58,6 +109,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
         return _buildSuccessDialog(
           icon: Icons.check_circle_outline,
           iconColor: Colors.green,
+          namaTabunganBergilir: _namaTabunganBergilir,
         );
       },
     );
@@ -66,6 +118,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
   Widget _buildSuccessDialog({
     required IconData icon,
     required Color iconColor,
+    required String namaTabunganBergilir,
   }) {
     return Dialog(
       shape: RoundedRectangleBorder(
@@ -73,9 +126,9 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
       ),
       child: Container(
         width: 256,
-        height: 300,
         padding: const EdgeInsets.all(15),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
@@ -89,7 +142,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
             ),
             const SizedBox(height: 8),
             Icon(icon, size: 64, color: iconColor),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
             const Text(
               'Berhasil!',
               textAlign: TextAlign.center,
@@ -100,16 +153,16 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Tabungan Bergilir Anda telah berhasil dibuat',
+            Text(
+              'Tabungan Bergilir \n"$namaTabunganBergilir" \n telah berhasil dibuat',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.normal,
                 color: Colors.black,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               height: 37,
@@ -117,11 +170,9 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
                 onPressed: () {
                   Navigator.pop(context);
                   Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const DetailTabunganBergilir(),
-                    ),
-                  );
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const OurGoals()));
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.yellow.shade700,
@@ -129,11 +180,11 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'OK',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Color(0XFF1F597F),
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                 ),
               ),
@@ -149,29 +200,36 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
       context: context,
       isScrollControlled: true,
       builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildTermsTitle(),
-                    const SizedBox(height: 16),
-                    _buildTermsText(),
-                    const SizedBox(height: 8),
-                    _buildTermsCheckbox(setModalState),
-                    const SizedBox(height: 12),
-                    _buildCreateButton(),
-                  ],
+        return SizedBox(
+          height: MediaQuery.of(context).size.height * 0.75,
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setModalState) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
-              ),
-            );
-          },
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildTermsTitle(),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: _buildTermsText(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTermsCheckbox(setModalState),
+                      const SizedBox(height: 12),
+                      _buildCreateButton(),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -281,8 +339,211 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
             contentPadding: EdgeInsets.zero,
           ),
         ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: "Ketentuan Tabungan Bergilir:\n",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Nasabah beserta anggota goals dapat menambah ataupun menarik dana pada goals yang telah dibuat sesuai dengan kontribusinya masing-masing.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Terdapat biaya layanan (fee based) yang disematkan pada setiap setoran untuk semua anggota tabungan bergilir pada periode waktu tertentu sebesar Rp. 1.000,00.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Jumlah setoran tabungan bergilir untuk setiap anggotanya sudah termasuk biaya layanan tersebut. Misal anggota tabungan bergilir dengan jumlah 10 orang dan target 10.000.000 maka jumlah setoran yang perlu dibayar oleh setiap anggotanya adalah 1.000.000 + 1.000 = 1.001.000\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text:
+                      "Ketentuan Pengubahan Target Dana dan Target Waktu Goals:\n",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Nasabah pengelola goals/admin tidak dapat mengubah target dana dan target waktu goals jika tabungan bergilir telah dimulai karena akan mengganggu kenyamanan antar anggota tabungan bergilir.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: "Ketentuan Penambahan Anggota:\n",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Admin tidak dapat menambahkan anggota jika tabungan bergilir telah dimulai.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: "Ketentuan Keluar dari Goals:\n",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Anggota tidak dapat mengajukan untuk keluar dari goals jika tabungan bergilir telah dimulai.\n",
+                    style: TextStyle(fontSize: 13)),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text:
+                      "Ketentuan Jika Terdapat Anggota yang Wanprestasi (tabungan bergilir):\n",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Wanprestasi adalah keadaan ketika anggota tabungan bergilir tidak dapat memenuhi kewajibannya untuk dapat membayar tagihan tabungan bergilir setiap periode penentuan giliran. Seorang anggota tabungan bergilir dapat dikatakan wanprestasi ketika anggota tabungan bergilir tersebut tidak dapat memenuhi kewajibannya untuk membayar tagihan maksimal 3 hari setelah tanggal jatuh tempo tabungan bergilir.\n",
+                    style: TextStyle(fontSize: 13)),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text:
+                      "Jika terdapat anggota wanprestasi dan belum mendapatkan giliran:\n",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Anggota tersebut akan dikeluarkan karena kelalaiannya sendiri yang dapat merugikan anggota lain\n",
+                    style: TextStyle(fontSize: 13)),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Kontribusi yang telah diberikan akan hangus sebagai penalty\n",
+                    style: TextStyle(fontSize: 13)),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Durasi dan tagihan tabungan bergilir tidak akan berubah\n",
+                    style: TextStyle(fontSize: 13)),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Jumlah dana yang diberikan pada setiap penentuan giliran akan berkurang namun dana yang kurang tersebut akan digantikan pada akhir periode beserta dengan pembagian bonus dari kontribusi peserta yang wanprestasi\n",
+                    style: TextStyle(fontSize: 13)),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                    text:
+                        "Jika terdapat anggota wanprestasi tetapi sudah mendapatkan giliran:\n",
+                    style:
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Anggota tersebut akan dikeluarkan karena kelalaiannya sendiri serta niat untuk menipu anggota lain.\n",
+                    style: TextStyle(fontSize: 13)),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Bank bjb selaku penyedia layanan tabungan bergilir dapat memberikan kredit untuk anggota wanprestasi sesuai dengan jumlah sisa setoran yang perlu dibayarkan. Dana pada rekening anggota wanprestasi tersebut dapat langsung dipotong sesuai dengan jumlah sisa setoran yang perlu dibayarkan dan dana yang telah dipotong tersebut akan menjadi dana darurat tabungan bergilir\n",
+                    style: TextStyle(fontSize: 13)),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Durasi, tagihan, dan jumlah dana yang diberikan pada setiap penentuan giliran tidak akan berubah.",
+                    style: TextStyle(fontSize: 13)),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
         const Padding(
-          padding: EdgeInsets.only(top: 10),
+          padding: EdgeInsets.only(top: 10, bottom: 10),
           child: Text(
             "Kami menyarankan Anda untuk mempertimbangkan risiko ini sebelum melanjutkan pembuatan Tabungan Bergilir.",
             style: TextStyle(fontSize: 13),
@@ -345,7 +606,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
         onPressed: _termsAccepted
             ? () async {
                 Navigator.pop(context);
-                await _navigateToDetailTabungan();
+                await _submitToDatabase();
               }
             : null,
         style: ElevatedButton.styleFrom(
@@ -358,7 +619,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
         child: Text(
           'Buat Tabungan Bergilir',
           style: TextStyle(
-            color: Colors.blue.shade900,
+            color: Theme.of(context).textTheme.bodyMedium?.color,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -368,7 +629,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
 
   @override
   void dispose() {
-    _namaTabunganController.dispose();
+    _namaTabunganBergilirController.dispose();
     super.dispose();
   }
 
@@ -437,7 +698,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
                   ),
                   const SizedBox(height: 10),
                   TextFormField(
-                    controller: _namaTabunganController,
+                    controller: _namaTabunganBergilirController,
                     decoration: InputDecoration(
                       fillColor: Colors.blue.shade50,
                       filled: true,
@@ -452,10 +713,10 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
                       if (value == null || value.isEmpty) {
                         return 'Mohon isi Nama Tabungan Bergilir';
                       }
-                      if (value.length < 10) {
-                        return 'Nama Tabungan Bergilir minimal 10 karakter';
-                      }
                       return null;
+                    },
+                    onChanged: (value) {
+                      _namaTabunganBergilir = value;
                     },
                   ),
                 ],
@@ -484,7 +745,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
                 child: Text(
                   'Selanjutnya',
                   style: TextStyle(
-                    color: Colors.blue.shade900,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -497,7 +758,8 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
             color: Colors.black.withOpacity(0.2),
             child: Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade700),
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(Colors.yellow.shade700),
               ),
             ),
           ),

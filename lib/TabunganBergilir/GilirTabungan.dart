@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
 
 class GilirTabungan extends StatefulWidget {
-  const GilirTabungan({super.key});
+  final Map<String, dynamic> goalsData;
+  final bool isActive;
+
+  const GilirTabungan(
+      {Key? key, required this.goalsData, required this.isActive})
+      : super(key: key);
 
   @override
   _GilirTabunganState createState() => _GilirTabunganState();
@@ -13,10 +19,13 @@ class _GilirTabunganState extends State<GilirTabungan>
   bool isChecked = false;
   String? warningMessage;
   late AnimationController _animationController;
+  late List<String> _allMembers;
+  String? _winnerName; // Untuk menyimpan nama pemenang
 
   @override
   void initState() {
     super.initState();
+    _allMembers = List<String>.from(widget.goalsData['members'] ?? []);
     _animationController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 500),
@@ -29,6 +38,15 @@ class _GilirTabunganState extends State<GilirTabungan>
     super.dispose();
   }
 
+  void _pickWinner() {
+    if (_allMembers.isNotEmpty) {
+      final random = Random();
+      _winnerName = _allMembers[random.nextInt(_allMembers.length)];
+    } else {
+      _winnerName = "Tidak ada anggota";
+    }
+  }
+
   void validateAndProceed() {
     setState(() {
       if (!isChecked) {
@@ -36,6 +54,7 @@ class _GilirTabunganState extends State<GilirTabungan>
             'Harap mencentang lingkaran untuk menyetujui ketentuan!';
       } else {
         warningMessage = null;
+        _pickWinner(); // Acak nama pemenang sekali di sini
         _showGiftAnimation();
       }
     });
@@ -118,7 +137,7 @@ class _GilirTabunganState extends State<GilirTabungan>
                 ),
                 SizedBox(height: 16),
                 Text(
-                  'Selamat kepada Anggota ${_getRandomName()} yang beruntung!',
+                  'Selamat kepada Anggota ${_winnerName ?? "Tidak ada anggota"} yang beruntung!',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -130,7 +149,13 @@ class _GilirTabunganState extends State<GilirTabungan>
                   height: 48,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.of(context).pop();
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              DetailTabunganBergilir(isActive: true),
+                        ),
+                        (Route<dynamic> route) => false,
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.yellow.shade700,
@@ -153,11 +178,6 @@ class _GilirTabunganState extends State<GilirTabungan>
         );
       },
     );
-  }
-
-  String _getRandomName() {
-    List<String> names = ["Andi", "Budi", "Citra", "Dewi", "Eka"];
-    return names[Random().nextInt(names.length)];
   }
 
   @override
@@ -241,16 +261,10 @@ class _GilirTabunganState extends State<GilirTabungan>
                     leading: Text('2.',
                         style: TextStyle(fontWeight: FontWeight.bold)),
                     title: Text(
-                        'Ada potongan sebesar 2% untuk biaya pengelolaan Tabungan Bergilir yang akan diberikan kepada pengelola.'),
-                  ),
-                  ListTile(
-                    leading: Text('3.',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                    title: Text(
                         'Setiap anggota hanya berkesempatan mendapatkan giliran satu kali selama program Tabungan Bergilir berlangsung.'),
                   ),
                   ListTile(
-                    leading: Text('4.',
+                    leading: Text('3.',
                         style: TextStyle(fontWeight: FontWeight.bold)),
                     title: Text(
                         'Anggota yang sudah menerima giliran tetap wajib melakukan setoran bulanan hingga program Tabungan Bergilir selesai.'),
