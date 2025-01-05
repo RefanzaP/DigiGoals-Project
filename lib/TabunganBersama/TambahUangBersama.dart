@@ -1,17 +1,21 @@
-import 'package:digigoals_app/Beranda.dart';
+// ignore_for_file: use_build_context_synchronously
+
+import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import 'dart:math';
 
-class TambahUang extends StatefulWidget {
-  const TambahUang({super.key});
+class TambahUangBersama extends StatefulWidget {
+  final Map<String, dynamic> goalsData;
+
+  const TambahUangBersama({super.key, required this.goalsData});
 
   @override
-  _TambahUangState createState() => _TambahUangState();
+  _TambahUangBersamaState createState() => _TambahUangBersamaState();
 }
 
-class _TambahUangState extends State<TambahUang> {
+class _TambahUangBersamaState extends State<TambahUangBersama> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nominalController;
   late TextEditingController _waktuTransaksiController;
@@ -22,12 +26,13 @@ class _TambahUangState extends State<TambahUang> {
   bool isSpecificDateEnabled = false;
 
   // Inisialisasi data di depan
-  final String namaGoals = 'Pernikahan Kita 🔥';
+  late String namaGoals;
   final String tanggalTransaksiDefault = 'Sekarang';
 
   @override
   void initState() {
     super.initState();
+    namaGoals = widget.goalsData['goalsName'];
     _nominalController = TextEditingController();
     _waktuTransaksiController =
         TextEditingController(text: tanggalTransaksiDefault);
@@ -187,11 +192,12 @@ class _TambahUangState extends State<TambahUang> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => PilihSumberDana(
+                    builder: (context) => PilihSumberDanaBersama(
                       nominal: _nominalController.text,
                       sumberDana: 'Tabungan Tandamata',
                       saldo: 'IDR 234.567.890,00',
                       namaGoals: namaGoals,
+                      goalsData: widget.goalsData,
                     ),
                   ),
                 );
@@ -217,18 +223,20 @@ class _TambahUangState extends State<TambahUang> {
   }
 }
 
-class PilihSumberDana extends StatelessWidget {
+class PilihSumberDanaBersama extends StatelessWidget {
   final String nominal;
   final String sumberDana;
   final String saldo;
   final String namaGoals;
+  final Map<String, dynamic> goalsData;
 
-  PilihSumberDana({
+  PilihSumberDanaBersama({
     super.key,
     required this.nominal,
     required this.sumberDana,
     required this.saldo,
     required this.namaGoals,
+    required this.goalsData,
   });
 
   // Inisialisasi data sumber dana di depan
@@ -291,7 +299,7 @@ class PilihSumberDana extends StatelessWidget {
                   radius: 24,
                   backgroundColor: Colors.white,
                   child: Icon(
-                    Icons.celebration,
+                    Icons.groups,
                     color: Colors.blue.shade700,
                     size: 28,
                   ),
@@ -504,12 +512,13 @@ class PilihSumberDana extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => KonfirmasiTambahUang(
+                      builder: (context) => KonfirmasiTambahUangBersama(
                         nominal: nominal,
                         jenis: selectedSumberDana['jenis']!,
                         rekening: selectedSumberDana['rekening']!,
                         saldo: selectedSumberDana['saldo']!,
                         namaGoals: namaGoals,
+                        goalsData: goalsData,
                       ),
                     ),
                   );
@@ -530,20 +539,22 @@ class PilihSumberDana extends StatelessWidget {
   }
 }
 
-class KonfirmasiTambahUang extends StatelessWidget {
+class KonfirmasiTambahUangBersama extends StatelessWidget {
   final String nominal;
   final String jenis;
   final String rekening;
   final String saldo;
   final String namaGoals;
+  final Map<String, dynamic> goalsData;
 
-  const KonfirmasiTambahUang({
+  const KonfirmasiTambahUangBersama({
     super.key,
     required this.nominal,
     required this.jenis,
     required this.rekening,
     required this.saldo,
     required this.namaGoals,
+    required this.goalsData,
   });
 
   @override
@@ -584,7 +595,7 @@ class KonfirmasiTambahUang extends StatelessWidget {
                   radius: 24,
                   backgroundColor: Colors.white,
                   child: Icon(
-                    Icons.celebration,
+                    Icons.groups,
                     color: Colors.blue.shade700,
                     size: 28,
                   ),
@@ -728,12 +739,13 @@ class KonfirmasiTambahUang extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => DetailTambahUang(
+                      builder: (context) => DetailTambahUangBersama(
                         nominal: nominal,
                         jenis: jenis,
                         rekening: rekening,
                         saldo: saldo,
                         namaGoals: namaGoals,
+                        goalsData: goalsData,
                       ),
                     ),
                   );
@@ -754,25 +766,27 @@ class KonfirmasiTambahUang extends StatelessWidget {
   }
 }
 
-class DetailTambahUang extends StatelessWidget {
+class DetailTambahUangBersama extends StatelessWidget {
   final String nominal;
   final String jenis;
   final String rekening;
   final String saldo;
   final String namaGoals;
+  final Map<String, dynamic> goalsData;
 
   // Inisialisasi data di depan
-  final String jenisGoals = 'Bergilir';
+  final String jenisGoals = 'Tabungan Bersama';
   final String namaPengguna = 'ABI';
   final String tanggalTransaksi = '1 November 2024';
 
-  const DetailTambahUang({
+  const DetailTambahUangBersama({
     super.key,
     required this.nominal,
     required this.jenis,
     required this.rekening,
     required this.saldo,
     required this.namaGoals,
+    required this.goalsData,
   });
 
   @override
@@ -1030,13 +1044,14 @@ class DetailTambahUang extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => InputPin(
+                builder: (context) => InputPinBersama(
                   nominal: nominal,
                   jenis: jenis,
                   rekening: rekening,
                   saldo: saldo,
                   namaGoals: namaGoals,
                   jenisGoals: jenisGoals,
+                  goalsData: goalsData,
                 ),
               ),
             );
@@ -1072,15 +1087,16 @@ class DetailTambahUang extends StatelessWidget {
   }
 }
 
-class InputPin extends StatefulWidget {
+class InputPinBersama extends StatefulWidget {
   final String nominal;
   final String jenis;
   final String rekening;
   final String saldo;
   final String namaGoals;
   final String jenisGoals;
+  final Map<String, dynamic> goalsData;
 
-  const InputPin({
+  const InputPinBersama({
     super.key,
     required this.nominal,
     required this.jenis,
@@ -1088,13 +1104,14 @@ class InputPin extends StatefulWidget {
     required this.rekening,
     required this.saldo,
     required this.namaGoals,
+    required this.goalsData,
   });
 
   @override
-  _InputPinState createState() => _InputPinState();
+  _InputPinBersamaState createState() => _InputPinBersamaState();
 }
 
-class _InputPinState extends State<InputPin> {
+class _InputPinBersamaState extends State<InputPinBersama> {
   String _pin = '';
   final int _pinLength = 6;
 
@@ -1122,7 +1139,7 @@ class _InputPinState extends State<InputPin> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => BerhasilTambahUang(
+            builder: (context) => BerhasilTambahUangBersama(
               nominal: widget.nominal,
               jenis: widget.jenis,
               rekening: widget.rekening,
@@ -1130,6 +1147,7 @@ class _InputPinState extends State<InputPin> {
               tanggalTransaksi: '1 November 2024',
               saldo: widget.saldo,
               jenisGoals: widget.jenisGoals,
+              goalsData: widget.goalsData,
             ),
           ),
         );
@@ -1303,7 +1321,7 @@ class _InputPinState extends State<InputPin> {
   }
 }
 
-class BerhasilTambahUang extends StatelessWidget {
+class BerhasilTambahUangBersama extends StatelessWidget {
   final String nominal;
   final String jenis;
   final String jenisGoals;
@@ -1311,8 +1329,9 @@ class BerhasilTambahUang extends StatelessWidget {
   final String namaGoals;
   final String tanggalTransaksi;
   final String saldo;
+  final Map<String, dynamic> goalsData;
 
-  BerhasilTambahUang({
+  const BerhasilTambahUangBersama({
     super.key,
     required this.nominal,
     required this.jenis,
@@ -1321,6 +1340,7 @@ class BerhasilTambahUang extends StatelessWidget {
     required this.tanggalTransaksi,
     required this.saldo,
     required this.jenisGoals,
+    required this.goalsData,
   });
 
   String _generateRandomRef() {
@@ -1339,7 +1359,6 @@ class BerhasilTambahUang extends StatelessWidget {
   Widget build(BuildContext context) {
     final String randomRef = _generateRandomRef();
     final String randomRRN = _generateRandomRRN();
-
     return Scaffold(
       backgroundColor: Colors.blue,
       body: Center(
@@ -1627,7 +1646,7 @@ class BerhasilTambahUang extends StatelessWidget {
                               context,
                               MaterialPageRoute<void>(
                                 builder: (BuildContext context) =>
-                                    const Beranda(),
+                                    DetailTabunganBersama(),
                               ),
                             );
                           },

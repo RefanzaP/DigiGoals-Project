@@ -24,7 +24,7 @@ class _OurGoalsState extends State<OurGoals> {
     {
       'goalsType': 'Tabungan Bersama',
       'goalsName': 'Liburan Keluarga 🏖️',
-      'saldoTabungan': 7000000.00,
+      'saldoTabungan': 6000000.00,
       'targetTabungan': 20000000.00,
       'progress': 0.3,
       'daysLeft': 90,
