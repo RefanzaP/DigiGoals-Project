@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -92,8 +94,6 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
         'historiTransaksi': _historiTransaksi,
         'members': [_dummyAccountData.namaRekening],
       };
-      print(
-          'Data Tabungan yang akan disimpan ke database: $dataTabunganBersama');
       setState(() {
         _isLoading = false;
       });

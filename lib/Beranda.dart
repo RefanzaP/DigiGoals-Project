@@ -1,25 +1,56 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
+import 'dart:convert';
 import 'package:digigoals_app/Inbox.dart';
 import 'package:digigoals_app/LoginDigi.dart';
+import 'package:digigoals_app/auth/token_manager.dart';
 import 'package:digigoals_app/OurGoals.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 
-// 1. Model Data Rekening
+// Model Data Rekening
 class Account {
   final String accountNumber;
   final String accountHolder;
   final double balance;
 
-  Account(
-      {required this.accountNumber,
-      required this.accountHolder,
-      required this.balance});
+  Account({
+    required this.accountNumber,
+    required this.accountHolder,
+    required this.balance,
+  });
 }
 
+// Enum untuk State
+enum DataState {
+  initial,
+  loading,
+  loaded,
+  error,
+}
+
+// Widget Shimmer Text dengan Animasi
+Widget _buildShimmerText(
+    {double? width, double? height, bool hasAnimation = false}) {
+  return Shimmer.fromColors(
+    baseColor: Colors.grey[300]!,
+    highlightColor: Colors.grey[100]!,
+    enabled: hasAnimation,
+    child: Container(
+      width: width ?? 100,
+      height: height ?? 16,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4),
+      ),
+    ),
+  );
+}
+
+// Widget Halaman Beranda
 class Beranda extends StatefulWidget {
   const Beranda({super.key});
 
@@ -28,13 +59,14 @@ class Beranda extends StatefulWidget {
 }
 
 class _BerandaState extends State<Beranda> {
-  bool _isLoadingLogout = false;
+  bool _isLoadingLogout = false; // State untuk loading logout
+  final TokenManager _tokenManager = TokenManager(); // Instance TokenManager
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
     return ChangeNotifierProvider(
-      create: (_) => BerandaState(),
+      create: (_) => BerandaState(
+          accessToken: ModalRoute.of(context)?.settings.arguments as String?),
       child: Stack(
         children: [
           Scaffold(
@@ -51,13 +83,18 @@ class _BerandaState extends State<Beranda> {
                 ),
               ),
               actions: [
-                _buildIconButton(context, Icons.search, () {
-                  showSearch(
-                      context: context, delegate: CustomSearchDelegate());
-                }, 'Search'),
-                _buildIconButton(context, Icons.mic_none, () {
-                  // Voice search action
-                }, 'Voice Search'),
+                _buildIconButton(
+                  context,
+                  Icons.search,
+                  () {},
+                  'Search',
+                ),
+                _buildIconButton(
+                  context,
+                  Icons.mic_none,
+                  () {},
+                  'Voice Search',
+                ),
               ],
             ),
             body: Container(
@@ -88,9 +125,9 @@ class _BerandaState extends State<Beranda> {
                       children: [
                         Consumer<BerandaState>(
                           builder: (context, state, _) {
-                            if (state.errorMessage != null) {
+                            if (state.dataState == DataState.error) {
                               return Text(
-                                state.errorMessage!,
+                                state.errorMessage ?? 'Terjadi kesalahan',
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -98,11 +135,14 @@ class _BerandaState extends State<Beranda> {
                                 ),
                               );
                             }
-                            return state.isLoading
-                                ? _buildShimmerText(width: 150, height: 20)
+                            return state.dataState == DataState.loading
+                                ? _buildShimmerText(
+                                    width: 150, height: 20, hasAnimation: true)
                                 : Text(
-                                    state.account?.accountHolder ??
-                                        'Nama Pengguna',
+                                    (state.account?.accountHolder ??
+                                            state.defaultName ??
+                                            'Error!')
+                                        .toUpperCase(),
                                     style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -147,9 +187,10 @@ class _BerandaState extends State<Beranda> {
                     ),
                   ),
                   Consumer<BerandaState>(
-                    builder: (context, state, _) => state.isLoading
-                        ? const AccountCardShimmer()
-                        : const AccountCard(),
+                    builder: (context, state, _) =>
+                        state.dataState == DataState.loading
+                            ? const AccountCardShimmer()
+                            : const AccountCard(),
                   ),
                   const SizedBox(height: 16),
                   Expanded(
@@ -161,91 +202,106 @@ class _BerandaState extends State<Beranda> {
                           topRight: Radius.circular(10),
                         ),
                       ),
-                      child: GridView.count(
-                        crossAxisCount: screenWidth > 600 ? 6 : 4,
-                        mainAxisSpacing: 12.0,
-                        crossAxisSpacing: 8.0,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 10),
-                        childAspectRatio: 0.838,
-                        shrinkWrap: true,
-                        physics: const ClampingScrollPhysics(),
-                        clipBehavior: Clip.none,
-                        children: [
-                          MenuItem(
-                              icon: Image.asset(
-                                  'assets/icons/manajemen-keuangan@3x.png',
-                                  width: 40,
-                                  height: 40),
-                              label: 'Manajemen Keuangan',
-                              onTap: () {}),
-                          MenuItem(
-                              icon: Image.asset('assets/icons/transfer@3x.png',
-                                  width: 40, height: 40),
-                              label: 'Transfer',
-                              onTap: () {}),
-                          MenuItem(
-                              icon: Image.asset('assets/icons/bayar@3x.png',
-                                  width: 40, height: 40),
-                              label: 'Bayar',
-                              onTap: () {}),
-                          MenuItem(
-                              icon: Image.asset('assets/icons/beli@3x.png',
-                                  width: 40, height: 40),
-                              label: 'Beli',
-                              onTap: () {}),
-                          MenuItem(
-                              icon: Image.asset('assets/icons/cardless@3x.png',
-                                  width: 40, height: 40),
-                              label: 'Cardless',
-                              onTap: () {}),
-                          MenuItem(
-                              icon: Image.asset(
-                                  'assets/icons/buka-rekening@3x.png',
-                                  width: 40,
-                                  height: 40),
-                              label: 'Buka Rekening',
-                              onTap: () {}),
-                          MenuItem(
-                              icon: Image.asset(
-                                  'assets/icons/bjb-deposito@3x.png',
-                                  width: 40,
-                                  height: 40),
-                              label: 'bjb Deposito',
-                              onTap: () {}),
-                          MenuItem(
-                              icon: Image.asset('assets/icons/flip.png',
-                                  width: 40, height: 40),
-                              label: 'Flip',
-                              onTap: () {}),
-                          MenuItem(
-                              icon: Image.asset('assets/icons/donasi@3x.png',
-                                  width: 40, height: 40),
-                              label: 'Donasi',
-                              onTap: () {}),
-                          MenuItem(
-                              icon: Image.asset('assets/icons/collect-dana.png',
-                                  width: 40, height: 40),
-                              label: 'Collect Dana',
-                              onTap: () {}),
-                          MenuItem(
-                              icon: Image.asset(
-                                  'assets/icons/pinjaman asn@3x.png',
-                                  width: 40,
-                                  height: 40),
-                              label: 'Pinjaman ASN',
-                              onTap: () {}),
-                          MenuItem(
-                              icon: Image.asset('assets/icons/our-goals.png',
-                                  width: 40, height: 40),
-                              label: 'Our Goals',
-                              onTap: () {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => OurGoals()));
-                              }),
-                        ],
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final screenWidth = constraints.maxWidth;
+                          return GridView.count(
+                            crossAxisCount: screenWidth > 600 ? 6 : 4,
+                            mainAxisSpacing: 12.0,
+                            crossAxisSpacing: 8.0,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 10),
+                            childAspectRatio: 0.838,
+                            shrinkWrap: true,
+                            physics: const ClampingScrollPhysics(),
+                            clipBehavior: Clip.none,
+                            children: [
+                              MenuItem(
+                                  icon: Image.asset(
+                                      'assets/icons/manajemen-keuangan@3x.png',
+                                      width: 40,
+                                      height: 40),
+                                  label: 'Manajemen Keuangan',
+                                  onTap: () {}),
+                              MenuItem(
+                                  icon: Image.asset(
+                                      'assets/icons/transfer@3x.png',
+                                      width: 40,
+                                      height: 40),
+                                  label: 'Transfer',
+                                  onTap: () {}),
+                              MenuItem(
+                                  icon: Image.asset('assets/icons/bayar@3x.png',
+                                      width: 40, height: 40),
+                                  label: 'Bayar',
+                                  onTap: () {}),
+                              MenuItem(
+                                  icon: Image.asset('assets/icons/beli@3x.png',
+                                      width: 40, height: 40),
+                                  label: 'Beli',
+                                  onTap: () {}),
+                              MenuItem(
+                                  icon: Image.asset(
+                                      'assets/icons/cardless@3x.png',
+                                      width: 40,
+                                      height: 40),
+                                  label: 'Cardless',
+                                  onTap: () {}),
+                              MenuItem(
+                                  icon: Image.asset(
+                                      'assets/icons/buka-rekening@3x.png',
+                                      width: 40,
+                                      height: 40),
+                                  label: 'Buka Rekening',
+                                  onTap: () {}),
+                              MenuItem(
+                                  icon: Image.asset(
+                                      'assets/icons/bjb-deposito@3x.png',
+                                      width: 40,
+                                      height: 40),
+                                  label: 'bjb Deposito',
+                                  onTap: () {}),
+                              MenuItem(
+                                  icon: Image.asset('assets/icons/flip.png',
+                                      width: 40, height: 40),
+                                  label: 'Flip',
+                                  onTap: () {}),
+                              MenuItem(
+                                  icon: Image.asset(
+                                      'assets/icons/donasi@3x.png',
+                                      width: 40,
+                                      height: 40),
+                                  label: 'Donasi',
+                                  onTap: () {}),
+                              MenuItem(
+                                  icon: Image.asset(
+                                      'assets/icons/collect-dana.png',
+                                      width: 40,
+                                      height: 40),
+                                  label: 'Collect Dana',
+                                  onTap: () {}),
+                              MenuItem(
+                                  icon: Image.asset(
+                                      'assets/icons/pinjaman asn@3x.png',
+                                      width: 40,
+                                      height: 40),
+                                  label: 'Pinjaman ASN',
+                                  onTap: () {}),
+                              MenuItem(
+                                  icon: Image.asset(
+                                      'assets/icons/our-goals.png',
+                                      width: 40,
+                                      height: 40),
+                                  label: 'Our Goals',
+                                  onTap: () {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) => OurGoals()));
+                                  }),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   )
@@ -262,10 +318,8 @@ class _BerandaState extends State<Beranda> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildBottomNavItem(Icons.inbox, 'Inbox', () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => Inbox()),
-                      );
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => Inbox()));
                     }),
                     _buildBottomNavItem(Icons.favorite, 'Favorite'),
                     const SizedBox(width: 40),
@@ -276,10 +330,15 @@ class _BerandaState extends State<Beranda> {
                       });
                       await Future.delayed(
                           const Duration(seconds: 1)); // Simulate loading
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (context) => LoginDigi()),
-                        (Route<dynamic> route) => false,
-                      );
+                      // Delete Token
+                      await _tokenManager.deleteToken();
+
+                      if (mounted) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                                builder: (context) => const LoginDigi()),
+                            (Route<dynamic> route) => false);
+                      }
                       setState(() {
                         _isLoadingLogout = false;
                       });
@@ -332,22 +391,7 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  // Widget untuk menampilkan Shimmer
-  Widget _buildShimmerText({double? width, double? height}) {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
-      child: Container(
-        width: width ?? 100, // Default width jika tidak ada input
-        height: height ?? 16,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(4),
-        ),
-      ),
-    );
-  }
-
+  // Widget IconButton dengan Custom Style
   Widget _buildIconButton(BuildContext context, IconData icon,
       VoidCallback onPressed, String tooltip) {
     return Container(
@@ -374,6 +418,7 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
+  // Widget Item Navigation Bottom Bar
   Widget _buildBottomNavItem(IconData icon, String label,
       [VoidCallback? onTap]) {
     return InkWell(
@@ -393,7 +438,7 @@ class _BerandaState extends State<Beranda> {
             ).createShader(bounds),
             child: Icon(
               icon,
-              color: Colors.white, // Warna harus putih agar gradient terlihat
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 4),
@@ -420,6 +465,7 @@ class _BerandaState extends State<Beranda> {
   }
 }
 
+// Widget Item Menu Grid
 class MenuItem extends StatelessWidget {
   final Widget icon;
   final String label;
@@ -471,33 +517,33 @@ class MenuItem extends StatelessWidget {
   }
 }
 
-// 2. BerandaState yang Diperbarui
+// State Management Halaman Beranda
 class BerandaState with ChangeNotifier {
-  // Data Statis
-  final Account _dummyAccountData = Account(
-      accountNumber: "0123456789012",
-      accountHolder: "ABI",
-      balance: 1000000.00);
-
   Account? _account;
-  bool isOnline = true;
+  DataState _dataState = DataState.initial;
   bool isSaldoVisible = false;
-  bool isLoading = true;
   String? errorMessage;
-  late Future<void> _fetchDataFuture;
+  final String? accessToken;
+  String? defaultName;
+  // Cache Data
+  Account? _cachedAccount;
+  DateTime? _cacheTime;
+  static const Duration cacheDuration = Duration(minutes: 5);
 
+  DataState get dataState => _dataState;
   Account? get account => _account;
-  Future<void> get fetchDataFuture => _fetchDataFuture;
 
   void setAccount(Account account) {
     _account = account;
-    isLoading = false;
+    _cachedAccount = account;
+    _cacheTime = DateTime.now();
+    _dataState = DataState.loaded;
     errorMessage = null;
     notifyListeners();
   }
 
   void setError(String message) {
-    isLoading = false;
+    _dataState = DataState.error;
     errorMessage = message;
     notifyListeners();
   }
@@ -507,67 +553,105 @@ class BerandaState with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchAccountData() async {
-    isLoading = true;
-    notifyListeners();
-    try {
-      await Future.delayed(const Duration(seconds: 1));
+  // Check Cache
+  bool _isCacheValid() {
+    if (_cachedAccount == null || _cacheTime == null) {
+      return false;
+    }
+    return DateTime.now().difference(_cacheTime!) <= cacheDuration;
+  }
 
-      setAccount(_dummyAccountData);
+  Future<void> fetchAccountData() async {
+    if (_isCacheValid() && _cachedAccount != null) {
+      _account = _cachedAccount;
+      _dataState = DataState.loaded;
+      notifyListeners();
+      return;
+    }
+    _dataState = DataState.loading;
+    notifyListeners();
+
+    if (accessToken == null) {
+      setError("Token tidak ditemukan");
+      return;
+    }
+
+    try {
+      // Konfigurasi Endpoint API
+      const String baseUrl = "https://user-service-ourgoals.koyeb.app";
+      const String profileEndpoint = "/api/v1/users/profile";
+      const String accountEndpoint = "/api/v1/users/accounts";
+      final String profileApiUrl = baseUrl + profileEndpoint;
+      final String accountApiUrl = baseUrl + accountEndpoint;
+
+      // Fetch profile data for accountHolder
+      final profileResponse = await http.get(
+        Uri.parse(profileApiUrl),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+
+      if (profileResponse.statusCode == 200) {
+        final Map<String, dynamic> profileData =
+            json.decode(profileResponse.body);
+        if (profileData['code'] == 200 && profileData['status'] == 'OK') {
+          final String accountHolder = profileData['data']['name'];
+          defaultName = accountHolder;
+
+          // Fetch account data for accountNumber and balance
+          final accountResponse = await http.get(
+            Uri.parse(accountApiUrl),
+            headers: {
+              'Authorization': 'Bearer $accessToken',
+            },
+          );
+
+          if (accountResponse.statusCode == 200) {
+            final Map<String, dynamic> accountData =
+                json.decode(accountResponse.body);
+            if (accountData['code'] == 200 &&
+                accountData['status'] == 'OK' &&
+                (accountData['data'] as List).isNotEmpty) {
+              final dynamic account = (accountData['data'] as List)[0];
+
+              final Account fetchedAccount = Account(
+                accountNumber: account['account_number'] ?? 'N/A',
+                accountHolder: accountHolder,
+                balance:
+                    (account['total_available_balance'] as num?)?.toDouble() ??
+                        0.0,
+              );
+
+              setAccount(fetchedAccount);
+            } else {
+              setError(accountData['errors'] != null &&
+                      (accountData['errors'] as List).isNotEmpty
+                  ? (accountData['errors'] as List)[0].toString()
+                  : "Gagal mengambil data akun, silahkan coba lagi!");
+            }
+          } else {
+            setError(
+                "Gagal mengambil data akun, kode status: ${accountResponse.statusCode}. Silahkan coba lagi!");
+          }
+        } else {
+          setError(profileData['errors'] != null &&
+                  (profileData['errors'] as List).isNotEmpty
+              ? (profileData['errors'] as List)[0].toString()
+              : "Gagal mengambil data user, silahkan coba lagi!");
+        }
+      } else {
+        setError(
+            "Gagal mengambil data user, kode status: ${profileResponse.statusCode}. Silahkan coba lagi!");
+      }
     } catch (e) {
-      setError("Failed to fetch account data: $e");
+      setError(
+          "Terjadi kesalahan saat mengambil data user, pesan error: ${e.toString()}");
     }
   }
 
-  BerandaState() {
-    _fetchDataFuture = fetchAccountData();
-  }
-}
-
-class CustomSearchDelegate extends SearchDelegate {
-  @override
-  List<Widget> buildActions(BuildContext context) {
-    return [
-      IconButton(
-        icon: const Icon(Icons.clear),
-        onPressed: () {
-          query = '';
-        },
-      ),
-    ];
-  }
-
-  @override
-  Widget buildLeading(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.arrow_back),
-      onPressed: () {
-        close(context, null);
-      },
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    return Center(
-      child: Text('Hasil pencarian untuk "$query"'),
-    );
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    return ListView.builder(
-      itemCount: 5,
-      itemBuilder: (context, index) {
-        return ListTile(
-          title: Text('Saran $index untuk "$query"'),
-          onTap: () {
-            query = 'Saran $index';
-            showResults(context);
-          },
-        );
-      },
-    );
+  BerandaState({this.accessToken}) {
+    fetchAccountData();
   }
 }
 
@@ -629,9 +713,10 @@ class AccountCard extends StatelessWidget {
                                   .format(state.account?.balance)
                               : 'IDR ******',
                           style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500),
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
@@ -649,7 +734,9 @@ class AccountCard extends StatelessWidget {
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                      ).createShader(bounds),
+                      ).createShader(
+                        bounds,
+                      ),
                       child: Icon(
                         state.isSaldoVisible
                             ? Icons.visibility
@@ -694,8 +781,10 @@ class AccountCard extends StatelessWidget {
   }
 }
 
+// Widget Account Card saat Loading
 class AccountCardShimmer extends StatelessWidget {
   const AccountCardShimmer({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -724,9 +813,9 @@ class AccountCardShimmer extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildShimmerText(
-                        width: 120, height: 18), // Shimmer untuk nomor rekening
+                        width: 120, height: 18, hasAnimation: true),
                     _buildShimmerText(
-                        width: 150, height: 18), // Shimmer untuk saldo
+                        width: 150, height: 18, hasAnimation: true),
                   ],
                 ),
               ],
@@ -752,21 +841,6 @@ class AccountCardShimmer extends StatelessWidget {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildShimmerText({double? width, double? height}) {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
-      child: Container(
-        width: width ?? 100,
-        height: height ?? 16,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(4),
         ),
       ),
     );

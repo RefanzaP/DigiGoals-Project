@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
@@ -7,8 +9,7 @@ class GilirTabungan extends StatefulWidget {
   final bool isActive;
 
   const GilirTabungan(
-      {Key? key, required this.goalsData, required this.isActive})
-      : super(key: key);
+      {super.key, required this.goalsData, required this.isActive});
 
   @override
   _GilirTabunganState createState() => _GilirTabunganState();

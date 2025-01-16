@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:math';
 import 'package:digigoals_app/TabunganBersama/UndangAnggotaBersama.dart';
 import 'package:flutter/material.dart';

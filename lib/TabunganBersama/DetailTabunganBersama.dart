@@ -65,7 +65,7 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
       'goalsName': 'Liburan Keluarga 🏖️',
       'goalsType': 'Tabungan Bersama',
       'creationDate': '24-05-2024',
-      'members': ['Fafa', 'Gina', 'Hani', 'Olaf'],
+      'members': ['Fufufafa', 'Gina', 'Hani', 'Olaf'],
       'saldoTabungan': 6000000.00,
       'statusTabungan': 'Aktif',
       'progressTabungan': 0.3,

@@ -1,10 +1,13 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart';
+import 'package:digigoals_app/auth/token_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import 'dart:math';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class TambahUangBersama extends StatefulWidget {
   final Map<String, dynamic> goalsData;
@@ -971,44 +974,43 @@ class DetailTambahUangBersama extends StatelessWidget {
             ),
             SizedBox(height: 16),
             Container(
-              padding: EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Tanggal Transaksi',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade900,
+                padding: EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tanggal Transaksi',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade900,
+                      ),
                     ),
-                  ),
-                  // SizedBox(height: 8),
-                  Text(
-                    'Anda memilih transaksi segera',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.red,
+                    // SizedBox(height: 8),
+                    Text(
+                      'Anda memilih transaksi segera',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.red,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Tanggal',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.black,
+                    SizedBox(height: 8),
+                    Text(
+                      'Tanggal',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.black,
+                      ),
                     ),
-                  ),
-                  Text(
-                    tanggalTransaksi,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.black,
+                    Text(
+                      tanggalTransaksi,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.black,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
+                  ],
+                )),
             SizedBox(height: 8),
             Divider(),
             Container(
@@ -1096,16 +1098,15 @@ class InputPinBersama extends StatefulWidget {
   final String jenisGoals;
   final Map<String, dynamic> goalsData;
 
-  const InputPinBersama({
-    super.key,
-    required this.nominal,
-    required this.jenis,
-    required this.jenisGoals,
-    required this.rekening,
-    required this.saldo,
-    required this.namaGoals,
-    required this.goalsData,
-  });
+  const InputPinBersama(
+      {super.key,
+      required this.nominal,
+      required this.jenis,
+      required this.jenisGoals,
+      required this.rekening,
+      required this.saldo,
+      required this.namaGoals,
+      required this.goalsData});
 
   @override
   _InputPinBersamaState createState() => _InputPinBersamaState();
@@ -1114,6 +1115,7 @@ class InputPinBersama extends StatefulWidget {
 class _InputPinBersamaState extends State<InputPinBersama> {
   String _pin = '';
   final int _pinLength = 6;
+  final TokenManager _tokenManager = TokenManager();
 
   void _addPin(String number) {
     setState(() {
@@ -1132,37 +1134,91 @@ class _InputPinBersamaState extends State<InputPinBersama> {
     });
   }
 
-  void _validatePin() {
+  Future<void> _validatePin() async {
     if (_pin.length == _pinLength) {
-      // Simulasi validasi PIN (ganti dengan logika validasi API Anda)
-      if (_pin == '123456') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => BerhasilTambahUangBersama(
-              nominal: widget.nominal,
-              jenis: widget.jenis,
-              rekening: widget.rekening,
-              namaGoals: widget.namaGoals,
-              tanggalTransaksi: '1 November 2024',
-              saldo: widget.saldo,
-              jenisGoals: widget.jenisGoals,
-              goalsData: widget.goalsData,
-            ),
-          ),
+      final String? token = await _tokenManager.getToken();
+      if (token == null) {
+        _showErrorSnackbar("Token tidak ditemukan, silakan login ulang");
+        return;
+      }
+
+      try {
+        const String baseUrl = "https://user-service-ourgoals.koyeb.app";
+        const String pinEndpoint = "/api/v1/auth/verify-transaction-pin";
+        final String apiUrl = baseUrl + pinEndpoint;
+
+        final response = await http.post(
+          Uri.parse(apiUrl),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'transaction_pin': _pin,
+          }),
         );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Pin yang Anda masukkan salah'),
-            backgroundColor: Colors.red,
-          ),
-        );
+
+        // Log response untuk debugging
+
+        if (response.statusCode == 200) {
+          final Map<String, dynamic> responseData = json.decode(response.body);
+          if (responseData['code'] == 200 && responseData['status'] == 'OK') {
+            if (responseData['data']['is_valid'] == true) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BerhasilTambahUangBersama(
+                    nominal: widget.nominal,
+                    jenis: widget.jenis,
+                    rekening: widget.rekening,
+                    namaGoals: widget.namaGoals,
+                    tanggalTransaksi:
+                        '1 November 2024', // ganti dengan tanggal dinamis
+                    saldo: widget.saldo,
+                    jenisGoals: widget.jenisGoals,
+                    goalsData: widget.goalsData,
+                  ),
+                ),
+              );
+            } else {
+              _showErrorSnackbar("Pin yang Anda masukkan salah");
+              setState(() {
+                _pin = '';
+              });
+            }
+          } else {
+            _showErrorSnackbar(responseData['errors'] != null &&
+                    (responseData['errors'] as List).isNotEmpty
+                ? (responseData['errors'] as List)[0].toString()
+                : "Terjadi kesalahan saat validasi PIN. Silahkan coba lagi!");
+            setState(() {
+              _pin = '';
+            });
+          }
+        } else {
+          _showErrorSnackbar(
+              "Terjadi kesalahan saat verifikasi PIN, kode status : ${response.statusCode}. Silakan coba lagi!");
+          setState(() {
+            _pin = '';
+          });
+        }
+      } catch (e) {
+        _showErrorSnackbar(
+            "Terjadi kesalahan saat verifikasi PIN, pesan: ${e.toString()}. Silakan coba lagi!");
         setState(() {
           _pin = '';
         });
       }
     }
+  }
+
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
@@ -1523,9 +1579,8 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12.0),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1536,7 +1591,9 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                             color: Colors.blue.shade700),
                       ),
-                      SizedBox(height: 8),
+                      SizedBox(
+                        height: 8,
+                      ),
                       Row(
                         children: [
                           Expanded(
@@ -1601,7 +1658,9 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 36),
+                SizedBox(
+                  height: 36,
+                ),
                 Column(
                   children: [
                     ElevatedButton(
@@ -1611,8 +1670,7 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       child: Text(
                         'Bagikan',
@@ -1629,8 +1687,7 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: Colors.blue),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                                borderRadius: BorderRadius.circular(8)),
                           ),
                           child: Text(
                             'Simpan Favorit',
@@ -1653,8 +1710,7 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.yellow.shade700,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                                borderRadius: BorderRadius.circular(8)),
                           ),
                           child: Text(
                             'Selesai',

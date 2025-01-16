@@ -1,6 +1,12 @@
+// ignore_for_file: unnecessary_null_comparison, duplicate_ignore, use_build_context_synchronously, deprecated_member_use
+
+import 'dart:convert';
 import 'package:digigoals_app/Beranda.dart';
+import 'package:digigoals_app/auth/login_response.dart';
+import 'package:digigoals_app/auth/token_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:top_modal_sheet/top_modal_sheet.dart';
@@ -19,6 +25,7 @@ class Account {
   });
 }
 
+// Widget untuk menampilkan kartu akun
 class AccountCard extends StatelessWidget {
   final Account account;
   final bool isSaldoVisible;
@@ -74,6 +81,7 @@ class AccountCard extends StatelessWidget {
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
+                    // Menampilkan saldo dengan format yang sesuai
                     SaldoText(
                       isSaldoVisible: isSaldoVisible,
                       balance: account.saldoRekening,
@@ -84,6 +92,7 @@ class AccountCard extends StatelessWidget {
             ),
             Row(
               children: [
+                // Widget ikon untuk mengatur visibilitas saldo
                 IconButton(
                   icon: VisibilityIcon(isSaldoVisible: isSaldoVisible),
                   tooltip: 'Toggle Balance Visibility',
@@ -111,6 +120,7 @@ class AccountCard extends StatelessWidget {
   }
 }
 
+// Widget untuk menampilkan teks saldo
 class SaldoText extends StatelessWidget {
   final bool isSaldoVisible;
   final double balance;
@@ -148,6 +158,7 @@ class SaldoText extends StatelessWidget {
   }
 }
 
+// Widget untuk ikon visibilitas saldo
 class VisibilityIcon extends StatelessWidget {
   final bool isSaldoVisible;
 
@@ -176,6 +187,7 @@ class VisibilityIcon extends StatelessWidget {
   }
 }
 
+// Widget untuk ikon arrow forward
 class ArrowForwardIcon extends StatelessWidget {
   const ArrowForwardIcon({super.key});
 
@@ -196,6 +208,7 @@ class ArrowForwardIcon extends StatelessWidget {
   }
 }
 
+// Halaman utama login digi
 class LoginDigi extends StatefulWidget {
   const LoginDigi({super.key});
 
@@ -210,12 +223,6 @@ class _LoginDigiState extends State<LoginDigi> {
     namaRekening: "ABI",
     saldoRekening: 1000000.00,
   );
-
-  // Data login statis
-  final Map<String, String> _users = {
-    '081234567890': 'password123',
-    '089876543210': 'securepass',
-  };
 
   // Constants
   final double _bottomSheetHeight = 250.0;
@@ -235,6 +242,9 @@ class _LoginDigiState extends State<LoginDigi> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
 
+  // Token Manager
+  final TokenManager _tokenManager = TokenManager();
+
   @override
   void initState() {
     super.initState();
@@ -242,6 +252,7 @@ class _LoginDigiState extends State<LoginDigi> {
   }
 
   // UI Builders
+  // Widget untuk membuat form input
   Widget _buildTextFormField({
     required TextEditingController controller,
     required String labelText,
@@ -271,13 +282,14 @@ class _LoginDigiState extends State<LoginDigi> {
           obscureText: obscureText,
           keyboardType: keyboardType,
           validator: validator,
+          style: TextStyle(
+              fontWeight: FontWeight.w500), // Tambahkan style font bold disini
           decoration: InputDecoration(
             fillColor: Colors.blue.shade50,
             filled: true,
             hintText: hintText,
             hintStyle: const TextStyle(
-                color: Colors.black54,
-                fontWeight: FontWeight.bold), // Added fontWeight here
+                color: Colors.black54, fontWeight: FontWeight.bold),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
@@ -289,6 +301,8 @@ class _LoginDigiState extends State<LoginDigi> {
             errorText: errorText,
             errorMaxLines: 2,
             suffixIcon: suffixIcon,
+            errorStyle: TextStyle(
+                color: Colors.red, fontSize: _calculateFontSize(context, 12)),
           ),
           inputFormatters: isUsername
               ? [
@@ -301,8 +315,9 @@ class _LoginDigiState extends State<LoginDigi> {
     );
   }
 
+  // Widget untuk membuat item menu
   List<Widget> _buildMenuItems(BuildContext context) {
-    final double iconSize = MediaQuery.of(context).size.width * 0.16;
+    final double iconSize = _calculateIconSize(context, 65);
 
     final List<Widget> menuItems = [
       MenuItem(
@@ -354,28 +369,21 @@ class _LoginDigiState extends State<LoginDigi> {
     return rows;
   }
 
-  // UI Handler
-  void _toggleBottomSheet() {
-    setState(() {
-      _isBottomSheetVisible = !_isBottomSheetVisible;
-      if (_isBottomSheetVisible) {
-        _showTopModalSheet();
-      }
-    });
-  }
-
+  // Method untuk toggle visibilitas saldo
   void _toggleSaldoVisibility() {
     setState(() {
       _isSaldoVisible = !_isSaldoVisible;
     });
   }
 
+  // Method untuk toggle visibilitas password
   void _togglePasswordVisibility() {
     setState(() {
       _obscureText = !_obscureText;
     });
   }
 
+  // method untuk menampilkan top modal sheet
   void _showTopModalSheet() {
     showTopModalSheet(
       context,
@@ -417,7 +425,7 @@ class _LoginDigiState extends State<LoginDigi> {
                                 highlightColor: Colors.grey.shade100,
                                 child: Container(
                                   width: double.infinity,
-                                  height: 100,
+                                  height: _calculatePadding(context, 100),
                                   decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(15)),
@@ -432,29 +440,35 @@ class _LoginDigiState extends State<LoginDigi> {
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 20),
                     child: GestureDetector(
-                      // Bungkus dengan GestureDetector
-                      onTap: () {
-                        Navigator.of(context)
-                            .pop(); // Tutup bottom sheet saat diklik
-                      },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            "Cek saldo anda",
-                            style: TextStyle(
-                                color: const Color(0XFF1F597F),
-                                fontWeight: FontWeight.bold,
-                                fontSize: _calculateFontSize(context, 18)),
-                          ),
-                          Icon(
-                            Icons.keyboard_arrow_up,
-                            size: _calculateIconSize(context, 24),
-                            color: const Color(0XFF1F597F),
-                          )
-                        ],
-                      ),
-                    ),
+                        // Bungkus dengan GestureDetector
+                        onTap: () {
+                          Navigator.of(context)
+                              .pop(); // Tutup bottom sheet saat diklik
+                        },
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Divider(color: Colors.grey[300]),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "Cek saldo anda",
+                                  style: TextStyle(
+                                      color: const Color(0XFF1F597F),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize:
+                                          _calculateFontSize(context, 18)),
+                                ),
+                                Icon(
+                                  Icons.keyboard_arrow_up,
+                                  size: _calculateIconSize(context, 24),
+                                  color: const Color(0XFF1F597F),
+                                )
+                              ],
+                            ),
+                          ],
+                        )),
                   ),
                 )
               ],
@@ -469,6 +483,7 @@ class _LoginDigiState extends State<LoginDigi> {
     });
   }
 
+  // method untuk menampilkan modal bottom sheet untuk login
   void _showLoginDialog() {
     // Reset input fields and errors when dialog is opened
     _usernameController.text = '';
@@ -595,7 +610,8 @@ class _LoginDigiState extends State<LoginDigi> {
                               SizedBox(height: _calculateSpacing(context, 10)),
                               SizedBox(
                                 width: double.infinity,
-                                height: 48, // Reverted to fixed height
+                                height: _calculatePadding(
+                                    context, 48), // Reverted to fixed height
                                 child: ElevatedButton(
                                   onPressed: () async {
                                     await _validateLogin(
@@ -641,6 +657,7 @@ class _LoginDigiState extends State<LoginDigi> {
     });
   }
 
+  // method untuk validasi login
   Future<void> _validateLogin(
       BuildContext context, StateSetter setStateDialog) async {
     if (_formKey.currentState!.validate()) {
@@ -651,29 +668,82 @@ class _LoginDigiState extends State<LoginDigi> {
       final String username = _usernameController.text;
       final String password = _passwordController.text;
 
+      // Konfigurasi Endpoint API
+      const String baseUrl = "https://user-service-ourgoals.koyeb.app";
+      const String loginEndpoint = "/api/v1/auth/login";
+      final String apiUrl = baseUrl + loginEndpoint;
+
+      // Payload API
+      final Map<String, String> bodyData = {
+        'username': username,
+        'password': password,
+      };
+
       try {
-        await Future.delayed(
-            const Duration(seconds: 1)); // Simulating network delay
-        if (_users.containsKey(username) && _users[username] == password) {
-          if (context.mounted) {
-            _hideLoadingOverlay(context);
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ChangeNotifierProvider(
-                  create: (context) => BerandaState(),
-                  child: const Beranda(),
-                ),
-              ),
-              (route) =>
-                  false, // This will remove all previous routes from the stack
-            );
+        final response = await http.post(
+          Uri.parse(apiUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(bodyData),
+        );
+
+        // Log response untuk debugging
+
+        if (response.statusCode == 200) {
+          final Map<String, dynamic> responseData = json.decode(response.body);
+          if (responseData['code'] == 200 && responseData['status'] == 'OK') {
+            final LoginResponse loginResponse =
+                LoginResponse.fromJson(responseData['data']);
+
+            if (loginResponse.accessToken != null) {
+              await _tokenManager.saveToken(loginResponse.accessToken!);
+
+              if (context.mounted) {
+                _hideLoadingOverlay(context);
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChangeNotifierProvider(
+                      create: (context) =>
+                          BerandaState(accessToken: loginResponse.accessToken!),
+                      child: const Beranda(),
+                    ),
+                    settings:
+                        RouteSettings(arguments: loginResponse.accessToken),
+                  ),
+                  (route) =>
+                      false, // This will remove all previous routes from the stack
+                );
+              }
+            } else {
+              if (mounted) {
+                _hideLoadingOverlay(context);
+                setStateDialog(() {
+                  _loginError = "Gagal login, silahkan coba lagi!";
+                  _passwordError = _loginError;
+                  _usernameError = _loginError;
+                });
+              }
+            }
+          } else {
+            if (mounted) {
+              _hideLoadingOverlay(context);
+              setStateDialog(() {
+                _loginError = responseData['errors'] != null &&
+                        (responseData['errors'] as List).isNotEmpty
+                    ? (responseData['errors'] as List)[0].toString()
+                    : "Gagal login, silahkan coba lagi!";
+                _passwordError = _loginError;
+                _usernameError = _loginError;
+              });
+            }
           }
         } else {
+          // Handle status code lainnya selain 200
           if (mounted) {
             _hideLoadingOverlay(context);
             setStateDialog(() {
-              _loginError = "Data yang dimasukkan salah. Silakan coba lagi";
+              _loginError =
+                  "Terjadi kesalahan saat login, kode status: ${response.statusCode}. Silakan coba lagi";
               _passwordError = _loginError;
               _usernameError = _loginError;
             });
@@ -683,19 +753,17 @@ class _LoginDigiState extends State<LoginDigi> {
         if (mounted) {
           _hideLoadingOverlay(context);
           setStateDialog(() {
-            _loginError = "Terjadi kesalahan saat login. Silakan coba lagi";
+            _loginError =
+                "Terjadi kesalahan saat login, pesan error: ${e.toString()}. Silakan coba lagi";
             _passwordError = _loginError;
             _usernameError = _loginError;
           });
         }
       }
     } else {
-      if (mounted) {
-        setState(() {
-          _errorMessage = null;
-        });
-      }
-
+      setState(() {
+        _errorMessage = null;
+      });
       return;
     }
   }
@@ -725,26 +793,6 @@ class _LoginDigiState extends State<LoginDigi> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.blue.shade700,
-        title: GestureDetector(
-          onTap: _toggleBottomSheet,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "Cek saldo anda",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: _calculateFontSize(context, 18)),
-              ),
-              Icon(
-                Icons.keyboard_arrow_down,
-                color: Colors.white,
-                size: _calculateIconSize(context, 24),
-              )
-            ],
-          ),
-        ),
         centerTitle: true,
       ),
       body: Stack(
@@ -790,28 +838,14 @@ class _LoginDigiState extends State<LoginDigi> {
                                   color: Colors.white),
                             ),
                             SizedBox(height: _calculateSpacing(context, 5)),
-                            // ignore: unnecessary_null_comparison
-                            _dummyAccount == null
-                                ? Shimmer.fromColors(
-                                    baseColor: Colors.grey.shade300,
-                                    highlightColor: Colors.grey.shade100,
-                                    child: Container(
-                                      width: 150,
-                                      height: 25,
-                                      decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(5)),
-                                    ),
-                                  )
-                                : Text(
-                                    _dummyAccount.namaRekening,
-                                    style: TextStyle(
-                                      fontSize: _calculateFontSize(context, 25),
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  )
+                            Text(
+                              'Selamat Beraktivitas!',
+                              style: TextStyle(
+                                fontSize: _calculateFontSize(context, 25),
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            )
                           ],
                         ),
                       ),
@@ -873,7 +907,8 @@ class _LoginDigiState extends State<LoginDigi> {
                               vertical: _calculatePadding(context, 5)),
                           child: SizedBox(
                             width: double.infinity,
-                            height: 48, // Reverted to fixed height
+                            height: _calculatePadding(
+                                context, 48), // Reverted to fixed height
                             child: ElevatedButton(
                               onPressed: () {
                                 _showLoginDialog();
@@ -907,7 +942,7 @@ class _LoginDigiState extends State<LoginDigi> {
       bottomNavigationBar: Padding(
         padding: EdgeInsets.all(_calculatePadding(context, 10)),
         child: Text(
-          'V.1.0 - ITDP Batch 2 - 2024',
+          'V.1.0 - ITDP Batch 2 - 2024 - Kelompok 7',
           textAlign: TextAlign.center,
           style: TextStyle(
               color: Colors.grey, fontSize: _calculateFontSize(context, 12)),
@@ -943,6 +978,7 @@ double _calculateIconSize(BuildContext context, double baseSize) {
   return baseSize * scaleFactor;
 }
 
+// Widget untuk ikon menu
 class MenuIcon extends StatelessWidget {
   final IconData iconData;
   final double size;
@@ -973,6 +1009,7 @@ class MenuIcon extends StatelessWidget {
   }
 }
 
+// Widget item menu
 class MenuItem extends StatelessWidget {
   final Widget icon;
   final String label;

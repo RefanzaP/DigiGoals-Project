@@ -1,7 +1,7 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
 
 import 'package:digigoals_app/Beranda.dart';
-import 'package:digigoals_app/OurGoals.dart'; // Import file OurGoals.dart
+// Import file OurGoals.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' show NumberFormat;

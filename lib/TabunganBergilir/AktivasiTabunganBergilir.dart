@@ -82,8 +82,6 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
     };
 
     // Simulasi respon berhasil
-    print('Simulasi: Data yang akan dikirim: $data');
-    print('Simulasi: Data berhasil dikirim dan diterima oleh API');
     _showSuccessDialog();
   }
 
