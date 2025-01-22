@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:digigoals_app/api/api_config.dart';
 
 // Model Data Rekening
 class Account {
@@ -295,9 +296,13 @@ class _BerandaState extends State<Beranda> {
                                   label: 'Our Goals',
                                   onTap: () {
                                     Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) => OurGoals()));
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const OurGoals(),
+                                        settings: const RouteSettings(
+                                            name: '/ourGoals'),
+                                      ),
+                                    );
                                   }),
                             ],
                           );
@@ -318,8 +323,19 @@ class _BerandaState extends State<Beranda> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildBottomNavItem(Icons.inbox, 'Inbox', () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (context) => Inbox()));
+                      // Navigator.push(context,
+                      //     MaterialPageRoute(builder: (context) => Inbox()));
+                      // Dapatkan accessToken dari provider
+                      final berandaState =
+                          Provider.of<BerandaState>(context, listen: false);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => Inbox(
+                              // accessToken: berandaState.accessToken,
+                              ),
+                        ),
+                      );
                     }),
                     _buildBottomNavItem(Icons.favorite, 'Favorite'),
                     const SizedBox(width: 40),
@@ -422,7 +438,23 @@ class _BerandaState extends State<Beranda> {
   Widget _buildBottomNavItem(IconData icon, String label,
       [VoidCallback? onTap]) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        if (label == 'Inbox') {
+          // Dapatkan accessToken dari provider
+          final berandaState =
+              Provider.of<BerandaState>(context, listen: false);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Inbox(
+                  // accessToken: berandaState.accessToken,
+                  ),
+            ),
+          );
+        } else if (onTap != null) {
+          onTap();
+        }
+      },
       child: Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -578,7 +610,6 @@ class BerandaState with ChangeNotifier {
 
     try {
       // Konfigurasi Endpoint API
-      const String baseUrl = "https://user-service-ourgoals.koyeb.app";
       const String profileEndpoint = "/api/v1/users/profile";
       const String accountEndpoint = "/api/v1/users/accounts";
       final String profileApiUrl = baseUrl + profileEndpoint;

@@ -1,7 +1,6 @@
 class LoginResponse {
   final String? accessToken;
 
-
   LoginResponse({this.accessToken});
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {

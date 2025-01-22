@@ -1,19 +1,12 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
+import 'dart:convert';
+import 'package:digigoals_app/api/api_config.dart';
+import 'package:digigoals_app/auth/token_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import '../OurGoals.dart';
-
-class Account {
-  final String nomorRekening;
-  final String namaRekening;
-
-  Account({
-    required this.nomorRekening,
-    required this.namaRekening,
-  });
-}
+import 'package:http/http.dart' as http;
 
 class BuatTabunganBersama extends StatefulWidget {
   const BuatTabunganBersama({super.key});
@@ -36,28 +29,19 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
   bool _isLoading = false;
   String _namaTabunganBersama = '';
   bool _termsAccepted = false;
-
-  // Data Tabungan
-  late String _creationDate;
-  late String _member; // ID Member (nomor rekening)
-  final String _goalsType = 'Tabungan Bersama';
-  final double _saldoTabungan = 0.0;
-  final String _statusTabungan = 'Tidak Aktif';
-  final double _progressTabungan = 0.0;
-  double? _targetSaldoTabungan;
-  // final String? _durasiTabungan = null;
-  final List _historiTransaksi = [];
-
-  final Account _dummyAccountData = Account(
-    nomorRekening: '0123456789012',
-    namaRekening: "ABI",
-  );
+  double? _targetAmount;
+  int? _durasiTabunganHari;
+  final TokenManager _tokenManager = TokenManager();
+  String? _goalType;
 
   @override
-  void initState() {
-    super.initState();
-    _creationDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
-    _member = _dummyAccountData.nomorRekening;
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Menerima goalType dari argument
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args != null && args is String) {
+      _goalType = args;
+    }
   }
 
   String _formatCurrency(String value) {
@@ -72,35 +56,54 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
     }
   }
 
-  Future<void> _submitToDatabase() async {
-    setState(() {
-      _isLoading = true;
-    });
+  Future<void> _submitToApi() async {
+    _showLoadingDialog(context);
+
+    _durasiTabunganHari = _convertDurationToDays(_durasiGoals);
+
+    final String? token = await _tokenManager.getToken();
+
+    if (token == null) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Token tidak ditemukan, mohon login kembali'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     try {
-      // Simulasi pengiriman data ke database
-      await Future.delayed(const Duration(seconds: 1));
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/v1/joint-saving-groups'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(<String, dynamic>{
+          'name': _namaTabunganBersama,
+          'type': _goalType,
+          'duration': _durasiTabunganHari,
+          'target_amount': _targetAmount,
+        }),
+      );
 
-      // Data Tabungan yang akan disimpan ke database
-      final Map<String, dynamic> dataTabunganBersama = {
-        'goalsName': _namaTabunganBersama,
-        'goalsType': _goalsType,
-        'creationDate': _creationDate,
-        'member': _member,
-        'saldoTabungan': _saldoTabungan,
-        'statusTabungan': _statusTabungan,
-        'progressTabungan': _progressTabungan,
-        'targetSaldoTabungan': _targetSaldoTabungan,
-        'durasiTabungan': _durasiGoals,
-        'historiTransaksi': _historiTransaksi,
-        'members': [_dummyAccountData.namaRekening],
-      };
-      setState(() {
-        _isLoading = false;
-      });
-
-      // Navigasi ke OurGoals setelah tabungan berhasil dibuat
-      _navigateToOurGoals();
+      if (response.statusCode == 201) {
+        Navigator.pop(context);
+        _showSuccessDialog();
+      } else {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Gagal membuat tabungan bersama. Status code: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content:
@@ -108,15 +111,57 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
           backgroundColor: Colors.red,
         ),
       );
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
-  Future<void> _navigateToOurGoals() async {
-    if (!_isLoading) {
-      _showSuccessDialog();
+  Future<void> _showLoadingDialog(BuildContext context) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Container(
+            width: 256,
+            padding: const EdgeInsets.all(15),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Memproses...',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  int _convertDurationToDays(String? duration) {
+    switch (duration) {
+      case '1 bulan':
+        return 30;
+      case '3 bulan':
+        return 90;
+      case '6 bulan':
+        return 180;
+      case '1 tahun':
+        return 365;
+      default:
+        return 0;
     }
   }
 
@@ -187,12 +232,8 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const OurGoals(),
-                    ),
-                  );
+                  Navigator.popUntil(context, (route) => route.isFirst);
+                  Navigator.pushNamed(context, '/ourGoals');
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.yellow.shade700,
@@ -507,7 +548,7 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
         onPressed: _termsAccepted
             ? () async {
                 Navigator.pop(context);
-                await _submitToDatabase();
+                await _submitToApi();
               }
             : null,
         style: ElevatedButton.styleFrom(
@@ -520,7 +561,9 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
         child: Text(
           'Buat Tabungan Bersama',
           style: TextStyle(
-            color: Theme.of(context).textTheme.bodyMedium?.color,
+            color: _termsAccepted
+                ? Colors.blue.shade800
+                : Colors.black, // Ubah warna teks di sini
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -652,9 +695,9 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
                             final nominal = double.parse(
                                 value.replaceAll(RegExp(r'[^0-9]'), ''));
 
-                            _targetSaldoTabungan = nominal;
+                            _targetAmount = nominal;
                           } else {
-                            _targetSaldoTabungan = null;
+                            _targetAmount = null;
                           }
                         } catch (e) {
                           debugPrint("Error parsing nominal: $e");
@@ -745,7 +788,7 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
                 child: Text(
                   'Selanjutnya',
                   style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    color: Colors.blue.shade800,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -753,16 +796,6 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
             ),
           ),
         ),
-        if (_isLoading)
-          Container(
-            color: Colors.black.withOpacity(0.2),
-            child: Center(
-              child: CircularProgressIndicator(
-                valueColor:
-                    AlwaysStoppedAnimation<Color>(Colors.yellow.shade700),
-              ),
-            ),
-          ),
       ],
     );
   }

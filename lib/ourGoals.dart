@@ -1,11 +1,81 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
-import 'package:digigoals_app/Beranda.dart';
+
+import 'dart:convert';
 import 'package:digigoals_app/PilihGoals.dart';
 import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
 import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart';
+import 'package:digigoals_app/api/api_config.dart';
+import 'package:digigoals_app/auth/token_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:http/http.dart' as http;
+
+// Model for Joint Saving Group
+class JointSavingGroup {
+  final String id;
+  final String name;
+  final int targetAmount;
+  final String type;
+  final String status;
+  final int duration;
+  final DateTime createdAt;
+
+  JointSavingGroup({
+    required this.id,
+    required this.name,
+    required this.targetAmount,
+    required this.type,
+    required this.status,
+    required this.duration,
+    required this.createdAt,
+  });
+
+  factory JointSavingGroup.fromJson(Map<String, dynamic> json) {
+    return JointSavingGroup(
+      id: json['id'],
+      name: json['name'],
+      targetAmount: json['target_amount'],
+      type: json['type'],
+      status: json['status'],
+      duration: json['duration'],
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
+}
+
+// Model for Rotating Saving Group
+class RotatingSavingGroup {
+  final String id;
+  final String name;
+  final int targetAmount;
+  final String type;
+  final String status;
+  final int duration;
+  final DateTime createdAt;
+
+  RotatingSavingGroup({
+    required this.id,
+    required this.name,
+    required this.targetAmount,
+    required this.type,
+    required this.status,
+    required this.duration,
+    required this.createdAt,
+  });
+
+  factory RotatingSavingGroup.fromJson(Map<String, dynamic> json) {
+    return RotatingSavingGroup(
+      id: json['id'],
+      name: json['name'],
+      targetAmount: json['target_amount'] ?? 0,
+      type: json['type'],
+      status: json['status'],
+      duration: json['duration'] ?? 0,
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
+}
 
 class OurGoals extends StatefulWidget {
   const OurGoals({super.key});
@@ -18,48 +88,105 @@ class _OurGoalsState extends State<OurGoals> {
   bool _isLoading = true;
   bool _isNavigating = false;
   String? _errorMessage;
-
-  // List statis untuk menyimpan data goals
-  final List<Map<String, dynamic>> _databaseGoals = [
-    {
-      'goalsType': 'Tabungan Bersama',
-      'goalsName': 'Liburan Keluarga 🏖️',
-      'saldoTabungan': 6000000.00,
-      'targetTabungan': 20000000.00,
-      'progress': 0.3,
-      'daysLeft': 90,
-      'members': ['Fafa', 'Gina', 'Hani', 'Olaf'],
-      'creationDate': '23-05-2024',
-    },
-    {
-      'goalsType': 'Tabungan Bergilir',
-      'goalsName': 'Gudang Garam Jaya 🔥',
-      'saldoTabungan': 20000000.00,
-      'targetTabungan': 50000000.00,
-      'progress': 0.4,
-      'daysLeft': 100,
-      'members': [
-        'Fafa',
-        'Gina',
-        'Hani',
-        'Olaf',
-      ],
-      'creationDate': '24-05-2024',
-    },
-  ];
+  List<dynamic> _goals = [];
+  final TokenManager _tokenManager = TokenManager();
 
   @override
   void initState() {
     super.initState();
-    _loadGoals();
+    _fetchGoals();
   }
 
-  // Fungsi untuk load goals dan memicu rebuild
-  void _loadGoals() async {
-    await Future.delayed(const Duration(seconds: 2)); // Simulate loading
+  Future<void> _fetchGoals() async {
     setState(() {
-      _isLoading = false;
+      _isLoading = true;
+      _errorMessage = null;
     });
+
+    String? token = await _tokenManager.getToken();
+    if (token == null) {
+      setState(() {
+        _errorMessage = "Token tidak ditemukan";
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final jointSavingUrl = Uri.parse('$baseUrl/api/v1/joint-saving-groups');
+      final rotatingSavingUrl =
+          Uri.parse('$baseUrl/api/v1/rotating-saving-groups');
+
+      final Map<String, String> headers = {
+        'Authorization': 'Bearer $token',
+      };
+
+      final jointSavingResponse =
+          await http.get(jointSavingUrl, headers: headers);
+      final rotatingSavingResponse =
+          await http.get(rotatingSavingUrl, headers: headers);
+
+      if (jointSavingResponse.statusCode == 200 &&
+          rotatingSavingResponse.statusCode == 200) {
+        final jointSavingData = json.decode(jointSavingResponse.body);
+        final rotatingSavingData = json.decode(rotatingSavingResponse.body);
+
+        List<dynamic> fetchedGoals = [];
+
+        if (jointSavingData['code'] == 200 &&
+            jointSavingData['status'] == 'OK' &&
+            (jointSavingData['data'] as List).isNotEmpty) {
+          List<JointSavingGroup> jointGroups = (jointSavingData['data'] as List)
+              .map((item) => JointSavingGroup.fromJson(item))
+              .toList();
+          fetchedGoals.addAll(jointGroups
+              .map((joint) => {
+                    'goalsType': 'Tabungan Bersama',
+                    'id': joint.id,
+                    'goalsName': joint.name,
+                    'target_amount': joint.targetAmount,
+                    'status': joint.status,
+                    'duration': joint.duration,
+                    'creationDate': joint.createdAt,
+                  })
+              .toList());
+        }
+
+        if (rotatingSavingData['code'] == 200 &&
+            rotatingSavingData['status'] == 'OK' &&
+            (rotatingSavingData['data'] as List).isNotEmpty) {
+          List<RotatingSavingGroup> rotatingGroups =
+              (rotatingSavingData['data'] as List)
+                  .map((item) => RotatingSavingGroup.fromJson(item))
+                  .toList();
+          fetchedGoals.addAll(rotatingGroups
+              .map((rotating) => {
+                    'goalsType': 'Tabungan Bergilir',
+                    'id': rotating.id,
+                    'goalsName': rotating.name,
+                    'target_amount': rotating.targetAmount,
+                    'status': rotating.status,
+                    'duration': rotating.duration,
+                    'creationDate': rotating.createdAt,
+                  })
+              .toList());
+        }
+        setState(() {
+          _goals = fetchedGoals;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = "Gagal mengambil data goals";
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = "Terjadi kesalahan: ${e.toString()}";
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -84,9 +211,7 @@ class _OurGoalsState extends State<OurGoals> {
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const Beranda()),
-                    (Route<dynamic> route) => false);
+                Navigator.pop(context);
               },
             ),
             title: Text(
@@ -136,14 +261,14 @@ class _OurGoalsState extends State<OurGoals> {
                         ? Center(
                             child: Text(_errorMessage!),
                           )
-                        : _databaseGoals.isNotEmpty
+                        : _goals.isNotEmpty
                             ? ListView.builder(
                                 key: const Key('goalsListView'),
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 20),
-                                itemCount: _databaseGoals.length,
+                                itemCount: _goals.length,
                                 itemBuilder: (context, index) {
-                                  final goal = _databaseGoals[index];
+                                  final goal = _goals[index];
                                   return GoalCard(
                                     goal: goal,
                                     onTap: () {
@@ -207,24 +332,26 @@ class _OurGoalsState extends State<OurGoals> {
       shadowColor: Colors.black.withOpacity(0.5),
       elevation: 4,
       child: InkWell(
-        onTap: () async {
-          setState(() {
-            _isNavigating = true;
-          });
+        onTap: _isLoading
+            ? null
+            : () async {
+                setState(() {
+                  _isNavigating = true;
+                });
 
-          await Future.delayed(const Duration(seconds: 1));
+                await Future.delayed(const Duration(seconds: 1));
 
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PilihGoals(),
-            ),
-          ).then((value) {
-            setState(() {
-              _isNavigating = false;
-            });
-          });
-        },
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PilihGoals(),
+                  ),
+                ).then((value) {
+                  setState(() {
+                    _isNavigating = false;
+                  });
+                });
+              },
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: Stack(
@@ -314,50 +441,48 @@ class GoalCard extends StatelessWidget {
     final currencyFormat = NumberFormat.currency(
         locale: 'id_ID', symbol: 'IDR ', decimalDigits: 2);
 
-    // Format saldo dan target tabungan ke mata uang Rupiah
-    final formattedSaldo = currencyFormat.format(goal['saldoTabungan']);
-    final formattedTarget = currencyFormat.format(goal['targetTabungan']);
-
+    final formattedTarget = currencyFormat.format(goal['target_amount'] ?? 0);
     // Inisialisasi list untuk menyimpan widget circle avatar
     List<Widget> memberAvatars = [];
 
     // Batasi hanya menampilkan 2 avatar dan sisanya tampilkan dalam 1 avatar
     int maxAvatars = 2;
-    int displayedCount = 0; //untuk menghitung jumlah avatar yang ditampilkan
-    if (goal['members'] != null) {
-      for (int i = 0; i < goal['members'].length; i++) {
-        String memberName = goal['members'][i];
-        if (displayedCount < maxAvatars) {
-          memberAvatars.add(
-            CircleAvatar(
-              radius: 12,
-              backgroundColor: Colors.primaries[
-                  i % Colors.primaries.length], // Memberikan warna otomatis
-              child: Text(
-                memberName
-                    .substring(0, 1)
-                    .toUpperCase(), // Mengambil huruf pertama dan uppercase
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-          );
-          displayedCount++;
-        }
-      }
-      if (goal['members'].length > maxAvatars) {
-        int remainingMembers = goal['members'].length - maxAvatars;
-        memberAvatars.add(
-          CircleAvatar(
-            radius: 12,
-            backgroundColor: Colors.grey,
-            child: Text(
-              '+$remainingMembers',
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-            ),
-          ),
-        );
-      }
-    }
+    int displayedCount = 0;
+
+    // if (goal['members'] != null) {
+    //   for (int i = 0; i < goal['members'].length; i++) {
+    //     String memberName = goal['members'][i];
+    //     if (displayedCount < maxAvatars) {
+    //       memberAvatars.add(
+    //         CircleAvatar(
+    //           radius: 12,
+    //           backgroundColor: Colors.primaries[
+    //               i % Colors.primaries.length], // Memberikan warna otomatis
+    //           child: Text(
+    //             memberName
+    //                 .substring(0, 1)
+    //                 .toUpperCase(), // Mengambil huruf pertama dan uppercase
+    //             style: const TextStyle(color: Colors.white, fontSize: 12),
+    //           ),
+    //         ),
+    //       );
+    //       displayedCount++;
+    //     }
+    //   }
+    //   if (goal['members'].length > maxAvatars) {
+    //     int remainingMembers = goal['members'].length - maxAvatars;
+    //     memberAvatars.add(
+    //       CircleAvatar(
+    //         radius: 12,
+    //         backgroundColor: Colors.grey,
+    //         child: Text(
+    //           '+$remainingMembers',
+    //           style: const TextStyle(color: Colors.white, fontSize: 12),
+    //         ),
+    //       ),
+    //     );
+    //   }
+    // }
 
     return Card(
       color: Colors.white,
@@ -389,8 +514,8 @@ class GoalCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        goal['goalsType'], // Menampilkan jenis tabungan
-                        style: TextStyle(
+                        goal['goalsType'],
+                        style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                             color: Colors.black),
@@ -404,7 +529,7 @@ class GoalCard extends StatelessWidget {
               const SizedBox(height: 5),
               Text(
                 goal['goalsName'],
-                style: TextStyle(
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                   color: Color(0xFF1F597F),
@@ -412,7 +537,7 @@ class GoalCard extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               Text(
-                '$formattedSaldo / $formattedTarget', // Menampilkan saldo dan target dengan format Rupiah
+                '0 / $formattedTarget',
                 style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
@@ -429,7 +554,7 @@ class GoalCard extends StatelessWidget {
                     ),
                   ),
                   FractionallySizedBox(
-                    widthFactor: goal['progress'] ?? 0.0,
+                    widthFactor: goal['target_amount'] != 0 ? 0.0 : 0.0,
                     child: Container(
                       height: 8,
                       decoration: BoxDecoration(
@@ -445,14 +570,14 @@ class GoalCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '${((goal['progress'] ?? 0.0) * 100).toStringAsFixed(0)}%',
-                    style: TextStyle(
+                    '0%',
+                    style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                         color: Colors.black),
                   ),
                   Text(
-                    'Sisa ${goal['daysLeft'] ?? '-'} hari',
+                    'Sisa ${goal['duration']} hari',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Colors.red,

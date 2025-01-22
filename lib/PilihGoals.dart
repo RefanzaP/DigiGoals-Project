@@ -5,7 +5,6 @@ import 'package:digigoals_app/TabunganBergilir/BuatTabunganBergilir.dart';
 import 'package:digigoals_app/TabunganBersama/BuatTabunganBersama.dart';
 
 class PilihGoals extends StatefulWidget {
-  // Public
   const PilihGoals({super.key});
 
   @override
@@ -13,11 +12,10 @@ class PilihGoals extends StatefulWidget {
 }
 
 class _PilihGoalsState extends State<PilihGoals> {
-  // Private
-  bool _isLoading = false; // Private
+  bool _isLoading = false;
 
-  Future<void> _navigateToPage(BuildContext context, Widget page) async {
-    // Private
+  Future<void> _navigateToPage(
+      BuildContext context, Widget page, String goalType) async {
     setState(() {
       _isLoading = true;
     });
@@ -27,7 +25,10 @@ class _PilihGoalsState extends State<PilihGoals> {
     if (mounted) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => page),
+        MaterialPageRoute(
+          builder: (context) => page,
+          settings: RouteSettings(arguments: goalType), // Kirim tipe goals
+        ),
       ).then((_) {
         setState(() {
           _isLoading = false;
@@ -38,7 +39,6 @@ class _PilihGoalsState extends State<PilihGoals> {
 
   @override
   Widget build(BuildContext context) {
-    // Public
     return Stack(
       children: [
         Scaffold(
@@ -61,9 +61,9 @@ class _PilihGoalsState extends State<PilihGoals> {
               tooltip: 'Kembali',
               onPressed: () => Navigator.pop(context),
             ),
-            title: Text(
+            title: const Text(
               'Buat Goals',
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
@@ -100,7 +100,6 @@ class _PilihGoalsState extends State<PilihGoals> {
   }
 
   Widget buildBody(BuildContext context) {
-    // Private
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: LayoutBuilder(
@@ -110,9 +109,9 @@ class _PilihGoalsState extends State<PilihGoals> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
-              Text(
+              const Text(
                 'Goals Apa yang ingin kamu capai?',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -123,8 +122,8 @@ class _PilihGoalsState extends State<PilihGoals> {
                 icon: Icons.group,
                 title: 'Tabungan Bersama',
                 description: 'Raih impian bersama keluarga ataupun temanmu!',
-                onTap: () =>
-                    _navigateToPage(context, const BuatTabunganBersama()),
+                onTap: () => _navigateToPage(
+                    context, const BuatTabunganBersama(), 'JOINT_SAVING'),
               ),
               SizedBox(height: isSmallScreen ? 8 : 16),
               buildGoalsCard(
@@ -133,8 +132,8 @@ class _PilihGoalsState extends State<PilihGoals> {
                 title: 'Tabungan Bergilir',
                 description:
                     'Mengumpulkan dana bersama dengan giliran menerima dana terkumpul sesuai jadwal yang disepakati',
-                onTap: () =>
-                    _navigateToPage(context, const BuatTabunganBergilir()),
+                onTap: () => _navigateToPage(
+                    context, const BuatTabunganBergilir(), 'ROTATING_SAVING'),
               ),
             ],
           );
@@ -143,7 +142,7 @@ class _PilihGoalsState extends State<PilihGoals> {
     );
   }
 
-  Widget buildGoalsCard(BuildContext context, // Private
+  Widget buildGoalsCard(BuildContext context,
       {required IconData icon,
       required String title,
       required String description,

@@ -16,13 +16,23 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
   // Data statis awal untuk pending transaksi
   final List<Map<String, dynamic>> _pendingTransaksi = [
     {
-      'goalsName': 'Gudang Garam Jaya 🔥', // Nama Goals
-      'message': 'Undangan Anggota', // Nama pesan
-      'accountNumber': '0123456789012', // Nomor rekening
-      'date': '01 November 2024 09:27', // tanggal undangan diterima/dikirim
-      'status': 'pending', // status undangan di inbox
-      'inviterName': 'John Doe', // Menambahkan nama pengirim undangan
+      'goalsName': 'Gudang Garam Jaya 🔥',
+      'message': 'Undangan Anggota',
+      'accountNumber': '0123456789012',
+      'date': '01 November 2024 09:27',
+      'status': 'pending',
+      'inviterName': 'John Doe',
+      'type': 'Tabungan Bergilir',
     },
+    {
+      'goalsName': 'Liburan ke Bali 🌴',
+      'message': 'Undangan Anggota',
+      'accountNumber': '0123456789012',
+      'date': '02 November 2024 10:27',
+      'status': 'pending',
+      'inviterName': 'Jane Smith',
+      'type': 'Tabungan Bersama',
+    }
   ];
 
   // Data statis awal untuk status transaksi
@@ -32,6 +42,7 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
   bool _isInitialLoading = false;
   late AnimationController _animationController;
   late Animation<double> _animation;
+  bool _termsAccepted = false;
 
   @override
   void initState() {
@@ -213,12 +224,17 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
                 iconColor = Colors.red;
               }
 
-              return TransactionCard(
-                transaction: transaction,
-                icon: Icons.mail_outline,
-                iconColor: Colors.blue,
-                onTap: () {},
-                trailing: Icon(icon, color: iconColor),
+              return Column(
+                children: [
+                  TransactionCard(
+                    transaction: transaction,
+                    icon: Icons.mail_outline,
+                    iconColor: Colors.blue,
+                    onTap: () {},
+                    trailing: Icon(icon, color: iconColor),
+                  ),
+                  const SizedBox(height: 12), // Jarak antar card
+                ],
               );
             },
           );
@@ -239,145 +255,871 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
             itemCount: _pendingTransaksi.length,
             itemBuilder: (context, index) {
               final transaction = _pendingTransaksi[index];
-              return TransactionCard(
-                transaction: transaction,
-                icon: Icons.mail_outline,
-                iconColor: Colors.blue,
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext dialogContext) {
-                      // Use a new context here
-                      return Dialog(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Container(
-                          width: 256,
-                          padding: const EdgeInsets.all(15),
-                          child: Column(
-                            mainAxisSize:
-                                MainAxisSize.min, // Use min to adjust height
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'DIGI Mobile',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Icon(Icons.mail_outline,
-                                  size: 64, color: Colors.blue), // Ikon disini
-                              const SizedBox(height: 8),
-                              Text(
-                                transaction['inviterName'] ??
-                                    'Tidak Diketahui', // Menampilkan nama pengirim
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              Text(
-                                transaction['accountNumber'] ?? '',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Mengundang Anda untuk bergabung pada Goals "${transaction['goalsName']}"',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  // fontWeight: FontWeight.w500,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+              return Column(
+                children: [
+                  TransactionCard(
+                    transaction: transaction,
+                    icon: Icons.mail_outline,
+                    iconColor: Colors.blue,
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext dialogContext) {
+                          // Use a new context here
+                          return Dialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Container(
+                              width: 256,
+                              padding: const EdgeInsets.all(15),
+                              child: Column(
+                                mainAxisSize: MainAxisSize
+                                    .min, // Use min to adjust height
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Container(
-                                    width: 100,
-                                    height: 37,
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 8),
-                                    child: OutlinedButton(
-                                      onPressed: () {
-                                        Navigator.pop(
-                                            dialogContext); // Close the confirmation dialog
-
-                                        _showLoadingDialog(
-                                            context, transaction, 'rejected');
-                                      },
-                                      style: OutlinedButton.styleFrom(
-                                        side: BorderSide(
-                                          color: Colors.yellow.shade700,
-                                          width: 2,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        'Tidak',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0XFF1F597F),
-                                        ),
-                                      ),
+                                  Text(
+                                    'DIGI Mobile',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
                                     ),
                                   ),
-                                  Container(
-                                    width: 100,
-                                    height: 37,
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 8),
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.pop(dialogContext);
-
-                                        _showLoadingDialog(
-                                            context, transaction, 'accepted');
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.yellow.shade700,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        'Ya',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0XFF1F597F),
-                                        ),
-                                      ),
+                                  const SizedBox(height: 8),
+                                  Icon(Icons.mail_outline,
+                                      size: 64,
+                                      color: Colors.blue), // Ikon disini
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    transaction['inviterName'] ??
+                                        'Tidak Diketahui', // Menampilkan nama pengirim
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
                                     ),
+                                  ),
+                                  Text(
+                                    transaction['accountNumber'] ?? '',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Mengundang Anda untuk bergabung pada Goals "${transaction['goalsName']}"',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      // fontWeight: FontWeight.w500,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        width: 100,
+                                        height: 37,
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 8),
+                                        child: OutlinedButton(
+                                          onPressed: () {
+                                            Navigator.pop(
+                                                dialogContext); // Close the confirmation dialog
+                                            _showLoadingDialog(context,
+                                                transaction, 'rejected');
+                                          },
+                                          style: OutlinedButton.styleFrom(
+                                            side: BorderSide(
+                                              color: Colors.yellow.shade700,
+                                              width: 2,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Tidak',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0XFF1F597F),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 100,
+                                        height: 37,
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 8),
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            Navigator.pop(dialogContext);
+                                            _showTermsAndConditions(
+                                                transaction);
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                Colors.yellow.shade700,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Ya',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0XFF1F597F),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
+                            ),
+                          );
+                        },
                       );
                     },
-                  );
-                },
-                trailing: const Icon(Icons.notifications, color: Colors.blue),
+                    trailing:
+                        const Icon(Icons.notifications, color: Colors.blue),
+                  ),
+                  const SizedBox(height: 12), // Jarak antar card
+                ],
               );
             },
           );
+  }
+
+  // Function to show terms and conditions modal based on the goal type
+  void _showTermsAndConditions(Map<String, dynamic> transaction) {
+    if (transaction['type'] == 'Tabungan Bersama') {
+      _showTermsAndConditionsTabunganBersama(transaction);
+    } else if (transaction['type'] == 'Tabungan Bergilir') {
+      _showTermsAndConditionsTabunganBergilir(transaction);
+    }
+  }
+
+  void _showTermsAndConditionsTabunganBersama(
+      Map<String, dynamic> transaction) {
+    _termsAccepted = false;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return SizedBox(
+          height: MediaQuery.of(context).size.height * 0.75,
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setModalState) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildTermsTitleTabunganBersama(),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: _buildTermsTextTabunganBersama(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTermsCheckbox(setModalState),
+                      const SizedBox(height: 12),
+                      _buildCreateButton(transaction),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTermsTitleTabunganBersama() {
+    return Text(
+      'Syarat & Ketentuan Tabungan Bersama',
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Colors.blue.shade900,
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+
+  Widget _buildTermsTextTabunganBersama() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: 10),
+          child: Text(
+            "Dengan melanjutkan pembuatan Tabungan Bersama, Anda menyatakan bahwa:",
+            style: TextStyle(color: Colors.black87),
+          ),
+        ),
+        ListTile(
+          leading: Icon(Icons.info_outline, color: Colors.blue.shade700),
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: "Anda ",
+                ),
+                TextSpan(
+                  text: "bertanggung jawab penuh",
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+                TextSpan(
+                  text:
+                      " atas segala risiko kerugian yang timbul akibat tindakan atau keputusan anggota lain dalam grup Tabungan Bersama Anda.",
+                ),
+              ],
+            ),
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          leading: Icon(Icons.info_outline, color: Colors.blue.shade700),
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: "Bank bjb ",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "tidak bertanggung jawab atas kerugian yang timbul akibat tindakan atau keputusan anggota lain tersebut.",
+                ),
+              ],
+            ),
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: ListTile(
+            title: const Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: "Syarat Tabungan Bersama:\n",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text: "•  ",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text: "Jumlah minimal target goals: Rp 5.000.000,00.\n",
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  TextSpan(
+                    text: "•  ",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text: "Jumlah minimal anggota: 2 orang.\n",
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  TextSpan(
+                    text: "•  ",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text: "Jumlah maksimal anggota: 100 orang.",
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
+              textAlign: TextAlign.justify,
+            ),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: "Ketentuan Tabungan Bersama:\n",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Anggota dapat menambah/menarik dana sesuai kontribusi.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Maksimal penambahan dana: Rp. Target / Durasi Tabungan, untuk memastikan setiap anggota berkontribusi secara proporsional.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Tabungan dapat dikunci untuk mendapatkan bunga lebih tinggi.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Admin dapat mengubah target dana/waktu maksimal 2 kali.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Admin dapat menambah anggota tanpa melebihi batas maksimal.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Anggota dapat keluar dengan persetujuan admin, dana dikembalikan sesuai kontribusi.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Alasan keluar dari Tabungan Bersama perlu disampaikan saat pengajuan.",
+                  style: TextStyle(fontSize: 13),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        const Padding(
+          padding: EdgeInsets.only(top: 10, bottom: 10),
+          child: Text(
+            "Kami menyarankan Anda untuk mempertimbangkan risiko ini sebelum melanjutkan pembuatan Tabungan Bersama.",
+            style: TextStyle(fontSize: 13),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showTermsAndConditionsTabunganBergilir(
+      Map<String, dynamic> transaction) {
+    _termsAccepted = false;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return SizedBox(
+          height: MediaQuery.of(context).size.height * 0.75,
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setModalState) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildTermsTitleTabunganBergilir(),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: _buildTermsTextTabunganBergilir(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTermsCheckbox(setModalState),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _termsAccepted
+                              ? () {
+                                  Navigator.pop(context);
+                                  _submitToApi(transaction);
+                                }
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _termsAccepted
+                                ? Colors.yellow.shade700
+                                : Colors.grey,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'Setuju',
+                            style: TextStyle(
+                              color: _termsAccepted
+                                  ? Colors.blue.shade800
+                                  : Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTermsTitleTabunganBergilir() {
+    return Text(
+      'Syarat & Ketentuan Tabungan Bergilir',
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Colors.blue.shade900,
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+
+  Widget _buildTermsTextTabunganBergilir() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: 10),
+          child: Text(
+            "Dengan melanjutkan pembuatan Tabungan Bergilir, Anda menyatakan bahwa:",
+            style: TextStyle(color: Colors.black87),
+          ),
+        ),
+        ListTile(
+          leading: Icon(Icons.info_outline, color: Colors.blue.shade700),
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: "Anda ",
+                ),
+                TextSpan(
+                  text: "bertanggung jawab penuh",
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+                TextSpan(
+                  text:
+                      " atas segala risiko kerugian yang timbul akibat tindakan atau keputusan anggota lain dalam grup Tabungan Bergilir Anda.",
+                ),
+              ],
+            ),
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          leading: Icon(Icons.info_outline, color: Colors.blue.shade700),
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: "Bank bjb ",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "tidak bertanggung jawab atas kerugian yang timbul akibat tindakan atau keputusan anggota lain tersebut.",
+                ),
+              ],
+            ),
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: ListTile(
+            title: const Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: "Syarat untuk mengaktifkan tabungan bergilir:\n",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text: "•  ",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text: "Jumlah minimal target goals: Rp 5.000.000,00.\n",
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  TextSpan(
+                    text: "•  ",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text: "Jumlah minimal anggota: 5 orang.\n",
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  TextSpan(
+                    text: "•  ",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text: "Jumlah maksimal anggota: 25 orang.",
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
+              textAlign: TextAlign.justify,
+            ),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: "Ketentuan Tabungan Bergilir:\n",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Nasabah beserta anggota goals dapat menambah ataupun menarik dana pada goals yang telah dibuat sesuai dengan kontribusinya masing-masing.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Terdapat biaya layanan (fee based) yang disematkan pada setiap setoran untuk semua anggota tabungan bergilir pada periode waktu tertentu sebesar Rp. 1.000,00.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Jumlah setoran tabungan bergilir untuk setiap anggotanya sudah termasuk biaya layanan tersebut. Misal anggota tabungan bergilir dengan jumlah 10 orang dan target 10.000.000 maka jumlah setoran yang perlu dibayar oleh setiap anggotanya adalah 1.000.000 + 1.000 = 1.001.000\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text:
+                      "Ketentuan Pengubahan Target Dana dan Target Waktu Goals:\n",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Nasabah pengelola goals/admin tidak dapat mengubah target dana dan target waktu goals jika tabungan bergilir telah dimulai karena akan mengganggu kenyamanan antar anggota tabungan bergilir.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: "Ketentuan Penambahan Anggota:\n",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text:
+                      "Admin tidak dapat menambahkan anggota jika tabungan bergilir telah dimulai.\n",
+                  style: TextStyle(fontSize: 13),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: "Ketentuan Keluar dari Goals:\n",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Anggota tidak dapat mengajukan untuk keluar dari goals jika tabungan bergilir telah dimulai.\n",
+                    style: TextStyle(fontSize: 13)),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text:
+                      "Ketentuan Jika Terdapat Anggota yang Wanprestasi (tabungan bergilir):\n",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Wanprestasi adalah keadaan ketika anggota tabungan bergilir tidak dapat memenuhi kewajibannya untuk dapat membayar tagihan tabungan bergilir setiap periode penentuan giliran. Seorang anggota tabungan bergilir dapat dikatakan wanprestasi ketika anggota tabungan bergilir tersebut tidak dapat memenuhi kewajibannya untuk membayar tagihan maksimal 3 hari setelah tanggal jatuh tempo tabungan bergilir.\n",
+                    style: TextStyle(fontSize: 13)),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text:
+                      "Jika terdapat anggota wanprestasi dan belum mendapatkan giliran:\n",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Anggota tersebut akan dikeluarkan karena kelalaiannya sendiri yang dapat merugikan anggota lain\n",
+                    style: TextStyle(fontSize: 13)),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Kontribusi yang telah diberikan akan hangus sebagai penalty\n",
+                    style: TextStyle(fontSize: 13)),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Durasi dan tagihan tabungan bergilir tidak akan berubah\n",
+                    style: TextStyle(fontSize: 13)),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Jumlah dana yang diberikan pada setiap penentuan giliran akan berkurang namun dana yang kurang tersebut akan digantikan pada akhir periode beserta dengan pembagian bonus dari kontribusi peserta yang wanprestasi\n",
+                    style: TextStyle(fontSize: 13)),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        ListTile(
+          title: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                    text:
+                        "Jika terdapat anggota wanprestasi tetapi sudah mendapatkan giliran:\n",
+                    style:
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Anggota tersebut akan dikeluarkan karena kelalaiannya sendiri serta niat untuk menipu anggota lain.\n",
+                    style: TextStyle(fontSize: 13)),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Bank bjb selaku penyedia layanan tabungan bergilir dapat memberikan kredit untuk anggota wanprestasi sesuai dengan jumlah sisa setoran yang perlu dibayarkan. Dana pada rekening anggota wanprestasi tersebut dapat langsung dipotong sesuai dengan jumlah sisa setoran yang perlu dibayarkan dan dana yang telah dipotong tersebut akan menjadi dana darurat tabungan bergilir\n",
+                    style: TextStyle(fontSize: 13)),
+                TextSpan(
+                  text: "•  ",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                TextSpan(
+                    text:
+                        "Durasi, tagihan, dan jumlah dana yang diberikan pada setiap penentuan giliran tidak akan berubah.",
+                    style: TextStyle(fontSize: 13)),
+              ],
+            ),
+            textAlign: TextAlign.justify,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        const Padding(
+          padding: EdgeInsets.only(top: 10, bottom: 10),
+          child: Text(
+            "Kami menyarankan Anda untuk mempertimbangkan risiko ini sebelum melanjutkan pembuatan Tabungan Bergilir.",
+            style: TextStyle(fontSize: 13),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTermsCheckbox(StateSetter setModalState) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Theme(
+                data: ThemeData(unselectedWidgetColor: Colors.grey),
+                child: Checkbox(
+                  value: _termsAccepted,
+                  onChanged: (bool? value) {
+                    setModalState(() {
+                      _termsAccepted = value!;
+                    });
+                  },
+                  activeColor: Colors.yellow.shade700,
+                  shape: const CircleBorder(),
+                  fillColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return Colors.yellow.shade700;
+                    }
+                    return Colors.white;
+                  }),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ),
+            const Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Saya Setuju Dengan Syarat dan Ketentuan yang telah disampaikan diatas.",
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCreateButton(Map<String, dynamic> transaction) {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: ElevatedButton(
+        onPressed: _termsAccepted
+            ? () async {
+                Navigator.pop(context);
+                _submitToApi(transaction);
+              }
+            : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor:
+              _termsAccepted ? Colors.yellow.shade700 : Colors.grey,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: Text(
+          'Setuju',
+          style: TextStyle(
+            color: _termsAccepted ? Colors.blue.shade800 : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Function to submit to API after accepting terms
+  Future<void> _submitToApi(Map<String, dynamic> transaction) async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InputPin(
+          onPinSuccess: () {
+            _showLoadingDialog(context, transaction, 'accepted');
+          },
+        ),
+      ),
+    );
   }
 
   // Function to show loading dialog
@@ -395,7 +1137,7 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
             width: 256,
             padding: const EdgeInsets.all(15),
             child: Column(
-              mainAxisSize: MainAxisSize.min, // Set mainAxisSize
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const CircularProgressIndicator(
@@ -453,7 +1195,7 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
             width: 256,
             padding: const EdgeInsets.all(15),
             child: Column(
-              mainAxisSize: MainAxisSize.min, // Set mainAxisSize
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
@@ -482,6 +1224,7 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
                   height: 37,
                   child: ElevatedButton(
                     onPressed: () {
+                      Navigator.pop(context);
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
@@ -579,5 +1322,213 @@ class TransactionCard extends StatelessWidget {
             ),
           ),
         ));
+  }
+}
+
+class InputPin extends StatefulWidget {
+  final VoidCallback onPinSuccess;
+
+  const InputPin({
+    super.key,
+    required this.onPinSuccess,
+  });
+
+  @override
+  _InputPinState createState() => _InputPinState();
+}
+
+class _InputPinState extends State<InputPin> {
+  String _pin = '';
+  final int _pinLength = 6;
+
+  void _addPin(String number) {
+    setState(() {
+      if (_pin.length < _pinLength) {
+        _pin = _pin + number;
+      }
+    });
+    _validatePin();
+  }
+
+  void _removePin() {
+    setState(() {
+      if (_pin.isNotEmpty) {
+        _pin = _pin.substring(0, _pin.length - 1);
+      }
+    });
+  }
+
+  void _validatePin() {
+    if (_pin.length == _pinLength) {
+      // Simulasi validasi PIN (ganti dengan logika validasi API Anda)
+      if (_pin == '123456') {
+        widget.onPinSuccess();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pin yang Anda masukkan salah'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _pin = '';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.blue.shade700,
+        toolbarHeight: 84,
+        titleSpacing: 16,
+        automaticallyImplyLeading: false,
+        title: const Text(
+          'Input M-PIN Mobile Banking',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            height: 12,
+            width: 12,
+            decoration: const BoxDecoration(
+              color: Colors.green,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.blue.shade700, Colors.blue.shade400],
+              ),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(
+                  height: 36,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                      _pinLength,
+                      (index) => Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 18),
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: index < _pin.length
+                                  ? Colors.amber
+                                  : Colors.grey[300],
+                            ),
+                          )),
+                ),
+                const SizedBox(
+                  height: 36,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              child: GridView.count(
+                crossAxisCount: 3,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  ...[
+                    '1',
+                    '2',
+                    '3',
+                    '4',
+                    '5',
+                    '6',
+                    '7',
+                    '8',
+                    '9',
+                    '',
+                    '0',
+                    'backspace',
+                  ].map(
+                    (number) => InkWell(
+                      onTap: () {
+                        if (number == 'backspace') {
+                          _removePin();
+                        } else if (number.isNotEmpty) {
+                          _addPin(number);
+                        }
+                      },
+                      child: Center(
+                        child: number == 'backspace'
+                            ? Row(
+                                // Menggunakan Row untuk mengatur posisi ikon dan button
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Spacer(),
+                                  Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.backspace_rounded,
+                                          color: Colors.amber),
+                                      TextButton(
+                                        onPressed: () {
+                                          // todo: action lupa pin
+                                        },
+                                        child: const Text(
+                                          'Lupa PIN',
+                                          style: TextStyle(
+                                              fontSize: 12, color: Colors.blue),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Spacer()
+                                ],
+                              )
+                            : Text(
+                                number,
+                                style: const TextStyle(
+                                    fontSize: 24, color: Colors.black),
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text(
+                  'Kembali',
+                  style: TextStyle(color: Colors.blue),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

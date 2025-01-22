@@ -1030,7 +1030,7 @@ class DetailTambahUangBergilir extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => InputPin(
+                builder: (context) => InputPinBergilir(
                   nominal: nominal,
                   jenis: jenis,
                   rekening: rekening,
@@ -1072,7 +1072,7 @@ class DetailTambahUangBergilir extends StatelessWidget {
   }
 }
 
-class InputPin extends StatefulWidget {
+class InputPinBergilir extends StatefulWidget {
   final String nominal;
   final String jenis;
   final String rekening;
@@ -1080,7 +1080,7 @@ class InputPin extends StatefulWidget {
   final String namaGoals;
   final String jenisGoals;
 
-  const InputPin({
+  const InputPinBergilir({
     super.key,
     required this.nominal,
     required this.jenis,
@@ -1091,10 +1091,10 @@ class InputPin extends StatefulWidget {
   });
 
   @override
-  _InputPinState createState() => _InputPinState();
+  _InputPinBergilirState createState() => _InputPinBergilirState();
 }
 
-class _InputPinState extends State<InputPin> {
+class _InputPinBergilirState extends State<InputPinBergilir> {
   String _pin = '';
   final int _pinLength = 6;
 

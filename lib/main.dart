@@ -1,8 +1,9 @@
+import 'package:digigoals_app/Inbox.dart';
 import 'package:digigoals_app/SplashScreen.dart';
 import 'package:digigoals_app/OurGoals.dart';
 import 'package:flutter/material.dart';
 
-void main() => runApp(const MyApp());
+void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -19,6 +20,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const SplashScreen(),
         '/ourGoals': (context) => OurGoals(),
+        '/inbox': (context) => Inbox(),
       },
     );
   }

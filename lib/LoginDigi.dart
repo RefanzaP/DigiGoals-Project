@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:top_modal_sheet/top_modal_sheet.dart';
 import 'package:provider/provider.dart';
+import 'package:digigoals_app/api/api_config.dart';
 
 // Model Account Statis
 class Account {
@@ -669,7 +670,6 @@ class _LoginDigiState extends State<LoginDigi> {
       final String password = _passwordController.text;
 
       // Konfigurasi Endpoint API
-      const String baseUrl = "https://user-service-ourgoals.koyeb.app";
       const String loginEndpoint = "/api/v1/auth/login";
       final String apiUrl = baseUrl + loginEndpoint;
 
