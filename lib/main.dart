@@ -1,9 +1,19 @@
-import 'package:digigoals_app/Inbox.dart';
+import 'package:digigoals_app/Beranda.dart';
 import 'package:digigoals_app/SplashScreen.dart';
 import 'package:digigoals_app/OurGoals.dart';
+import 'package:digigoals_app/auth/token_manager.dart'; // Import TokenManager
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Import Provider
 
-void main() => runApp(MyApp());
+void main() => runApp(
+      // Gunakan MultiProvider untuk menyediakan TokenManager
+      MultiProvider(
+        providers: [
+          Provider<TokenManager>(create: (_) => TokenManager()),
+        ],
+        child: MyApp(),
+      ),
+    );
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -19,8 +29,8 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
+        '/beranda': (context) => const Beranda(),
         '/ourGoals': (context) => OurGoals(),
-        '/inbox': (context) => Inbox(),
       },
     );
   }

@@ -670,7 +670,7 @@ class _LoginDigiState extends State<LoginDigi> {
       final String password = _passwordController.text;
 
       // Konfigurasi Endpoint API
-      const String loginEndpoint = "/api/v1/auth/login";
+      const String loginEndpoint = "/auth/login";
       final String apiUrl = baseUrl + loginEndpoint;
 
       // Payload API
@@ -697,22 +697,70 @@ class _LoginDigiState extends State<LoginDigi> {
             if (loginResponse.accessToken != null) {
               await _tokenManager.saveToken(loginResponse.accessToken!);
 
-              if (context.mounted) {
-                _hideLoadingOverlay(context);
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChangeNotifierProvider(
-                      create: (context) =>
-                          BerandaState(accessToken: loginResponse.accessToken!),
-                      child: const Beranda(),
-                    ),
-                    settings:
-                        RouteSettings(arguments: loginResponse.accessToken),
-                  ),
-                  (route) =>
-                      false, // This will remove all previous routes from the stack
-                );
+              // Endpoint untuk introspect user
+              const String introspectEndpoint = "/auth/introspect";
+              final String introspectApiUrl = baseUrl + introspectEndpoint;
+
+              final introspectResponse = await http.get(
+                Uri.parse(introspectApiUrl),
+                headers: {
+                  'Authorization': 'Bearer ${loginResponse.accessToken}',
+                  'Content-Type': 'application/json'
+                },
+              );
+
+              if (introspectResponse.statusCode == 200) {
+                final Map<String, dynamic> introspectData =
+                    json.decode(introspectResponse.body);
+                if (introspectData['code'] == 200 &&
+                    introspectData['status'] == 'OK') {
+                  final String customerId =
+                      introspectData['data']['customer_id'];
+                  final String userId = introspectData['data']['user_id'];
+
+                  // Simpan customer_id dan user_id
+                  await _tokenManager.saveCustomerId(customerId);
+                  await _tokenManager.saveUserId(userId);
+
+                  if (context.mounted) {
+                    _hideLoadingOverlay(context);
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChangeNotifierProvider(
+                          create: (context) => BerandaState(
+                              accessToken: loginResponse.accessToken!),
+                          child: const Beranda(),
+                        ),
+                        settings:
+                            RouteSettings(arguments: loginResponse.accessToken),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                } else {
+                  if (mounted) {
+                    _hideLoadingOverlay(context);
+                    setStateDialog(() {
+                      _loginError = introspectData['errors'] != null &&
+                              (introspectData['errors'] as List).isNotEmpty
+                          ? (introspectData['errors'] as List)[0].toString()
+                          : "Gagal introspect user, silahkan coba lagi!";
+                      _passwordError = _loginError;
+                      _usernameError = _loginError;
+                    });
+                  }
+                }
+              } else {
+                if (mounted) {
+                  _hideLoadingOverlay(context);
+                  setStateDialog(() {
+                    _loginError =
+                        "Gagal introspect user, kode status: ${introspectResponse.statusCode}. Silakan coba lagi";
+                    _passwordError = _loginError;
+                    _usernameError = _loginError;
+                  });
+                }
               }
             } else {
               if (mounted) {

@@ -26,23 +26,13 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
     '6 bulan',
     '1 tahun'
   ];
-  bool _isLoading = false;
+  bool _isLoading =
+      false; // Gunakan state _isLoading untuk mengontrol bottom sheet button
   String _namaTabunganBersama = '';
   bool _termsAccepted = false;
   double? _targetAmount;
   int? _durasiTabunganHari;
   final TokenManager _tokenManager = TokenManager();
-  String? _goalType;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Menerima goalType dari argument
-    final args = ModalRoute.of(context)?.settings.arguments;
-    if (args != null && args is String) {
-      _goalType = args;
-    }
-  }
 
   String _formatCurrency(String value) {
     if (value.isEmpty) return '';
@@ -74,18 +64,21 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
       return;
     }
 
+    setState(() {
+      _isLoading = true; // Set loading jadi true saat mulai submit
+    });
+
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/joint-saving-groups'),
+        Uri.parse('$baseUrl/saving-groups/joint'), // Endpoint diperbaiki
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode(<String, dynamic>{
           'name': _namaTabunganBersama,
-          'type': _goalType,
-          'duration': _durasiTabunganHari,
           'target_amount': _targetAmount,
+          'duration': _durasiTabunganHari,
         }),
       );
 
@@ -111,6 +104,11 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      setState(() {
+        _isLoading =
+            false; // Set loading jadi false setelah proses selesai (berhasil atau gagal)
+      });
     }
   }
 
@@ -231,7 +229,6 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
               height: 37,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context);
                   Navigator.popUntil(context, (route) => route.isFirst);
                   Navigator.pushNamed(context, '/ourGoals');
                 },
@@ -545,15 +542,16 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
-        onPressed: _termsAccepted
+        onPressed: _termsAccepted && !_isLoading // Disable button saat loading
             ? () async {
                 Navigator.pop(context);
                 await _submitToApi();
               }
             : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-              _termsAccepted ? Colors.yellow.shade700 : Colors.grey,
+          backgroundColor: _termsAccepted && !_isLoading
+              ? Colors.yellow.shade700
+              : Colors.grey, // Disable color saat loading
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
@@ -561,9 +559,10 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
         child: Text(
           'Buat Tabungan Bersama',
           style: TextStyle(
-            color: _termsAccepted
-                ? Colors.blue.shade800
-                : Colors.black, // Ubah warna teks di sini
+            color:
+                _termsAccepted && !_isLoading // Disable text color saat loading
+                    ? Colors.blue.shade800
+                    : Colors.black,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -772,13 +771,11 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: _isLoading
-                    ? null
-                    : () async {
-                        if (_formKey.currentState!.validate()) {
-                          _showTermsAndConditions();
-                        }
-                      },
+                onPressed: () async {
+                  if (_formKey.currentState!.validate()) {
+                    _showTermsAndConditions();
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.yellow.shade700,
                   shape: RoundedRectangleBorder(

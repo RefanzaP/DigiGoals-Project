@@ -1,6 +1,6 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
-import 'dart:convert';
+import 'dart:convert'; // Import library dart:convert untuk UTF8 decoding
 import 'package:digigoals_app/PilihGoals.dart';
 import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
 import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart';
@@ -10,69 +10,60 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart'; // Import Provider
 
-// Model for Joint Saving Group
-class JointSavingGroup {
+// Model for Saving Group (Unified Model for both Joint and Rotating)
+class SavingGroup {
   final String id;
   final String name;
-  final int targetAmount;
   final String type;
   final String status;
-  final int duration;
   final DateTime createdAt;
+  final int duration;
+  final int targetAmount;
+  double contributionAmount;
+  List<Member> members;
 
-  JointSavingGroup({
+  SavingGroup({
     required this.id,
     required this.name,
-    required this.targetAmount,
     required this.type,
     required this.status,
-    required this.duration,
     required this.createdAt,
+    required this.duration,
+    required this.targetAmount,
+    this.contributionAmount = 0.0,
+    this.members = const [],
   });
 
-  factory JointSavingGroup.fromJson(Map<String, dynamic> json) {
-    return JointSavingGroup(
+  factory SavingGroup.fromJson(Map<String, dynamic> json) {
+    final detail = json['detail'] as Map<String, dynamic>? ?? {};
+    return SavingGroup(
       id: json['id'],
       name: json['name'],
-      targetAmount: json['target_amount'],
       type: json['type'],
       status: json['status'],
-      duration: json['duration'],
       createdAt: DateTime.parse(json['created_at']),
+      duration: detail['duration'] ?? 0,
+      targetAmount: detail['target_amount'] ?? 0,
     );
   }
 }
 
-// Model for Rotating Saving Group
-class RotatingSavingGroup {
+// Model for Member
+class Member {
   final String id;
   final String name;
-  final int targetAmount;
-  final String type;
-  final String status;
-  final int duration;
-  final DateTime createdAt;
 
-  RotatingSavingGroup({
+  Member({
     required this.id,
     required this.name,
-    required this.targetAmount,
-    required this.type,
-    required this.status,
-    required this.duration,
-    required this.createdAt,
   });
 
-  factory RotatingSavingGroup.fromJson(Map<String, dynamic> json) {
-    return RotatingSavingGroup(
-      id: json['id'],
-      name: json['name'],
-      targetAmount: json['target_amount'] ?? 0,
-      type: json['type'],
-      status: json['status'],
-      duration: json['duration'] ?? 0,
-      createdAt: DateTime.parse(json['created_at']),
+  factory Member.fromJson(Map<String, dynamic> json) {
+    return Member(
+      id: json['user']['id'],
+      name: json['user']['customer']['name'],
     );
   }
 }
@@ -88,8 +79,10 @@ class _OurGoalsState extends State<OurGoals> {
   bool _isLoading = true;
   bool _isNavigating = false;
   String? _errorMessage;
-  List<dynamic> _goals = [];
+  List<SavingGroup> _goals = [];
   final TokenManager _tokenManager = TokenManager();
+  bool _isSnackBarShown =
+      false; // Tambahkan flag untuk menandai apakah SnackBar sudah ditampilkan
 
   @override
   void initState() {
@@ -97,95 +90,152 @@ class _OurGoalsState extends State<OurGoals> {
     _fetchGoals();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Pindahkan panggilan _checkDeletionSuccess ke didChangeDependencies
+    if (!_isSnackBarShown) {
+      // Cek apakah SnackBar sudah pernah ditampilkan
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkDeletionSuccess();
+      });
+    }
+  }
+
+  // Function to check if deletion was successful and show snackbar
+  void _checkDeletionSuccess() {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments != null && arguments is Map<String, dynamic>) {
+      if (arguments['deletionSuccess'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tabungan berhasil dihapus!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _isSnackBarShown =
+            true; // Set flag menjadi true setelah SnackBar ditampilkan
+        // Tidak perlu lagi kode untuk removeModalRoute karena flag _isSnackBarShown sudah mencegah tampilan berulang
+      } else if (arguments['deletionSuccess'] == false) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal menghapus tabungan.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        _isSnackBarShown = true;
+      }
+    }
+  }
+
   Future<void> _fetchGoals() async {
+    if (!mounted) return; // Tambahkan kondisi mounted di awal
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _goals = [];
     });
 
     String? token = await _tokenManager.getToken();
     if (token == null) {
-      setState(() {
-        _errorMessage = "Token tidak ditemukan";
-        _isLoading = false;
-      });
+      if (mounted) {
+        // Tambahkan kondisi mounted sebelum setState
+        setState(() {
+          _errorMessage = "Token tidak ditemukan";
+          _isLoading = false;
+        });
+      }
       return;
     }
 
     try {
-      final jointSavingUrl = Uri.parse('$baseUrl/api/v1/joint-saving-groups');
-      final rotatingSavingUrl =
-          Uri.parse('$baseUrl/api/v1/rotating-saving-groups');
+      final savingGroupsUrl = Uri.parse('$baseUrl/saving-groups');
 
       final Map<String, String> headers = {
         'Authorization': 'Bearer $token',
       };
 
-      final jointSavingResponse =
-          await http.get(jointSavingUrl, headers: headers);
-      final rotatingSavingResponse =
-          await http.get(rotatingSavingUrl, headers: headers);
+      final savingGroupsResponse =
+          await http.get(savingGroupsUrl, headers: headers);
 
-      if (jointSavingResponse.statusCode == 200 &&
-          rotatingSavingResponse.statusCode == 200) {
-        final jointSavingData = json.decode(jointSavingResponse.body);
-        final rotatingSavingData = json.decode(rotatingSavingResponse.body);
+      if (savingGroupsResponse.statusCode == 200) {
+        // Dekode body response menggunakan utf8.decode sebelum json.decode
+        final responseBody = utf8.decode(savingGroupsResponse.bodyBytes);
+        final savingGroupsData = json.decode(responseBody);
 
-        List<dynamic> fetchedGoals = [];
+        List<SavingGroup> fetchedGoals = [];
 
-        if (jointSavingData['code'] == 200 &&
-            jointSavingData['status'] == 'OK' &&
-            (jointSavingData['data'] as List).isNotEmpty) {
-          List<JointSavingGroup> jointGroups = (jointSavingData['data'] as List)
-              .map((item) => JointSavingGroup.fromJson(item))
+        if (savingGroupsData['code'] == 200 &&
+            savingGroupsData['status'] == 'OK' &&
+            (savingGroupsData['data'] as List).isNotEmpty) {
+          List<SavingGroup> savingGroups = (savingGroupsData['data'] as List)
+              .map((item) => SavingGroup.fromJson(item))
               .toList();
-          fetchedGoals.addAll(jointGroups
-              .map((joint) => {
-                    'goalsType': 'Tabungan Bersama',
-                    'id': joint.id,
-                    'goalsName': joint.name,
-                    'target_amount': joint.targetAmount,
-                    'status': joint.status,
-                    'duration': joint.duration,
-                    'creationDate': joint.createdAt,
-                  })
-              .toList());
+
+          savingGroups =
+              savingGroups.where((goal) => goal.status != 'ARCHIVED').toList();
+
+          for (var group in savingGroups) {
+            List<Member> members = await _fetchMembers(group.id, token);
+            group.members = members;
+            group.contributionAmount = 0.0;
+            fetchedGoals.add(group);
+          }
         }
 
-        if (rotatingSavingData['code'] == 200 &&
-            rotatingSavingData['status'] == 'OK' &&
-            (rotatingSavingData['data'] as List).isNotEmpty) {
-          List<RotatingSavingGroup> rotatingGroups =
-              (rotatingSavingData['data'] as List)
-                  .map((item) => RotatingSavingGroup.fromJson(item))
-                  .toList();
-          fetchedGoals.addAll(rotatingGroups
-              .map((rotating) => {
-                    'goalsType': 'Tabungan Bergilir',
-                    'id': rotating.id,
-                    'goalsName': rotating.name,
-                    'target_amount': rotating.targetAmount,
-                    'status': rotating.status,
-                    'duration': rotating.duration,
-                    'creationDate': rotating.createdAt,
-                  })
-              .toList());
+        if (mounted) {
+          // Tambahkan kondisi mounted sebelum setState
+          setState(() {
+            _goals = fetchedGoals;
+            _isLoading = false;
+          });
         }
-        setState(() {
-          _goals = fetchedGoals;
-          _isLoading = false;
-        });
       } else {
+        if (mounted) {
+          // Tambahkan kondisi mounted sebelum setState
+          setState(() {
+            _errorMessage =
+                "Gagal mengambil data goals: Status Code ${savingGroupsResponse.statusCode}";
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        // Tambahkan kondisi mounted sebelum setState
         setState(() {
-          _errorMessage = "Gagal mengambil data goals";
+          _errorMessage = "Terjadi kesalahan: ${e.toString()}";
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<List<Member>> _fetchMembers(String savingGroupId, String token) async {
+    final membersUrl =
+        Uri.parse('$baseUrl/members?savingGroupId=$savingGroupId');
+    final headers = {'Authorization': 'Bearer $token'};
+
+    try {
+      final response = await http.get(membersUrl, headers: headers);
+      if (response.statusCode == 200) {
+        // Dekode response body untuk members juga jika perlu (meskipun ini kurang mungkin masalahnya)
+        final responseBody = utf8.decode(response.bodyBytes);
+        final membersData = json.decode(responseBody);
+        if (membersData['code'] == 200 && membersData['status'] == 'OK') {
+          List<Member> members = (membersData['data'] as List)
+              .map((item) => Member.fromJson(item))
+              .toList();
+          return members;
+        } else {
+          return [];
+        }
+      } else {
+        return [];
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = "Terjadi kesalahan: ${e.toString()}";
-        _isLoading = false;
-      });
+      return [];
     }
   }
 
@@ -194,125 +244,139 @@ class _OurGoalsState extends State<OurGoals> {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            flexibleSpace: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.blue.shade700, Colors.blue.shade400],
-                ),
-              ),
-            ),
-            elevation: 0,
-            toolbarHeight: 84,
-            titleSpacing: 16,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-            ),
-            title: Text(
-              'Our Goals',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            centerTitle: true,
-            actions: [
-              Container(
-                margin: const EdgeInsets.only(right: 16),
-                height: 12,
-                width: 12,
-                decoration: const BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
-          ),
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 16),
-              _buildCreateGoalCard(context),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'Goals Kamu Saat Ini',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    color: Colors.black,
+          appBar: _buildAppBar(context),
+          body: RefreshIndicator(
+            onRefresh: _fetchGoals,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                _buildCreateGoalCard(context),
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Goals Kamu Saat Ini',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: Colors.black,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: _isLoading
-                    ? _buildShimmerLoader(5)
-                    : _errorMessage != null
-                        ? Center(
-                            child: Text(_errorMessage!),
-                          )
-                        : _goals.isNotEmpty
-                            ? ListView.builder(
-                                key: const Key('goalsListView'),
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 20),
-                                itemCount: _goals.length,
-                                itemBuilder: (context, index) {
-                                  final goal = _goals[index];
-                                  return GoalCard(
-                                    goal: goal,
-                                    onTap: () {
-                                      _navigateToDetail(context, goal);
-                                    },
-                                  );
-                                },
-                              )
-                            : const Center(
-                                child: Text('No goals available.'),
-                              ),
-              )
-            ],
+                const SizedBox(height: 16),
+                Expanded(
+                  child: _isLoading
+                      ? _buildShimmerLoader(5)
+                      : _errorMessage != null
+                          ? Center(
+                              child: Text(_errorMessage!),
+                            )
+                          : _goals.isNotEmpty
+                              ? ListView.builder(
+                                  key: const Key('goalsListView'),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20),
+                                  itemCount: _goals.length,
+                                  itemBuilder: (context, index) {
+                                    final goal = _goals[index];
+                                    return GoalCard(
+                                      goal: goal,
+                                      onTap: () {
+                                        _navigateToDetail(
+                                            context, goal.id, goal.type);
+                                      },
+                                    );
+                                  },
+                                )
+                              : const Center(
+                                  child: Text('No goals available.'),
+                                ),
+                )
+              ],
+            ),
           ),
         ),
-        if (_isNavigating)
-          Stack(
-            children: [
-              ModalBarrier(
-                color: Colors.black.withOpacity(0.5),
-                dismissible: false,
-              ),
-              Center(
-                child: CircularProgressIndicator(
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(Colors.yellow.shade700),
-                ),
-              ),
-            ],
-          ),
+        if (_isNavigating) _buildNavigationOverlay(),
       ],
     );
   }
 
-  // Function to navigate to the detail page based on goal type
-  void _navigateToDetail(BuildContext context, Map<String, dynamic> goal) {
-    if (goal['goalsType'] == 'Tabungan Bersama') {
+  // AppBar Widget
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.blue.shade700, Colors.blue.shade400],
+          ),
+        ),
+      ),
+      elevation: 0,
+      toolbarHeight: 84,
+      titleSpacing: 16,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () {
+          Navigator.pop(context);
+        },
+      ),
+      title: Text(
+        'Our Goals',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+          color: Colors.white,
+        ),
+        textAlign: TextAlign.center,
+      ),
+      centerTitle: true,
+      actions: [
+        Container(
+          margin: const EdgeInsets.only(right: 16),
+          height: 12,
+          width: 12,
+          decoration: const BoxDecoration(
+            color: Colors.green,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Navigation Overlay Widget
+  Widget _buildNavigationOverlay() {
+    return Stack(
+      children: [
+        ModalBarrier(
+          color: Colors.black.withOpacity(0.5),
+          dismissible: false,
+        ),
+        Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.yellow.shade700),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Function to navigate to detail page
+  void _navigateToDetail(
+      BuildContext context, String savingGroupId, String goalType) {
+    if (goalType == 'JOINT_SAVING') {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const DetailTabunganBersama(),
+          builder: (context) =>
+              DetailTabunganBersama(savingGroupId: savingGroupId),
         ),
       );
-    } else if (goal['goalsType'] == 'Tabungan Bergilir') {
+    } else if (goalType == 'ROTATING_SAVING') {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -322,6 +386,7 @@ class _OurGoalsState extends State<OurGoals> {
     }
   }
 
+  // Create Goal Card Widget
   Widget _buildCreateGoalCard(BuildContext context) {
     return Card(
       color: Colors.white,
@@ -350,6 +415,8 @@ class _OurGoalsState extends State<OurGoals> {
                   setState(() {
                     _isNavigating = false;
                   });
+                  // Refresh data goals ketika kembali dari PilihGoals
+                  _fetchGoals();
                 });
               },
         child: Padding(
@@ -371,32 +438,11 @@ class _OurGoalsState extends State<OurGoals> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 62,
-                      height: 62,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFFC945),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.add, size: 32, color: Colors.blue),
-                      ),
-                    ),
+                    _buildCreateGoalIcon(),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Buat Goals Kamu!',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                    ),
+                    _buildCreateGoalTitle(),
                     const SizedBox(height: 4),
-                    Text(
-                      'Sesuaikan Goals kamu untuk hal yang kamu inginkan',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
+                    _buildCreateGoalDescription(context),
                   ],
                 ),
               ),
@@ -407,6 +453,42 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
+  // Create Goal Icon Widget
+  Widget _buildCreateGoalIcon() {
+    return Container(
+      width: 62,
+      height: 62,
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFC945),
+        shape: BoxShape.circle,
+      ),
+      child: const Center(
+        child: Icon(Icons.add, size: 32, color: Colors.blue),
+      ),
+    );
+  }
+
+  // Create Goal Title Widget
+  Widget _buildCreateGoalTitle() {
+    return const Text(
+      'Buat Goals Kamu!',
+      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+    );
+  }
+
+  // Create Goal Description Widget
+  Widget _buildCreateGoalDescription(BuildContext context) {
+    return Text(
+      'Sesuaikan Goals kamu untuk hal yang kamu inginkan',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontSize: 12,
+        color: Colors.grey[600],
+      ),
+    );
+  }
+
+  // Shimmer Loader Widget
   Widget _buildShimmerLoader(int count) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -429,60 +511,53 @@ class _OurGoalsState extends State<OurGoals> {
   }
 }
 
+// Goal Card Widget
 class GoalCard extends StatelessWidget {
-  final Map<String, dynamic> goal;
+  final SavingGroup goal;
   final VoidCallback? onTap;
 
   const GoalCard({required this.goal, super.key, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    // Inisialisasi formatter untuk mata uang Rupiah
     final currencyFormat = NumberFormat.currency(
         locale: 'id_ID', symbol: 'IDR ', decimalDigits: 2);
-
-    final formattedTarget = currencyFormat.format(goal['target_amount'] ?? 0);
-    // Inisialisasi list untuk menyimpan widget circle avatar
+    final formattedTarget = currencyFormat.format(goal.targetAmount);
     List<Widget> memberAvatars = [];
-
-    // Batasi hanya menampilkan 2 avatar dan sisanya tampilkan dalam 1 avatar
     int maxAvatars = 2;
     int displayedCount = 0;
 
-    // if (goal['members'] != null) {
-    //   for (int i = 0; i < goal['members'].length; i++) {
-    //     String memberName = goal['members'][i];
-    //     if (displayedCount < maxAvatars) {
-    //       memberAvatars.add(
-    //         CircleAvatar(
-    //           radius: 12,
-    //           backgroundColor: Colors.primaries[
-    //               i % Colors.primaries.length], // Memberikan warna otomatis
-    //           child: Text(
-    //             memberName
-    //                 .substring(0, 1)
-    //                 .toUpperCase(), // Mengambil huruf pertama dan uppercase
-    //             style: const TextStyle(color: Colors.white, fontSize: 12),
-    //           ),
-    //         ),
-    //       );
-    //       displayedCount++;
-    //     }
-    //   }
-    //   if (goal['members'].length > maxAvatars) {
-    //     int remainingMembers = goal['members'].length - maxAvatars;
-    //     memberAvatars.add(
-    //       CircleAvatar(
-    //         radius: 12,
-    //         backgroundColor: Colors.grey,
-    //         child: Text(
-    //           '+$remainingMembers',
-    //           style: const TextStyle(color: Colors.white, fontSize: 12),
-    //         ),
-    //       ),
-    //     );
-    //   }
-    // }
+    if (goal.members.isNotEmpty) {
+      for (int i = 0; i < goal.members.length; i++) {
+        String memberName = goal.members[i].name;
+        if (displayedCount < maxAvatars) {
+          memberAvatars.add(
+            CircleAvatar(
+              radius: 12,
+              backgroundColor: Colors.primaries[i % Colors.primaries.length],
+              child: Text(
+                memberName.substring(0, 1).toUpperCase(),
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ),
+          );
+          displayedCount++;
+        }
+      }
+      if (goal.members.length > maxAvatars) {
+        int remainingMembers = goal.members.length - maxAvatars;
+        memberAvatars.add(
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: Colors.grey,
+            child: Text(
+              '+$remainingMembers',
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+        );
+      }
+    }
 
     return Card(
       color: Colors.white,
@@ -499,95 +574,132 @@ class GoalCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      // Menggunakan conditional untuk memilih icon
-                      Icon(
-                        goal['goalsType'] == 'Tabungan Bergilir'
-                            ? Icons.celebration
-                            : Icons.groups,
-                        color: Colors.blue,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        goal['goalsType'],
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: Colors.black),
-                      ),
-                    ],
-                  ),
-                  Row(children: memberAvatars // Menggunakan list circle avatar
-                      ),
-                ],
-              ),
+              _buildGoalCardHeader(goal, memberAvatars),
               const SizedBox(height: 5),
-              Text(
-                goal['goalsName'],
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: Color(0xFF1F597F),
-                ),
-              ),
+              _buildGoalNameText(goal),
               const SizedBox(height: 14),
-              Text(
-                '0 / $formattedTarget',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                    color: Colors.grey[800]),
-              ),
+              _buildGoalProgressText(formattedTarget),
               const SizedBox(height: 8),
-              Stack(
-                children: [
-                  Container(
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  FractionallySizedBox(
-                    widthFactor: goal['target_amount'] != 0 ? 0.0 : 0.0,
-                    child: Container(
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              _buildProgressBar(),
               const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '0%',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        color: Colors.black),
-                  ),
-                  Text(
-                    'Sisa ${goal['duration']} hari',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.red,
-                    ),
-                  ),
-                ],
-              ),
+              _buildGoalSummaryRow(goal),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // Goal Card Header Widget
+  Widget _buildGoalCardHeader(SavingGroup goal, List<Widget> memberAvatars) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildGoalTypeRow(goal),
+        _buildMemberAvatarsRow(memberAvatars),
+      ],
+    );
+  }
+
+  // Goal Type Row Widget
+  Widget _buildGoalTypeRow(SavingGroup goal) {
+    return Row(
+      children: [
+        Icon(
+          goal.type == 'ROTATING_SAVING' ? Icons.celebration : Icons.groups,
+          color: Colors.blue,
+          size: 24,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          goal.type == 'ROTATING_SAVING'
+              ? 'Tabungan Bergilir'
+              : 'Tabungan Bersama',
+          style: const TextStyle(
+              fontWeight: FontWeight.w600, fontSize: 14, color: Colors.black),
+        ),
+      ],
+    );
+  }
+
+  // Member Avatars Row Widget
+  Widget _buildMemberAvatarsRow(List<Widget> memberAvatars) {
+    return Row(children: memberAvatars);
+  }
+
+  // Goal Name Text Widget
+  Widget _buildGoalNameText(SavingGroup goal) {
+    return Text(
+      goal.name,
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 20,
+        color: Color(0xFF1F597F),
+      ),
+    );
+  }
+
+  // Goal Progress Text Widget
+  Widget _buildGoalProgressText(String formattedTarget) {
+    return Text(
+      '0 / $formattedTarget',
+      style: TextStyle(
+          fontWeight: FontWeight.w600, fontSize: 12, color: Colors.grey[800]),
+    );
+  }
+
+  // Progress Bar Widget
+  Widget _buildProgressBar() {
+    return Stack(
+      children: [
+        Container(
+          height: 8,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        FractionallySizedBox(
+          widthFactor: 0.5,
+          child: Container(
+            height: 8,
+            decoration: BoxDecoration(
+              color: Colors.blue,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Goal Summary Row Widget
+  Widget _buildGoalSummaryRow(SavingGroup goal) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildProgressPercentageText(),
+        _buildRemainingDaysText(goal),
+      ],
+    );
+  }
+
+  // Progress Percentage Text Widget
+  Widget _buildProgressPercentageText() {
+    return const Text(
+      '50%',
+      style: TextStyle(
+          fontWeight: FontWeight.w600, fontSize: 12, color: Colors.black),
+    );
+  }
+
+  // Remaining Days Text Widget
+  Widget _buildRemainingDaysText(SavingGroup goal) {
+    return Text(
+      'Sisa ${goal.duration} hari',
+      style: const TextStyle(
+        fontSize: 12,
+        color: Colors.red,
       ),
     );
   }

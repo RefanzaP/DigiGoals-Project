@@ -19,17 +19,8 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
   bool _termsAccepted = false;
   String _namaTabunganBergilir = '';
   final TokenManager _tokenManager = TokenManager();
-  String? _goalType;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Menerima goalType dari argument
-    final args = ModalRoute.of(context)?.settings.arguments;
-    if (args != null && args is String) {
-      _goalType = args;
-    }
-  }
+  bool _isLoading =
+      false; // Gunakan state _isLoading untuk mengontrol bottom sheet button
 
   Future<void> _submitToApi() async {
     if (!_formKey.currentState!.validate() || !_termsAccepted) {
@@ -40,6 +31,10 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
 
     _showLoadingDialog(context);
 
+    setState(() {
+      _isLoading = true; // Set loading jadi true saat mulai submit
+    });
+
     try {
       final token = await _tokenManager.getToken();
       if (token == null) {
@@ -47,13 +42,13 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
       }
 
       // Konfigurasi Endpoint API
-      const String createGoalsEndpoint = "/api/v1/rotating-saving-groups";
+      const String createGoalsEndpoint =
+          "/saving-groups/rotating"; // Endpoint diperbaiki
       final String apiUrl = baseUrl + createGoalsEndpoint;
 
       // Payload API
       final Map<String, dynamic> bodyData = {
         'name': _namaTabunganBergilir,
-        'type': _goalType,
       };
 
       final response = await http.post(
@@ -83,6 +78,11 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      setState(() {
+        _isLoading =
+            false; // Set loading jadi false setelah proses selesai (berhasil atau gagal)
+      });
     }
   }
 
@@ -204,35 +204,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
                       const SizedBox(height: 8),
                       _buildTermsCheckbox(setModalState),
                       const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: _termsAccepted
-                              ? () {
-                                  Navigator.pop(context);
-                                  _submitToApi();
-                                }
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _termsAccepted
-                                ? Colors.yellow.shade700
-                                : Colors.grey,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: Text(
-                            'Buat Tabungan Bergilir',
-                            style: TextStyle(
-                              color: _termsAccepted
-                                  ? Colors.blue.shade800
-                                  : Colors.black, // Ubah warna teks di sini
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
+                      _buildCreateButton(),
                     ],
                   ),
                 ),
@@ -607,6 +579,39 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
     );
   }
 
+  Widget _buildCreateButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: ElevatedButton(
+        onPressed: _termsAccepted && !_isLoading // Disable button saat loading
+            ? () async {
+                Navigator.pop(context);
+                await _submitToApi();
+              }
+            : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _termsAccepted && !_isLoading
+              ? Colors.yellow.shade700
+              : Colors.grey, // Disable color saat loading
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: Text(
+          'Buat Tabungan Bergilir',
+          style: TextStyle(
+            color:
+                _termsAccepted && !_isLoading // Disable text color saat loading
+                    ? Colors.blue.shade800
+                    : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _showLoadingDialog(BuildContext context) async {
     showDialog(
       context: context,
@@ -651,119 +656,133 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.blue.shade700, Colors.blue.shade400],
-            ),
-          ),
-        ),
-        elevation: 0,
-        toolbarHeight: 84,
-        titleSpacing: 16,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          tooltip: 'Kembali',
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        title: const Text(
-          'Buat Tabungan Bergilir Baru',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        centerTitle: true,
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            height: 12,
-            width: 12,
-            decoration: const BoxDecoration(
-              color: Colors.green,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Nama Tabungan Bergilir",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade900,
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            flexibleSpace: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.blue.shade700, Colors.blue.shade400],
                 ),
               ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _namaTabunganBergilirController,
-                decoration: InputDecoration(
-                  fillColor: Colors.blue.shade50,
-                  filled: true,
-                  hintText: 'Buat Nama Tabungan Bergilir',
-                  hintStyle: const TextStyle(color: Colors.black54),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
+            ),
+            elevation: 0,
+            toolbarHeight: 84,
+            titleSpacing: 16,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              tooltip: 'Kembali',
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            title: const Text(
+              'Buat Tabungan Bergilir Baru',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            centerTitle: true,
+            actions: [
+              Container(
+                margin: const EdgeInsets.only(right: 16),
+                height: 12,
+                width: 12,
+                decoration: const BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Mohon isi Nama Tabungan Bergilir';
-                  }
-                  return null;
-                },
-                onChanged: (value) {
-                  _namaTabunganBergilir = value;
-                },
               ),
             ],
           ),
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton(
-            onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                _showTermsAndConditions();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.yellow.shade700,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Nama Tabungan Bergilir",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade900,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _namaTabunganBergilirController,
+                    decoration: InputDecoration(
+                      fillColor: Colors.blue.shade50,
+                      filled: true,
+                      hintText: 'Buat Nama Tabungan Bergilir',
+                      hintStyle: const TextStyle(color: Colors.black54),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Mohon isi Nama Tabungan Bergilir';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      _namaTabunganBergilir = value;
+                    },
+                  ),
+                ],
               ),
             ),
-            child: Text(
-              'Selanjutnya',
-              style: TextStyle(
-                color: Colors.blue.shade800,
-                fontWeight: FontWeight.bold,
+          ),
+          bottomNavigationBar: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    _showTermsAndConditions();
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.yellow.shade700,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  'Selanjutnya',
+                  style: TextStyle(
+                    color: Colors.blue.shade800,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ),
         ),
-      ),
+        if (_isLoading) // Loading Overlay
+          Container(
+            color: Colors.black.withOpacity(0.5),
+            child: Center(
+              child: CircularProgressIndicator(
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(Colors.yellow.shade700),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

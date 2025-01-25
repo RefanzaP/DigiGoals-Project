@@ -1,9 +1,15 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
+import 'package:digigoals_app/auth/token_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:digigoals_app/Beranda.dart'; // Import Beranda.dart
 
 class Inbox extends StatefulWidget {
-  const Inbox({super.key});
+  final String? token; // Tambahkan parameter token disini
+
+  const Inbox(
+      {super.key, this.token}); // Modifikasi konstruktor untuk menerima token
 
   @override
   _InboxState createState() => _InboxState();
@@ -43,6 +49,7 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _animation;
   bool _termsAccepted = false;
+  final TokenManager _tokenManager = TokenManager(); // Instance TokenManager
 
   @override
   void initState() {
@@ -57,6 +64,8 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
       parent: _animationController,
       curve: Curves.easeInOut,
     );
+    // Cetak token yang diterima untuk debugging
+    print('Token diterima di Inbox: ${widget.token}');
   }
 
   Future<void> _loadInitialData() async {
@@ -279,10 +288,10 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
+                                  const Text(
                                     'DIGI Mobile',
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black,
@@ -313,7 +322,7 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    'Mengundang Anda untuk bergabung pada Goals "${transaction['goalsName']}"',
+                                    'Mengundang Anda untuk bergabung pada Goals\n"${transaction['goalsName']}"\n${transaction['type']}',
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       fontSize: 16,
@@ -1110,10 +1119,23 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
 
   // Function to submit to API after accepting terms
   Future<void> _submitToApi(Map<String, dynamic> transaction) async {
+    final String? token =
+        widget.token; // Gunakan token yang diterima dari Inbox
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Token tidak ditemukan, mohon login kembali'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => InputPin(
+          token: token,
           onPinSuccess: () {
             _showLoadingDialog(context, transaction, 'accepted');
           },
@@ -1180,12 +1202,12 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
           icon = Icons.check_circle_outline;
           iconColor = Colors.green;
           resultText =
-              'Selamat! Anda telah menjadi anggota Goals "${transaction['goalsName']}"';
+              'Selamat! Anda telah menjadi anggota Goals \n"${transaction['goalsName']}"';
         } else {
           icon = Icons.cancel_outlined;
           iconColor = Colors.red;
           resultText =
-              'Anda telah menolak undangan untuk bergabung pada Goals "${transaction['goalsName']}"';
+              'Anda telah menolak undangan untuk bergabung pada Goals \n"${transaction['goalsName']}"';
         }
         return Dialog(
           shape: RoundedRectangleBorder(
@@ -1224,8 +1246,19 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
                   height: 37,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pop(context);
+                      Navigator.pop(context); // Close Result Dialog
+                      // Navigate to Beranda.dart dan kirim token disini
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChangeNotifierProvider(
+                            create: (context) => BerandaState(
+                                accessToken: widget
+                                    .token), // Kirim token saat create BerandaState
+                            child: const Beranda(),
+                          ),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.yellow.shade700,
@@ -1327,11 +1360,9 @@ class TransactionCard extends StatelessWidget {
 
 class InputPin extends StatefulWidget {
   final VoidCallback onPinSuccess;
+  final String? token;
 
-  const InputPin({
-    super.key,
-    required this.onPinSuccess,
-  });
+  const InputPin({super.key, required this.onPinSuccess, this.token});
 
   @override
   _InputPinState createState() => _InputPinState();
@@ -1358,7 +1389,7 @@ class _InputPinState extends State<InputPin> {
     });
   }
 
-  void _validatePin() {
+  void _validatePin() async {
     if (_pin.length == _pinLength) {
       // Simulasi validasi PIN (ganti dengan logika validasi API Anda)
       if (_pin == '123456') {

@@ -3,7 +3,7 @@
 import 'dart:convert';
 import 'package:digigoals_app/Inbox.dart';
 import 'package:digigoals_app/LoginDigi.dart';
-import 'package:digigoals_app/auth/token_manager.dart';
+import 'package:digigoals_app/auth/token_manager.dart'; // Import TokenManager
 import 'package:digigoals_app/OurGoals.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -23,6 +23,25 @@ class Account {
     required this.accountHolder,
     required this.balance,
   });
+
+  factory Account.fromJson(Map<String, dynamic> json) {
+    // Cari primary account, jika tidak ada, ambil akun pertama atau default ke N/A
+    var primaryAccount = (json['accounts'] as List?)?.firstWhere(
+      (account) => account['is_primary'] == true,
+      orElse: () => (json['accounts'] as List?)?.isNotEmpty == true
+          ? (json['accounts'] as List)[
+              0] // Ambil akun pertama jika ada dan primary tidak ditemukan
+          : null, // Default null jika tidak ada akun
+    );
+
+    return Account(
+      accountNumber: primaryAccount?['account_number']?.toString() ?? 'N/A',
+      accountHolder: json['customer']['name'] ?? 'N/A',
+      balance:
+          (primaryAccount?['total_available_balance'] as num?)?.toDouble() ??
+              0.0,
+    );
+  }
 }
 
 // Enum untuk State
@@ -34,21 +53,34 @@ enum DataState {
 }
 
 // Widget Shimmer Text dengan Animasi
-Widget _buildShimmerText(
-    {double? width, double? height, bool hasAnimation = false}) {
-  return Shimmer.fromColors(
-    baseColor: Colors.grey[300]!,
-    highlightColor: Colors.grey[100]!,
-    enabled: hasAnimation,
-    child: Container(
-      width: width ?? 100,
-      height: height ?? 16,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
+class ShimmerText extends StatelessWidget {
+  final double? width;
+  final double? height;
+  final bool hasAnimation;
+
+  const ShimmerText({
+    super.key,
+    this.width,
+    this.height,
+    this.hasAnimation = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      enabled: hasAnimation,
+      child: Container(
+        width: width ?? 100,
+        height: height ?? 16,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(4),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 // Widget Halaman Beranda
@@ -71,344 +103,57 @@ class _BerandaState extends State<Beranda> {
       child: Stack(
         children: [
           Scaffold(
-            appBar: AppBar(
-              backgroundColor: Colors.blue.shade700,
-              elevation: 0,
-              leading: Container(
-                margin: const EdgeInsets.all(22),
-                height: 8,
-                width: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              actions: [
-                _buildIconButton(
-                  context,
-                  Icons.search,
-                  () {},
-                  'Search',
-                ),
-                _buildIconButton(
-                  context,
-                  Icons.mic_none,
-                  () {},
-                  'Voice Search',
-                ),
-              ],
-            ),
-            body: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.blue.shade700,
-                    Colors.blue.shade400,
-                  ],
-                ),
-              ),
-              child: Column(
-                children: [
-                  Center(
-                    child: Image.asset(
-                      'assets/icons/logo-digi-bank-bjb-home.png',
-                      width: 120,
-                      height: 120,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 4.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Consumer<BerandaState>(
-                          builder: (context, state, _) {
-                            if (state.dataState == DataState.error) {
-                              return Text(
-                                state.errorMessage ?? 'Terjadi kesalahan',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.red,
-                                ),
-                              );
-                            }
-                            return state.dataState == DataState.loading
-                                ? _buildShimmerText(
-                                    width: 150, height: 20, hasAnimation: true)
-                                : Text(
-                                    (state.account?.accountHolder ??
-                                            state.defaultName ??
-                                            'Error!')
-                                        .toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  );
-                          },
-                        ),
-                        Row(
-                          children: [
-                            const Text(
-                              'Loyalty Point',
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w500),
-                            ),
-                            const SizedBox(width: 10),
-                            ElevatedButton.icon(
-                              onPressed: () {},
-                              icon: const Icon(Icons.refresh,
-                                  color: Colors.white, size: 18),
-                              label: const Text(
-                                'Reload',
-                                style: TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.bold),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Colors.white70.withOpacity(0.25),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 10),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Consumer<BerandaState>(
-                    builder: (context, state, _) =>
-                        state.dataState == DataState.loading
-                            ? const AccountCardShimmer()
-                            : const AccountCard(),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(10),
-                          topRight: Radius.circular(10),
-                        ),
-                      ),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final screenWidth = constraints.maxWidth;
-                          return GridView.count(
-                            crossAxisCount: screenWidth > 600 ? 6 : 4,
-                            mainAxisSpacing: 12.0,
-                            crossAxisSpacing: 8.0,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 10),
-                            childAspectRatio: 0.838,
-                            shrinkWrap: true,
-                            physics: const ClampingScrollPhysics(),
-                            clipBehavior: Clip.none,
-                            children: [
-                              MenuItem(
-                                  icon: Image.asset(
-                                      'assets/icons/manajemen-keuangan@3x.png',
-                                      width: 40,
-                                      height: 40),
-                                  label: 'Manajemen Keuangan',
-                                  onTap: () {}),
-                              MenuItem(
-                                  icon: Image.asset(
-                                      'assets/icons/transfer@3x.png',
-                                      width: 40,
-                                      height: 40),
-                                  label: 'Transfer',
-                                  onTap: () {}),
-                              MenuItem(
-                                  icon: Image.asset('assets/icons/bayar@3x.png',
-                                      width: 40, height: 40),
-                                  label: 'Bayar',
-                                  onTap: () {}),
-                              MenuItem(
-                                  icon: Image.asset('assets/icons/beli@3x.png',
-                                      width: 40, height: 40),
-                                  label: 'Beli',
-                                  onTap: () {}),
-                              MenuItem(
-                                  icon: Image.asset(
-                                      'assets/icons/cardless@3x.png',
-                                      width: 40,
-                                      height: 40),
-                                  label: 'Cardless',
-                                  onTap: () {}),
-                              MenuItem(
-                                  icon: Image.asset(
-                                      'assets/icons/buka-rekening@3x.png',
-                                      width: 40,
-                                      height: 40),
-                                  label: 'Buka Rekening',
-                                  onTap: () {}),
-                              MenuItem(
-                                  icon: Image.asset(
-                                      'assets/icons/bjb-deposito@3x.png',
-                                      width: 40,
-                                      height: 40),
-                                  label: 'bjb Deposito',
-                                  onTap: () {}),
-                              MenuItem(
-                                  icon: Image.asset('assets/icons/flip.png',
-                                      width: 40, height: 40),
-                                  label: 'Flip',
-                                  onTap: () {}),
-                              MenuItem(
-                                  icon: Image.asset(
-                                      'assets/icons/donasi@3x.png',
-                                      width: 40,
-                                      height: 40),
-                                  label: 'Donasi',
-                                  onTap: () {}),
-                              MenuItem(
-                                  icon: Image.asset(
-                                      'assets/icons/collect-dana.png',
-                                      width: 40,
-                                      height: 40),
-                                  label: 'Collect Dana',
-                                  onTap: () {}),
-                              MenuItem(
-                                  icon: Image.asset(
-                                      'assets/icons/pinjaman asn@3x.png',
-                                      width: 40,
-                                      height: 40),
-                                  label: 'Pinjaman ASN',
-                                  onTap: () {}),
-                              MenuItem(
-                                  icon: Image.asset(
-                                      'assets/icons/our-goals.png',
-                                      width: 40,
-                                      height: 40),
-                                  label: 'Our Goals',
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const OurGoals(),
-                                        settings: const RouteSettings(
-                                            name: '/ourGoals'),
-                                      ),
-                                    );
-                                  }),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  )
-                ],
-              ),
-            ),
-            bottomNavigationBar: BottomAppBar(
-              shape: const CircularNotchedRectangle(),
-              notchMargin: 10,
-              color: Colors.white,
-              child: SizedBox(
-                height: 80,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildBottomNavItem(Icons.inbox, 'Inbox', () {
-                      // Navigator.push(context,
-                      //     MaterialPageRoute(builder: (context) => Inbox()));
-                      // Dapatkan accessToken dari provider
-                      final berandaState =
-                          Provider.of<BerandaState>(context, listen: false);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => Inbox(
-                              // accessToken: berandaState.accessToken,
-                              ),
-                        ),
-                      );
-                    }),
-                    _buildBottomNavItem(Icons.favorite, 'Favorite'),
-                    const SizedBox(width: 40),
-                    _buildBottomNavItem(Icons.settings, 'Settings'),
-                    _buildBottomNavItem(Icons.logout, 'Logout', () async {
-                      setState(() {
-                        _isLoadingLogout = true;
-                      });
-                      await Future.delayed(
-                          const Duration(seconds: 1)); // Simulate loading
-                      // Delete Token
-                      await _tokenManager.deleteToken();
-
-                      if (mounted) {
-                        Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(
-                                builder: (context) => const LoginDigi()),
-                            (Route<dynamic> route) => false);
-                      }
-                      setState(() {
-                        _isLoadingLogout = false;
-                      });
-                    }),
-                  ],
-                ),
-              ),
-            ),
+            appBar: _buildAppBar(context),
+            body: _buildBody(context),
+            bottomNavigationBar: _buildBottomAppBar(context),
             floatingActionButtonLocation:
                 FloatingActionButtonLocation.centerDocked,
-            floatingActionButton: FloatingActionButton(
-              shape: const CircleBorder(),
-              elevation: 4,
-              onPressed: () {},
-              tooltip: 'Scan QR Code',
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.blue.shade700,
-                      Colors.blue.shade400,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Icon(
-                    Icons.qr_code_scanner,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
+            floatingActionButton: _buildFAB(context),
           ),
-          if (_isLoadingLogout)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: Center(
-                child: CircularProgressIndicator(
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(Colors.yellow.shade700),
-                ),
-              ),
-            ),
+          if (_isLoadingLogout) _buildLogoutLoadingOverlay(),
         ],
       ),
     );
   }
 
-  // Widget IconButton dengan Custom Style
-  Widget _buildIconButton(BuildContext context, IconData icon,
+  // AppBar Widget
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    return AppBar(
+      backgroundColor: Colors.blue.shade700,
+      elevation: 0,
+      leading: _buildStatusIndicator(),
+      actions: [
+        _buildAppBarIconButton(
+          context,
+          Icons.search,
+          () {},
+          'Search',
+        ),
+        _buildAppBarIconButton(
+          context,
+          Icons.mic_none,
+          () {},
+          'Voice Search',
+        ),
+      ],
+    );
+  }
+
+  // Status Indicator Widget (Dot Hijau)
+  Widget _buildStatusIndicator() {
+    return Container(
+      margin: const EdgeInsets.all(22),
+      height: 8,
+      width: 8,
+      decoration: const BoxDecoration(
+        color: Colors.green,
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+
+  // AppBar Icon Button
+  Widget _buildAppBarIconButton(BuildContext context, IconData icon,
       VoidCallback onPressed, String tooltip) {
     return Container(
       margin: const EdgeInsets.only(right: 8),
@@ -434,27 +179,264 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  // Widget Item Navigation Bottom Bar
-  Widget _buildBottomNavItem(IconData icon, String label,
+  // Body Widget
+  Widget _buildBody(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.blue.shade700,
+            Colors.blue.shade400,
+          ],
+        ),
+      ),
+      child: Column(
+        children: [
+          _buildLogo(),
+          _buildGreetingAndLoyalty(context),
+          Consumer<BerandaState>(
+            builder: (context, state, _) => state.dataState == DataState.loading
+                ? const AccountCardShimmer()
+                : const AccountCard(),
+          ),
+          const SizedBox(height: 16),
+          _buildMenuGrid(context),
+        ],
+      ),
+    );
+  }
+
+  // Logo Digi Widget
+  Widget _buildLogo() {
+    return Center(
+      child: Image.asset(
+        'assets/icons/logo-digi-bank-bjb-home.png',
+        width: 120,
+        height: 120,
+      ),
+    );
+  }
+
+  // Greeting dan Loyalty Point Widget
+  Widget _buildGreetingAndLoyalty(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Consumer<BerandaState>(
+            builder: (context, state, _) {
+              if (state.dataState == DataState.error) {
+                return Text(
+                  state.errorMessage ?? 'Terjadi kesalahan',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                );
+              }
+              return state.dataState == DataState.loading
+                  ? const ShimmerText(
+                      width: 150, height: 20, hasAnimation: true)
+                  : Text(
+                      (state.account?.accountHolder ??
+                              state.defaultName ??
+                              'Error!')
+                          .toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    );
+            },
+          ),
+          _buildLoyaltyRow(),
+        ],
+      ),
+    );
+  }
+
+  // Baris Loyalty Point dan Reload Button
+  Widget _buildLoyaltyRow() {
+    return Row(
+      children: [
+        const Text(
+          'Loyalty Point',
+          style: TextStyle(
+              fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(width: 10),
+        ElevatedButton.icon(
+          onPressed: () {},
+          icon: const Icon(Icons.refresh, color: Colors.white, size: 18),
+          label: const Text(
+            'Reload',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white70.withOpacity(0.25),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Menu Grid Widget
+  Widget _buildMenuGrid(BuildContext context) {
+    return Expanded(
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(10),
+            topRight: Radius.circular(10),
+          ),
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final screenWidth = constraints.maxWidth;
+            return GridView.count(
+              crossAxisCount: screenWidth > 600 ? 6 : 4,
+              mainAxisSpacing: 12.0,
+              crossAxisSpacing: 8.0,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              childAspectRatio: 0.838,
+              shrinkWrap: true,
+              physics: const ClampingScrollPhysics(),
+              clipBehavior: Clip.none,
+              children: _buildMenuItems(context),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // Daftar Menu Items
+  List<Widget> _buildMenuItems(BuildContext context) {
+    return [
+      MenuItem(
+          icon: Image.asset('assets/icons/manajemen-keuangan@3x.png',
+              width: 40, height: 40),
+          label: 'Manajemen Keuangan',
+          onTap: () {}),
+      MenuItem(
+          icon: Image.asset('assets/icons/transfer@3x.png',
+              width: 40, height: 40),
+          label: 'Transfer',
+          onTap: () {}),
+      MenuItem(
+          icon: Image.asset('assets/icons/bayar@3x.png', width: 40, height: 40),
+          label: 'Bayar',
+          onTap: () {}),
+      MenuItem(
+          icon: Image.asset('assets/icons/beli@3x.png', width: 40, height: 40),
+          label: 'Beli',
+          onTap: () {}),
+      MenuItem(
+          icon: Image.asset('assets/icons/cardless@3x.png',
+              width: 40, height: 40),
+          label: 'Cardless',
+          onTap: () {}),
+      MenuItem(
+          icon: Image.asset('assets/icons/buka-rekening@3x.png',
+              width: 40, height: 40),
+          label: 'Buka Rekening',
+          onTap: () {}),
+      MenuItem(
+          icon: Image.asset('assets/icons/bjb-deposito@3x.png',
+              width: 40, height: 40),
+          label: 'bjb Deposito',
+          onTap: () {}),
+      MenuItem(
+          icon: Image.asset('assets/icons/flip.png', width: 40, height: 40),
+          label: 'Flip',
+          onTap: () {}),
+      MenuItem(
+          icon:
+              Image.asset('assets/icons/donasi@3x.png', width: 40, height: 40),
+          label: 'Donasi',
+          onTap: () {}),
+      MenuItem(
+          icon: Image.asset('assets/icons/collect-dana.png',
+              width: 40, height: 40),
+          label: 'Collect Dana',
+          onTap: () {}),
+      MenuItem(
+          icon: Image.asset('assets/icons/pinjaman asn@3x.png',
+              width: 40, height: 40),
+          label: 'Pinjaman ASN',
+          onTap: () {}),
+      MenuItem(
+          icon:
+              Image.asset('assets/icons/our-goals.png', width: 40, height: 40),
+          label: 'Our Goals',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const OurGoals(),
+                settings: const RouteSettings(name: '/ourGoals'),
+              ),
+            );
+          }),
+    ];
+  }
+
+  // BottomAppBar Widget
+  BottomAppBar _buildBottomAppBar(BuildContext context) {
+    return BottomAppBar(
+      shape: const CircularNotchedRectangle(),
+      notchMargin: 10,
+      color: Colors.white,
+      child: SizedBox(
+        height: 80,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildBottomNavItem(context, Icons.inbox, 'Inbox', () async {
+              final tokenManager = TokenManager();
+              final accessToken = await tokenManager.getToken();
+
+              if (accessToken != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Inbox(
+                      token: accessToken,
+                    ),
+                  ),
+                );
+              } else {
+                _showTokenNotFoundSnackbar(context);
+              }
+            }),
+            _buildBottomNavItem(context, Icons.favorite, 'Favorite'),
+            const SizedBox(width: 40),
+            _buildBottomNavItem(context, Icons.settings, 'Settings'),
+            _buildBottomNavItem(context, Icons.logout, 'Logout', () async {
+              await _performLogout(context);
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Item Navigation Bottom Bar
+  Widget _buildBottomNavItem(BuildContext context, IconData icon, String label,
       [VoidCallback? onTap]) {
     return InkWell(
-      onTap: () {
-        if (label == 'Inbox') {
-          // Dapatkan accessToken dari provider
-          final berandaState =
-              Provider.of<BerandaState>(context, listen: false);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => Inbox(
-                  // accessToken: berandaState.accessToken,
-                  ),
-            ),
-          );
-        } else if (onTap != null) {
-          onTap();
-        }
-      },
+      onTap: onTap ?? () {}, // Provide an empty function if onTap is null
       child: Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -495,9 +477,79 @@ class _BerandaState extends State<Beranda> {
       ),
     );
   }
+
+  // Floating Action Button (FAB)
+  Widget _buildFAB(BuildContext context) {
+    return FloatingActionButton(
+      shape: const CircleBorder(),
+      elevation: 4,
+      onPressed: () {},
+      tooltip: 'Scan QR Code',
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [
+              Colors.blue.shade700,
+              Colors.blue.shade400,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Icon(
+            Icons.qr_code_scanner,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Loading Overlay saat Logout
+  Widget _buildLogoutLoadingOverlay() {
+    return Container(
+      color: Colors.black.withOpacity(0.5),
+      child: Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.yellow.shade700),
+        ),
+      ),
+    );
+  }
+
+  // Fungsi untuk Logout
+  Future<void> _performLogout(BuildContext context) async {
+    setState(() {
+      _isLoadingLogout = true;
+    });
+    await Future.delayed(const Duration(seconds: 1));
+    await _tokenManager.deleteAllData();
+
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginDigi()),
+          (Route<dynamic> route) => false);
+    }
+    setState(() {
+      _isLoadingLogout = false;
+    });
+  }
+
+  // Fungsi untuk menampilkan Snackbar jika Token tidak ditemukan
+  void _showTokenNotFoundSnackbar(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Token tidak ditemukan, mohon login kembali.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
 }
 
-// Widget Item Menu Grid
+// Widget Item Menu Grid (dipindahkan dari bawah untuk struktur yang lebih baik)
 class MenuItem extends StatelessWidget {
   final Widget icon;
   final String label;
@@ -549,7 +601,7 @@ class MenuItem extends StatelessWidget {
   }
 }
 
-// State Management Halaman Beranda
+// State Management Halaman Beranda (tetap sama)
 class BerandaState with ChangeNotifier {
   Account? _account;
   DataState _dataState = DataState.initial;
@@ -557,7 +609,6 @@ class BerandaState with ChangeNotifier {
   String? errorMessage;
   final String? accessToken;
   String? defaultName;
-  // Cache Data
   Account? _cachedAccount;
   DateTime? _cacheTime;
   static const Duration cacheDuration = Duration(minutes: 5);
@@ -585,7 +636,6 @@ class BerandaState with ChangeNotifier {
     notifyListeners();
   }
 
-  // Check Cache
   bool _isCacheValid() {
     if (_cachedAccount == null || _cacheTime == null) {
       return false;
@@ -603,23 +653,21 @@ class BerandaState with ChangeNotifier {
     _dataState = DataState.loading;
     notifyListeners();
 
-    if (accessToken == null) {
+    final token = accessToken ?? await TokenManager().getToken();
+
+    if (token == null) {
       setError("Token tidak ditemukan");
       return;
     }
 
     try {
-      // Konfigurasi Endpoint API
-      const String profileEndpoint = "/api/v1/users/profile";
-      const String accountEndpoint = "/api/v1/users/accounts";
+      const String profileEndpoint = "/users/profile";
       final String profileApiUrl = baseUrl + profileEndpoint;
-      final String accountApiUrl = baseUrl + accountEndpoint;
 
-      // Fetch profile data for accountHolder
       final profileResponse = await http.get(
         Uri.parse(profileApiUrl),
         headers: {
-          'Authorization': 'Bearer $accessToken',
+          'Authorization': 'Bearer $token',
         },
       );
 
@@ -627,57 +675,21 @@ class BerandaState with ChangeNotifier {
         final Map<String, dynamic> profileData =
             json.decode(profileResponse.body);
         if (profileData['code'] == 200 && profileData['status'] == 'OK') {
-          final String accountHolder = profileData['data']['name'];
-          defaultName = accountHolder;
-
-          // Fetch account data for accountNumber and balance
-          final accountResponse = await http.get(
-            Uri.parse(accountApiUrl),
-            headers: {
-              'Authorization': 'Bearer $accessToken',
-            },
-          );
-
-          if (accountResponse.statusCode == 200) {
-            final Map<String, dynamic> accountData =
-                json.decode(accountResponse.body);
-            if (accountData['code'] == 200 &&
-                accountData['status'] == 'OK' &&
-                (accountData['data'] as List).isNotEmpty) {
-              final dynamic account = (accountData['data'] as List)[0];
-
-              final Account fetchedAccount = Account(
-                accountNumber: account['account_number'] ?? 'N/A',
-                accountHolder: accountHolder,
-                balance:
-                    (account['total_available_balance'] as num?)?.toDouble() ??
-                        0.0,
-              );
-
-              setAccount(fetchedAccount);
-            } else {
-              setError(accountData['errors'] != null &&
-                      (accountData['errors'] as List).isNotEmpty
-                  ? (accountData['errors'] as List)[0].toString()
-                  : "Gagal mengambil data akun, silahkan coba lagi!");
-            }
-          } else {
-            setError(
-                "Gagal mengambil data akun, kode status: ${accountResponse.statusCode}. Silahkan coba lagi!");
-          }
+          final Account fetchedAccount = Account.fromJson(profileData['data']);
+          setAccount(fetchedAccount);
         } else {
           setError(profileData['errors'] != null &&
                   (profileData['errors'] as List).isNotEmpty
               ? (profileData['errors'] as List)[0].toString()
-              : "Gagal mengambil data user, silahkan coba lagi!");
+              : "Gagal mengambil data profile, silahkan coba lagi!");
         }
       } else {
         setError(
-            "Gagal mengambil data user, kode status: ${profileResponse.statusCode}. Silahkan coba lagi!");
+            "Gagal mengambil data profile, kode status: ${profileResponse.statusCode}. Silahkan coba lagi!");
       }
     } catch (e) {
       setError(
-          "Terjadi kesalahan saat mengambil data user, pesan error: ${e.toString()}");
+          "Terjadi kesalahan saat mengambil data profile, pesan error: ${e.toString()}");
     }
   }
 
@@ -686,7 +698,7 @@ class BerandaState with ChangeNotifier {
   }
 }
 
-// Widget Account Card
+// Widget Account Card (tetap sama)
 class AccountCard extends StatelessWidget {
   const AccountCard({super.key});
 
@@ -812,7 +824,7 @@ class AccountCard extends StatelessWidget {
   }
 }
 
-// Widget Account Card saat Loading
+// Widget Account Card saat Loading (tetap sama)
 class AccountCardShimmer extends StatelessWidget {
   const AccountCardShimmer({super.key});
 
@@ -843,9 +855,9 @@ class AccountCardShimmer extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildShimmerText(
+                    const ShimmerText(
                         width: 120, height: 18, hasAnimation: true),
-                    _buildShimmerText(
+                    const ShimmerText(
                         width: 150, height: 18, hasAnimation: true),
                   ],
                 ),

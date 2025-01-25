@@ -14,8 +14,7 @@ class PilihGoals extends StatefulWidget {
 class _PilihGoalsState extends State<PilihGoals> {
   bool _isLoading = false;
 
-  Future<void> _navigateToPage(
-      BuildContext context, Widget page, String goalType) async {
+  Future<void> _navigateToPage(BuildContext context, Widget page) async {
     setState(() {
       _isLoading = true;
     });
@@ -27,7 +26,6 @@ class _PilihGoalsState extends State<PilihGoals> {
         context,
         MaterialPageRoute(
           builder: (context) => page,
-          settings: RouteSettings(arguments: goalType), // Kirim tipe goals
         ),
       ).then((_) {
         setState(() {
@@ -122,8 +120,8 @@ class _PilihGoalsState extends State<PilihGoals> {
                 icon: Icons.group,
                 title: 'Tabungan Bersama',
                 description: 'Raih impian bersama keluarga ataupun temanmu!',
-                onTap: () => _navigateToPage(
-                    context, const BuatTabunganBersama(), 'JOINT_SAVING'),
+                onTap: () =>
+                    _navigateToPage(context, const BuatTabunganBersama()),
               ),
               SizedBox(height: isSmallScreen ? 8 : 16),
               buildGoalsCard(
@@ -132,8 +130,8 @@ class _PilihGoalsState extends State<PilihGoals> {
                 title: 'Tabungan Bergilir',
                 description:
                     'Mengumpulkan dana bersama dengan giliran menerima dana terkumpul sesuai jadwal yang disepakati',
-                onTap: () => _navigateToPage(
-                    context, const BuatTabunganBergilir(), 'ROTATING_SAVING'),
+                onTap: () =>
+                    _navigateToPage(context, const BuatTabunganBergilir()),
               ),
             ],
           );
