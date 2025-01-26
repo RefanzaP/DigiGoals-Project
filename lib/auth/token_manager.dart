@@ -1,3 +1,4 @@
+// token_manager.dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TokenManager {
@@ -24,7 +25,8 @@ class TokenManager {
   // Periksa apakah token tersimpan
   Future<bool> hasToken() async {
     final token = await getToken();
-    return token != null;
+    return token != null &&
+        token.isNotEmpty; // Tambah pengecekan token tidak kosong
   }
 
   // Simpan Customer ID

@@ -1,17 +1,7 @@
+// SplashScreen.dart
 import 'package:digigoals_app/LoginDigi.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
-
-class MySplash extends StatelessWidget {
-  const MySplash({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: SplashScreen(),
-    );
-  }
-}
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -29,18 +19,19 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: Duration(seconds: 2),
+      duration: const Duration(seconds: 2),
       vsync: this,
     );
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
 
     _controller.forward();
 
-    Timer(Duration(seconds: 3), () {
+    Timer(const Duration(seconds: 3), () {
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => LoginDigi(),
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const LoginDigi(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(
               opacity: animation,
@@ -64,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen>
       body: FadeTransition(
         opacity: _animation,
         child: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             image: DecorationImage(
               image: AssetImage('assets/images/digi_image.png'),
               fit: BoxFit.cover,

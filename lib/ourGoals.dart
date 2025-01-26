@@ -1,6 +1,6 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
-import 'dart:convert'; // Import library dart:convert untuk UTF8 decoding
+import 'dart:convert';
 import 'package:digigoals_app/PilihGoals.dart';
 import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
 import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart';
@@ -10,9 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:http/http.dart' as http;
-import 'package:provider/provider.dart'; // Import Provider
 
-// Model for Saving Group (Unified Model for both Joint and Rotating)
+// Model untuk Saving Group (Model Unified untuk Tabungan Bersama dan Bergilir)
 class SavingGroup {
   final String id;
   final String name;
@@ -50,7 +49,7 @@ class SavingGroup {
   }
 }
 
-// Model for Member
+// Model untuk Member
 class Member {
   final String id;
   final String name;
@@ -82,18 +81,18 @@ class _OurGoalsState extends State<OurGoals> {
   List<SavingGroup> _goals = [];
   final TokenManager _tokenManager = TokenManager();
   bool _isSnackBarShown =
-      false; // Tambahkan flag untuk menandai apakah SnackBar sudah ditampilkan
+      false; // Flag untuk menandai apakah SnackBar sudah ditampilkan
 
   @override
   void initState() {
     super.initState();
-    _fetchGoals();
+    _fetchGoals(); // Fetch goals saat inisialisasi widget
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Pindahkan panggilan _checkDeletionSuccess ke didChangeDependencies
+    // Pindahkan panggilan _checkDeletionSuccess ke didChangeDependencies untuk memastikan context tersedia
     if (!_isSnackBarShown) {
       // Cek apakah SnackBar sudah pernah ditampilkan
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -102,11 +101,12 @@ class _OurGoalsState extends State<OurGoals> {
     }
   }
 
-  // Function to check if deletion was successful and show snackbar
+  // Fungsi untuk memeriksa apakah penghapusan berhasil dan menampilkan snackbar
   void _checkDeletionSuccess() {
     final arguments = ModalRoute.of(context)?.settings.arguments;
     if (arguments != null && arguments is Map<String, dynamic>) {
       if (arguments['deletionSuccess'] == true) {
+        // Tampilkan SnackBar sukses penghapusan
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Tabungan berhasil dihapus!'),
@@ -115,8 +115,8 @@ class _OurGoalsState extends State<OurGoals> {
         );
         _isSnackBarShown =
             true; // Set flag menjadi true setelah SnackBar ditampilkan
-        // Tidak perlu lagi kode untuk removeModalRoute karena flag _isSnackBarShown sudah mencegah tampilan berulang
       } else if (arguments['deletionSuccess'] == false) {
+        // Tampilkan SnackBar gagal penghapusan
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Gagal menghapus tabungan.'),
@@ -128,8 +128,9 @@ class _OurGoalsState extends State<OurGoals> {
     }
   }
 
+  // Fungsi untuk mengambil daftar goals dari API
   Future<void> _fetchGoals() async {
-    if (!mounted) return; // Tambahkan kondisi mounted di awal
+    if (!mounted) return; // Kondisi mounted di awal untuk menghindari error
 
     setState(() {
       _isLoading = true;
@@ -140,9 +141,9 @@ class _OurGoalsState extends State<OurGoals> {
     String? token = await _tokenManager.getToken();
     if (token == null) {
       if (mounted) {
-        // Tambahkan kondisi mounted sebelum setState
         setState(() {
-          _errorMessage = "Token tidak ditemukan";
+          _errorMessage =
+              "Sesi Anda telah berakhir. Mohon login kembali."; // Pesan error lebih user-friendly
           _isLoading = false;
         });
       }
@@ -160,7 +161,6 @@ class _OurGoalsState extends State<OurGoals> {
           await http.get(savingGroupsUrl, headers: headers);
 
       if (savingGroupsResponse.statusCode == 200) {
-        // Dekode body response menggunakan utf8.decode sebelum json.decode
         final responseBody = utf8.decode(savingGroupsResponse.bodyBytes);
         final savingGroupsData = json.decode(responseBody);
 
@@ -173,19 +173,21 @@ class _OurGoalsState extends State<OurGoals> {
               .map((item) => SavingGroup.fromJson(item))
               .toList();
 
+          // Filter goals yang statusnya bukan ARCHIVED
           savingGroups =
               savingGroups.where((goal) => goal.status != 'ARCHIVED').toList();
 
+          // Ambil member untuk setiap saving group
           for (var group in savingGroups) {
             List<Member> members = await _fetchMembers(group.id, token);
             group.members = members;
-            group.contributionAmount = 0.0;
+            group.contributionAmount =
+                0.0; // Inisialisasi contribution amount (mungkin perlu dihitung dari API jika ada)
             fetchedGoals.add(group);
           }
         }
 
         if (mounted) {
-          // Tambahkan kondisi mounted sebelum setState
           setState(() {
             _goals = fetchedGoals;
             _isLoading = false;
@@ -193,25 +195,25 @@ class _OurGoalsState extends State<OurGoals> {
         }
       } else {
         if (mounted) {
-          // Tambahkan kondisi mounted sebelum setState
           setState(() {
             _errorMessage =
-                "Gagal mengambil data goals: Status Code ${savingGroupsResponse.statusCode}";
+                "Gagal memuat goals. Status code: ${savingGroupsResponse.statusCode}."; // Pesan error lebih informatif
             _isLoading = false;
           });
         }
       }
     } catch (e) {
       if (mounted) {
-        // Tambahkan kondisi mounted sebelum setState
         setState(() {
-          _errorMessage = "Terjadi kesalahan: ${e.toString()}";
+          _errorMessage =
+              "Terjadi kesalahan saat memuat goals: ${e.toString()}"; // Pesan error lebih informatif
           _isLoading = false;
         });
       }
     }
   }
 
+  // Fungsi untuk mengambil daftar member dari API untuk saving group tertentu
   Future<List<Member>> _fetchMembers(String savingGroupId, String token) async {
     final membersUrl =
         Uri.parse('$baseUrl/members?savingGroupId=$savingGroupId');
@@ -220,7 +222,6 @@ class _OurGoalsState extends State<OurGoals> {
     try {
       final response = await http.get(membersUrl, headers: headers);
       if (response.statusCode == 200) {
-        // Dekode response body untuk members juga jika perlu (meskipun ini kurang mungkin masalahnya)
         final responseBody = utf8.decode(response.bodyBytes);
         final membersData = json.decode(responseBody);
         if (membersData['code'] == 200 && membersData['status'] == 'OK') {
@@ -229,13 +230,13 @@ class _OurGoalsState extends State<OurGoals> {
               .toList();
           return members;
         } else {
-          return [];
+          return []; // Return empty list jika gagal mengambil data member
         }
       } else {
-        return [];
+        return []; // Return empty list jika status code bukan 200
       }
     } catch (e) {
-      return [];
+      return []; // Return empty list jika terjadi error
     }
   }
 
@@ -246,12 +247,13 @@ class _OurGoalsState extends State<OurGoals> {
         Scaffold(
           appBar: _buildAppBar(context),
           body: RefreshIndicator(
-            onRefresh: _fetchGoals,
+            onRefresh:
+                _fetchGoals, // Callback untuk refresh data saat pull-to-refresh
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-                _buildCreateGoalCard(context),
+                _buildCreateGoalCard(context), // Card untuk membuat goal baru
                 const SizedBox(height: 24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -267,13 +269,16 @@ class _OurGoalsState extends State<OurGoals> {
                 const SizedBox(height: 16),
                 Expanded(
                   child: _isLoading
-                      ? _buildShimmerLoader(5)
+                      ? _buildShimmerLoader(
+                          5) // Tampilkan shimmer loader saat loading
                       : _errorMessage != null
                           ? Center(
-                              child: Text(_errorMessage!),
+                              child: Text(
+                                  _errorMessage!), // Tampilkan pesan error jika ada error
                             )
                           : _goals.isNotEmpty
                               ? ListView.builder(
+                                  // Tampilkan list goals jika data berhasil diambil
                                   key: const Key('goalsListView'),
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 20),
@@ -283,21 +288,23 @@ class _OurGoalsState extends State<OurGoals> {
                                     return GoalCard(
                                       goal: goal,
                                       onTap: () {
-                                        _navigateToDetail(
-                                            context, goal.id, goal.type);
+                                        _navigateToDetail(context, goal.id,
+                                            goal.type); // Navigasi ke detail goal saat card di-tap
                                       },
                                     );
                                   },
                                 )
                               : const Center(
-                                  child: Text('No goals available.'),
+                                  child: Text(
+                                      'Belum ada goals yang dibuat.'), // Tampilkan pesan jika tidak ada goals
                                 ),
                 )
               ],
             ),
           ),
         ),
-        if (_isNavigating) _buildNavigationOverlay(),
+        if (_isNavigating)
+          _buildNavigationOverlay(), // Tampilkan overlay saat navigasi ke halaman lain
       ],
     );
   }
@@ -321,7 +328,7 @@ class _OurGoalsState extends State<OurGoals> {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () {
-          Navigator.pop(context);
+          Navigator.pop(context); // Navigasi kembali ke halaman sebelumnya
         },
       ),
       title: Text(
@@ -348,13 +355,13 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
-  // Navigation Overlay Widget
+  // Navigation Overlay Widget - Loading indicator saat navigasi
   Widget _buildNavigationOverlay() {
     return Stack(
       children: [
         ModalBarrier(
           color: Colors.black.withOpacity(0.5),
-          dismissible: false,
+          dismissible: false, // Barrier tidak dapat ditutup oleh pengguna
         ),
         Center(
           child: CircularProgressIndicator(
@@ -365,28 +372,46 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
-  // Function to navigate to detail page
+  // Fungsi untuk navigasi ke halaman detail goal berdasarkan tipe goal
   void _navigateToDetail(
       BuildContext context, String savingGroupId, String goalType) {
+    setState(() {
+      _isNavigating =
+          true; // Set state navigasi menjadi true saat navigasi dimulai
+    });
+
     if (goalType == 'JOINT_SAVING') {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              DetailTabunganBersama(savingGroupId: savingGroupId),
+          builder: (context) => DetailTabunganBersama(
+              savingGroupId:
+                  savingGroupId), // Navigasi ke detail tabungan bersama
         ),
-      );
+      ).then((_) {
+        setState(() {
+          _isNavigating =
+              false; // Set state navigasi menjadi false setelah halaman detail ditutup
+        });
+      });
     } else if (goalType == 'ROTATING_SAVING') {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const DetailTabunganBergilir(),
+          builder: (context) => DetailTabunganBergilir(
+              savingGroupId:
+                  savingGroupId), // Navigasi ke detail tabungan bergilir dan mengirimkan savingGroupId
         ),
-      );
+      ).then((_) {
+        setState(() {
+          _isNavigating =
+              false; // Set state navigasi menjadi false setelah halaman detail ditutup
+        });
+      });
     }
   }
 
-  // Create Goal Card Widget
+  // Card Widget untuk membuat Goal Baru
   Widget _buildCreateGoalCard(BuildContext context) {
     return Card(
       color: Colors.white,
@@ -398,25 +423,28 @@ class _OurGoalsState extends State<OurGoals> {
       elevation: 4,
       child: InkWell(
         onTap: _isLoading
-            ? null
+            ? null // Nonaktifkan onTap saat loading
             : () async {
                 setState(() {
-                  _isNavigating = true;
+                  _isNavigating =
+                      true; // Set state navigasi menjadi true saat card di-tap
                 });
 
-                await Future.delayed(const Duration(seconds: 1));
+                await Future.delayed(
+                    const Duration(seconds: 1)); // Simulasi loading
 
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => PilihGoals(),
+                    builder: (context) =>
+                        PilihGoals(), // Navigasi ke halaman PilihGoals
                   ),
                 ).then((value) {
                   setState(() {
-                    _isNavigating = false;
+                    _isNavigating =
+                        false; // Set state navigasi menjadi false setelah halaman PilihGoals ditutup
                   });
-                  // Refresh data goals ketika kembali dari PilihGoals
-                  _fetchGoals();
+                  _fetchGoals(); // Refresh data goals ketika kembali dari PilihGoals
                 });
               },
         child: Padding(
@@ -428,7 +456,7 @@ class _OurGoalsState extends State<OurGoals> {
                 top: 0,
                 right: 20,
                 child: Image.asset(
-                  'assets/images/bankbjb-logo.png',
+                  'assets/images/bankbjb-logo.png', // Logo bank bjb pada card
                   width: 51,
                   height: 26,
                 ),
@@ -438,11 +466,12 @@ class _OurGoalsState extends State<OurGoals> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildCreateGoalIcon(),
+                    _buildCreateGoalIcon(), // Ikon "tambah" untuk membuat goal
                     const SizedBox(height: 16),
-                    _buildCreateGoalTitle(),
+                    _buildCreateGoalTitle(), // Teks judul "Buat Goals Kamu!"
                     const SizedBox(height: 4),
-                    _buildCreateGoalDescription(context),
+                    _buildCreateGoalDescription(
+                        context), // Deskripsi singkat tentang membuat goal
                   ],
                 ),
               ),
@@ -453,7 +482,7 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
-  // Create Goal Icon Widget
+  // Ikon "tambah" dalam card pembuatan goal
   Widget _buildCreateGoalIcon() {
     return Container(
       width: 62,
@@ -468,7 +497,7 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
-  // Create Goal Title Widget
+  // Judul card pembuatan goal
   Widget _buildCreateGoalTitle() {
     return const Text(
       'Buat Goals Kamu!',
@@ -476,7 +505,7 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
-  // Create Goal Description Widget
+  // Deskripsi card pembuatan goal
   Widget _buildCreateGoalDescription(BuildContext context) {
     return Text(
       'Sesuaikan Goals kamu untuk hal yang kamu inginkan',
@@ -488,7 +517,7 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
-  // Shimmer Loader Widget
+  // Shimmer Loader Widget - Placeholder loading saat data goals sedang di-load
   Widget _buildShimmerLoader(int count) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -511,7 +540,7 @@ class _OurGoalsState extends State<OurGoals> {
   }
 }
 
-// Goal Card Widget
+// Goal Card Widget - Widget untuk menampilkan informasi setiap goal dalam list
 class GoalCard extends StatelessWidget {
   final SavingGroup goal;
   final VoidCallback? onTap;
@@ -521,22 +550,31 @@ class GoalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currencyFormat = NumberFormat.currency(
-        locale: 'id_ID', symbol: 'IDR ', decimalDigits: 2);
-    final formattedTarget = currencyFormat.format(goal.targetAmount);
-    List<Widget> memberAvatars = [];
-    int maxAvatars = 2;
-    int displayedCount = 0;
+        locale: 'id_ID',
+        symbol: 'IDR ',
+        decimalDigits: 2); // Format mata uang Indonesia
+    final formattedTarget =
+        currencyFormat.format(goal.targetAmount); // Format target amount
 
+    List<Widget> memberAvatars = []; // List untuk menyimpan avatar member
+    int maxAvatars = 2; // Maksimal avatar member yang ditampilkan
+    int displayedCount = 0; // Counter avatar member yang sudah ditampilkan
+
+    // Membuat avatar member jika ada member
     if (goal.members.isNotEmpty) {
       for (int i = 0; i < goal.members.length; i++) {
         String memberName = goal.members[i].name;
         if (displayedCount < maxAvatars) {
           memberAvatars.add(
             CircleAvatar(
+              // CircleAvatar untuk avatar member
               radius: 12,
-              backgroundColor: Colors.primaries[i % Colors.primaries.length],
+              backgroundColor: Colors.primaries[
+                  i % Colors.primaries.length], // Warna avatar berbeda-beda
               child: Text(
-                memberName.substring(0, 1).toUpperCase(),
+                memberName
+                    .substring(0, 1)
+                    .toUpperCase(), // Ambil inisial nama member
                 style: const TextStyle(color: Colors.white, fontSize: 12),
               ),
             ),
@@ -548,10 +586,11 @@ class GoalCard extends StatelessWidget {
         int remainingMembers = goal.members.length - maxAvatars;
         memberAvatars.add(
           CircleAvatar(
+            // CircleAvatar untuk menampilkan jumlah member yang tersisa
             radius: 12,
             backgroundColor: Colors.grey,
             child: Text(
-              '+$remainingMembers',
+              '+$remainingMembers', // Tampilkan jumlah member yang tersisa
               style: const TextStyle(color: Colors.white, fontSize: 12),
             ),
           ),
@@ -568,21 +607,23 @@ class GoalCard extends StatelessWidget {
       shadowColor: Colors.black.withOpacity(0.5),
       elevation: 4,
       child: InkWell(
-        onTap: onTap,
+        onTap: onTap, // Callback onTap untuk navigasi ke detail goal
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildGoalCardHeader(goal, memberAvatars),
+              _buildGoalCardHeader(goal,
+                  memberAvatars), // Header card goal (tipe goal dan avatar member)
               const SizedBox(height: 5),
-              _buildGoalNameText(goal),
+              _buildGoalNameText(goal), // Nama goal
               const SizedBox(height: 14),
-              _buildGoalProgressText(formattedTarget),
+              _buildGoalProgressText(formattedTarget), // Teks progress goal
               const SizedBox(height: 8),
-              _buildProgressBar(),
+              _buildProgressBar(), // Progress bar goal
               const SizedBox(height: 8),
-              _buildGoalSummaryRow(goal),
+              _buildGoalSummaryRow(
+                  goal), // Baris summary goal (persentase progress dan sisa hari)
             ],
           ),
         ),
@@ -590,23 +631,25 @@ class GoalCard extends StatelessWidget {
     );
   }
 
-  // Goal Card Header Widget
+  // Header Card Goal - Bagian atas card yang menampilkan tipe goal dan avatar member
   Widget _buildGoalCardHeader(SavingGroup goal, List<Widget> memberAvatars) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildGoalTypeRow(goal),
-        _buildMemberAvatarsRow(memberAvatars),
+        _buildGoalTypeRow(goal), // Baris tipe goal
+        _buildMemberAvatarsRow(memberAvatars), // Baris avatar member
       ],
     );
   }
 
-  // Goal Type Row Widget
+  // Baris Tipe Goal - Menampilkan ikon dan teks tipe goal
   Widget _buildGoalTypeRow(SavingGroup goal) {
     return Row(
       children: [
         Icon(
-          goal.type == 'ROTATING_SAVING' ? Icons.celebration : Icons.groups,
+          goal.type == 'ROTATING_SAVING'
+              ? Icons.celebration
+              : Icons.groups, // Ikon berbeda berdasarkan tipe goal
           color: Colors.blue,
           size: 24,
         ),
@@ -614,7 +657,7 @@ class GoalCard extends StatelessWidget {
         Text(
           goal.type == 'ROTATING_SAVING'
               ? 'Tabungan Bergilir'
-              : 'Tabungan Bersama',
+              : 'Tabungan Bersama', // Teks tipe goal berbeda berdasarkan tipe goal
           style: const TextStyle(
               fontWeight: FontWeight.w600, fontSize: 14, color: Colors.black),
         ),
@@ -622,12 +665,12 @@ class GoalCard extends StatelessWidget {
     );
   }
 
-  // Member Avatars Row Widget
+  // Baris Avatar Member - Menampilkan daftar avatar member
   Widget _buildMemberAvatarsRow(List<Widget> memberAvatars) {
     return Row(children: memberAvatars);
   }
 
-  // Goal Name Text Widget
+  // Teks Nama Goal - Menampilkan nama goal dengan style tertentu
   Widget _buildGoalNameText(SavingGroup goal) {
     return Text(
       goal.name,
@@ -639,16 +682,16 @@ class GoalCard extends StatelessWidget {
     );
   }
 
-  // Goal Progress Text Widget
+  // Teks Progress Goal - Menampilkan progress goal (contoh: 0 / target amount)
   Widget _buildGoalProgressText(String formattedTarget) {
     return Text(
-      '0 / $formattedTarget',
+      '0 / $formattedTarget', // TODO: Perlu diupdate dengan data progress yang sebenarnya dari API
       style: TextStyle(
           fontWeight: FontWeight.w600, fontSize: 12, color: Colors.grey[800]),
     );
   }
 
-  // Progress Bar Widget
+  // Progress Bar Widget - Menampilkan progress bar visual untuk goal
   Widget _buildProgressBar() {
     return Stack(
       children: [
@@ -660,7 +703,8 @@ class GoalCard extends StatelessWidget {
           ),
         ),
         FractionallySizedBox(
-          widthFactor: 0.5,
+          widthFactor:
+              0.5, // TODO: Perlu diupdate dengan data progress yang sebenarnya dari API (misal: persentase progress)
           child: Container(
             height: 8,
             decoration: BoxDecoration(
@@ -673,27 +717,27 @@ class GoalCard extends StatelessWidget {
     );
   }
 
-  // Goal Summary Row Widget
+  // Baris Summary Goal - Menampilkan persentase progress dan sisa hari
   Widget _buildGoalSummaryRow(SavingGroup goal) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildProgressPercentageText(),
-        _buildRemainingDaysText(goal),
+        _buildProgressPercentageText(), // Teks persentase progress
+        _buildRemainingDaysText(goal), // Teks sisa hari
       ],
     );
   }
 
-  // Progress Percentage Text Widget
+  // Teks Persentase Progress - Menampilkan persentase progress goal
   Widget _buildProgressPercentageText() {
     return const Text(
-      '50%',
+      '50%', // TODO: Perlu diupdate dengan data progress yang sebenarnya dari API (misal: persentase progress)
       style: TextStyle(
           fontWeight: FontWeight.w600, fontSize: 12, color: Colors.black),
     );
   }
 
-  // Remaining Days Text Widget
+  // Teks Sisa Hari - Menampilkan sisa hari durasi goal
   Widget _buildRemainingDaysText(SavingGroup goal) {
     return Text(
       'Sisa ${goal.duration} hari',

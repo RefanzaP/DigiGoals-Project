@@ -11,7 +11,7 @@ void main() => runApp(
         providers: [
           Provider<TokenManager>(create: (_) => TokenManager()),
         ],
-        child: MyApp(),
+        child: const MyApp(),
       ),
     );
 
