@@ -64,7 +64,7 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
   late String tabunganName;
   int jumlahAnggota = 0;
   final TokenManager _tokenManager = TokenManager();
-  String? _loggedInUserRole; // State untuk menyimpan role user yang login
+  String? _loggedInUserRole;
 
   @override
   void initState() {
@@ -79,7 +79,7 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
       _errorMessage = null;
       members = [];
       jumlahAnggota = 0;
-      _loggedInUserRole = null; // Reset role user saat loading baru
+      _loggedInUserRole = null;
     });
 
     String? token = await _tokenManager.getToken();
@@ -94,15 +94,12 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
     final String savingGroupId = widget.savingGroupId;
     final membersUrl =
         Uri.parse('$baseUrl/members?savingGroupId=$savingGroupId');
-    final introspectUrl = Uri.parse(
-        '$baseUrl/auth/introspect'); // Endpoint untuk introspect role user
+    final introspectUrl = Uri.parse('$baseUrl/auth/introspect');
 
     try {
       final responses = await Future.wait([
         http.get(membersUrl, headers: {'Authorization': 'Bearer $token'}),
-        http.get(introspectUrl, headers: {
-          'Authorization': 'Bearer $token'
-        }), // Request introspect user
+        http.get(introspectUrl, headers: {'Authorization': 'Bearer $token'}),
       ]);
 
       final membersResponse = responses[0];
@@ -129,8 +126,7 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
             members = fetchedMembers;
             jumlahAnggota = members.length;
             isLoading = false;
-            _loggedInUserRole =
-                introspectData['data']['role']; // Set role user yang login
+            _loggedInUserRole = introspectData['data']['role'];
           });
         } else {
           setState(() {
@@ -226,8 +222,7 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
                                   'Bergabung pada ${DateFormat('dd MMM yyyy').format(member.joinDate)}',
                                   member.avatarColor,
                                   isSmallScreen,
-                                  _loggedInUserRole // Kirim role user yang login ke _buildMemberTile
-                                  );
+                                  _loggedInUserRole);
                             },
                           ),
                   ),
@@ -237,7 +232,6 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
     );
   }
 
-  // AppBar Widget (sama seperti sebelumnya)
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -283,7 +277,6 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
     );
   }
 
-  // Shimmer Loader Widget (sama seperti sebelumnya)
   Widget _buildShimmerLoader({required double height, required double width}) {
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
@@ -299,7 +292,6 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
     );
   }
 
-  // Widget untuk menampilkan tile member dalam list (Diperbarui dengan parameter loggedInUserRole)
   Widget _buildMemberTile(
       BuildContext context,
       String name,
@@ -308,8 +300,7 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
       String subtitle,
       Color color,
       bool isSmallScreen,
-      String? loggedInUserRole // Parameter baru untuk role user yang login
-      ) {
+      String? loggedInUserRole) {
     return Card(
       color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -381,7 +372,6 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
                     ],
                   ),
                 ),
-                // Kondisional menampilkan icon delete berdasarkan role user login dan role member
                 if (loggedInUserRole == 'ADMIN' &&
                     role != 'Pemilik' &&
                     !widget.isActive)
@@ -401,7 +391,6 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
     );
   }
 
-  // Fungsi untuk menampilkan dialog konfirmasi hapus anggota (sama seperti sebelumnya)
   void _showDeleteConfirmationDialog(String name) {
     showDialog(
       context: context,
@@ -417,7 +406,6 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
     );
   }
 
-  // Fungsi untuk menghapus member dari API (sama seperti sebelumnya, perlu implementasi API Call)
   Future<void> _deleteMember(String memberName) async {
     setState(() {
       isLoading = true;
@@ -437,7 +425,6 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
       return;
     }
 
-    // TODO: Implementasi API call untuk delete member disini
     await Future.delayed(const Duration(seconds: 1));
 
     setState(() {
@@ -454,7 +441,6 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
   }
 }
 
-// Widget Dialog Konfirmasi Hapus Anggota (sama seperti sebelumnya)
 class DeleteConfirmationDialog extends StatelessWidget {
   final String name;
   final VoidCallback onConfirm;

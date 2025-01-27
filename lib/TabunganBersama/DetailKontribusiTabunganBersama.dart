@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:http/http.dart' as http;
 
-// Model untuk merepresentasikan data detail kontribusi member
 class MemberKontribusiDetail {
   final String memberId;
   final String name;
@@ -43,7 +42,6 @@ class MemberKontribusiDetail {
   }
 }
 
-// Widget Utama Halaman Detail Kontribusi Tabungan Bersama
 class DetailKontribusiTabunganBersama extends StatefulWidget {
   final Map<String, dynamic> goalsData;
 
@@ -194,7 +192,6 @@ class _DetailKontribusiTabunganBersamaState
     );
   }
 
-  // AppBar Widget (sama seperti sebelumnya)
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -229,7 +226,6 @@ class _DetailKontribusiTabunganBersamaState
     );
   }
 
-  // Widget Card Progress Tabungan (sama seperti sebelumnya)
   Widget _buildProgressCard(double overallProgress) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -259,7 +255,6 @@ class _DetailKontribusiTabunganBersamaState
     );
   }
 
-  // Header Card Progress Tabungan (sama seperti sebelumnya)
   Widget _buildProgressCardHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -292,7 +287,6 @@ class _DetailKontribusiTabunganBersamaState
     );
   }
 
-  // Teks Saldo Progress Tabungan (sama seperti sebelumnya)
   Widget _buildProgressCardBalance() {
     return isLoading
         ? _buildShimmerText(height: 18)
@@ -306,7 +300,6 @@ class _DetailKontribusiTabunganBersamaState
           );
   }
 
-  // Progress Bar Card Progress Tabungan (sama seperti sebelumnya)
   Widget _buildProgressCardProgressBar(double overallProgress) {
     return LinearProgressIndicator(
       value: isLoading ? 0 : overallProgress,
@@ -315,7 +308,6 @@ class _DetailKontribusiTabunganBersamaState
     );
   }
 
-  // Summary Card Progress Tabungan (sama seperti sebelumnya)
   Widget _buildProgressCardSummary(double overallProgress) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -331,7 +323,6 @@ class _DetailKontribusiTabunganBersamaState
     );
   }
 
-  // Widget Input Pencarian dan Filter (sama seperti sebelumnya)
   Widget _buildSearchAndFilter() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,15 +378,13 @@ class _DetailKontribusiTabunganBersamaState
     );
   }
 
-  // Widget List Member (Diperbarui dengan Shimmer Loading)
   Widget _buildMemberList() {
     return Expanded(
       child: isLoading
           ? ListView.builder(
-              // Menggunakan ListView.builder untuk Shimmer
-              itemCount: 5, // Jumlah item shimmer yang ditampilkan
+              itemCount: 5,
               itemBuilder: (context, index) {
-                return _buildShimmerMemberCard(); // Memanggil widget Shimmer Card
+                return _buildShimmerMemberCard();
               },
             )
           : ListView.builder(
@@ -410,7 +399,6 @@ class _DetailKontribusiTabunganBersamaState
     );
   }
 
-  // Widget Shimmer Card untuk Member List Loading
   Widget _buildShimmerMemberCard() {
     return Card(
       color: Colors.white,
@@ -435,7 +423,6 @@ class _DetailKontribusiTabunganBersamaState
                     child: Row(
                       children: [
                         const CircleAvatar(
-                          // Shimmer Circle Avatar
                           radius: 24,
                           backgroundColor: Colors.grey,
                         ),
@@ -445,14 +432,12 @@ class _DetailKontribusiTabunganBersamaState
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
-                                // Shimmer Text Nama
                                 height: 16,
                                 width: double.infinity,
                                 color: Colors.grey,
                               ),
                               const SizedBox(height: 8),
                               Container(
-                                // Shimmer Text No. Rekening & Tanggal Gabung
                                 height: 12,
                                 width: double.infinity,
                                 color: Colors.grey,
@@ -467,21 +452,18 @@ class _DetailKontribusiTabunganBersamaState
               ),
               const SizedBox(height: 12),
               Container(
-                // Shimmer Text Saldo
                 height: 18,
                 width: 100,
                 color: Colors.grey,
               ),
               const SizedBox(height: 8),
               Container(
-                // Shimmer Progress Bar Background
                 height: 8,
                 width: double.infinity,
                 color: Colors.grey,
               ),
               const SizedBox(height: 8),
               Container(
-                // Shimmer Text Persentase
                 height: 12,
                 width: 50,
                 color: Colors.grey,
@@ -493,7 +475,6 @@ class _DetailKontribusiTabunganBersamaState
     );
   }
 
-  // Widget Card Member (sama seperti sebelumnya)
   Widget _buildMemberCard(MemberKontribusiDetail anggota, double progress) {
     return Card(
       color: Colors.white,
@@ -594,7 +575,6 @@ class _DetailKontribusiTabunganBersamaState
     );
   }
 
-  // Shimmer Text Widget (Reusable) - sama seperti sebelumnya
   Widget _buildShimmerText({double height = 20}) {
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,

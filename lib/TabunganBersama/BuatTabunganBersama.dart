@@ -26,8 +26,7 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
     '6 bulan',
     '1 tahun'
   ];
-  bool _isLoading =
-      false; // Gunakan state _isLoading untuk mengontrol bottom sheet button
+  bool _isLoading = false;
   String _namaTabunganBersama = '';
   bool _termsAccepted = false;
   double? _targetAmount;
@@ -65,12 +64,12 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
     }
 
     setState(() {
-      _isLoading = true; // Set loading jadi true saat mulai submit
+      _isLoading = true;
     });
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/saving-groups/joint'), // Endpoint diperbaiki
+        Uri.parse('$baseUrl/saving-groups/joint'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
           'Authorization': 'Bearer $token',
@@ -106,8 +105,7 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
       );
     } finally {
       setState(() {
-        _isLoading =
-            false; // Set loading jadi false setelah proses selesai (berhasil atau gagal)
+        _isLoading = false;
       });
     }
   }
@@ -542,7 +540,7 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
-        onPressed: _termsAccepted && !_isLoading // Disable button saat loading
+        onPressed: _termsAccepted && !_isLoading
             ? () async {
                 Navigator.pop(context);
                 await _submitToApi();
@@ -551,7 +549,7 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
         style: ElevatedButton.styleFrom(
           backgroundColor: _termsAccepted && !_isLoading
               ? Colors.yellow.shade700
-              : Colors.grey, // Disable color saat loading
+              : Colors.grey,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
@@ -559,10 +557,9 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
         child: Text(
           'Buat Tabungan Bersama',
           style: TextStyle(
-            color:
-                _termsAccepted && !_isLoading // Disable text color saat loading
-                    ? Colors.blue.shade800
-                    : Colors.black,
+            color: _termsAccepted && !_isLoading
+                ? Colors.blue.shade800
+                : Colors.black,
             fontWeight: FontWeight.bold,
           ),
         ),

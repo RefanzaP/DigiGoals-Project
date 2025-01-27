@@ -840,6 +840,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                                   builder: (context) =>
                                       AktivasiTabunganBergilir(
                                     allMembers: _allMembers,
+                                    savingGroupId: widget.savingGroupId,
                                   ),
                                 ),
                               );

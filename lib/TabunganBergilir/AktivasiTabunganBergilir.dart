@@ -1,13 +1,20 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:convert';
+
 import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
+import 'package:digigoals_app/api/api_config.dart';
+import 'package:digigoals_app/auth/token_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart' show NumberFormat;
+import 'package:intl/intl.dart' show DateFormat, NumberFormat;
+import 'package:http/http.dart' as http;
 
 class AktivasiTabunganBergilir extends StatefulWidget {
   final List<String> allMembers;
-  const AktivasiTabunganBergilir({super.key, required this.allMembers});
+  final String savingGroupId;
+  const AktivasiTabunganBergilir(
+      {super.key, required this.allMembers, required this.savingGroupId});
 
   @override
   _AktivasiTabunganBergilirState createState() =>
@@ -26,6 +33,7 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
   String? _selectedWeek;
   DateTime? _selectedDate;
   bool _termsAccepted = false; // State untuk checkbox terms & conditions
+  final TokenManager _tokenManager = TokenManager();
 
   @override
   void initState() {
@@ -62,27 +70,102 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
       if (isWeeklyEnabled && _selectedWeek != null) {
         int weeks = int.parse(_selectedWeek!.split(' ')[0]);
         _durasiTabunganController.text = '${anggota * weeks} minggu';
+      } else if (isDateEnabled && _selectedDate != null) {
+        _durasiTabunganController.text =
+            '$anggota bulan (estimasi)'; // Adjust text if needed based on date selection
       } else {
         _durasiTabunganController.text = '$anggota bulan';
       }
     });
   }
 
-  // Fungsi untuk mensimulasikan pengiriman data ke API
-  Future<void> _simulasiSubmitData() async {
-    // Data yang akan dikirim ke API, masih berupa data statis
-    final Map<String, dynamic> data = {
-      'nominalTabungan':
-          _nominalController.text.replaceAll(RegExp(r'[^0-9]'), ''),
-      'periodePenagihan': _periodeTabunganController.text,
-      'jumlahAnggota': _jumlahAnggotaController.text,
-      'durasiTabungan': _durasiTabunganController.text,
-      'jumlahPenagihan':
-          _jumlahPenagihanController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+  // Fungsi untuk mengirim data ke API
+  Future<void> _submitDataToAPI() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (!_termsAccepted) {
+      _showErrorDialog(
+          'Anda harus menyetujui Syarat & Ketentuan untuk melanjutkan.');
+      return;
+    }
+
+    String? token = await _tokenManager.getToken();
+    if (token == null) {
+      _showErrorDialog('Token tidak ditemukan, mohon login kembali.');
+      return;
+    }
+
+    String periodType;
+    String? firstDueDate;
+
+    if (isWeeklyEnabled && _selectedWeek != null) {
+      int weeks = int.parse(_selectedWeek!.split(' ')[0]);
+      if (weeks == 1) {
+        periodType = 'WEEKLY';
+      } else if (weeks == 2) {
+        periodType = 'BI_WEEKLY';
+      } else if (weeks == 3) {
+        periodType = 'TRI_WEEKLY';
+      } else {
+        periodType =
+            'MONTHLY'; // 4 weeks or more, treat as monthly for period type
+      }
+
+      // Calculate first due date based on selected weeks from today
+      DateTime now = DateTime.now();
+      DateTime calculatedDate = now.add(Duration(days: 7 * weeks));
+      firstDueDate = DateFormat('yyyy-MM-dd').format(calculatedDate);
+    } else if (isDateEnabled && _selectedDate != null) {
+      periodType = 'CUSTOM';
+      firstDueDate = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+    } else {
+      periodType =
+          'MONTHLY'; // Default to monthly if no specific period is selected
+      // Calculate first due date for monthly (approximately 1 month from today)
+      DateTime now = DateTime.now();
+      DateTime calculatedDate = DateTime(now.year, now.month + 1, now.day);
+      firstDueDate = DateFormat('yyyy-MM-dd').format(calculatedDate);
+    }
+
+    final Map<String, dynamic> requestBody = {
+      'period_type': periodType,
+      'first_due_date': firstDueDate,
+      'target_amount':
+          int.parse(_nominalController.text.replaceAll(RegExp(r'[^0-9]'), '')),
     };
 
-    // Simulasi respon berhasil
-    _showSuccessDialog();
+    final url = Uri.parse(
+        '$baseUrl/saving-groups/rotating/${widget.savingGroupId}/activate');
+
+    try {
+      _showLoadingDialog();
+      final response = await http.patch(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        Navigator.pop(context); // Close loading dialog
+        _showSuccessDialog();
+      } else {
+        Navigator.pop(context); // Close loading dialog
+        final responseData = json.decode(response.body);
+        String errorMessage = 'Gagal mengaktifkan Tabungan Bergilir.';
+        if (responseData != null && responseData['errors'] != null) {
+          errorMessage = responseData['errors'].toString();
+        }
+        _showErrorDialog(errorMessage);
+      }
+    } catch (e) {
+      Navigator.pop(context); // Close loading dialog
+      _showErrorDialog('Terjadi kesalahan: ${e.toString()}');
+    }
   }
 
   void _showTermsAndConditions() {
@@ -496,8 +579,7 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
         onPressed: _termsAccepted
             ? () async {
                 Navigator.pop(context);
-
-                await _simulasiSubmitData();
+                await _submitDataToAPI();
               }
             : null,
         style: ElevatedButton.styleFrom(
@@ -518,7 +600,7 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
     );
   }
 
-  void _showSuccessDialog() {
+  void _showLoadingDialog() {
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -556,92 +638,89 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
         );
       },
     );
+  }
 
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.pop(context);
-      showGeneralDialog(
-        context: context,
-        barrierDismissible: false,
-        barrierLabel: "Success",
-        transitionDuration: const Duration(milliseconds: 300),
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return FadeTransition(
-            opacity: animation,
-            child: Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Container(
-                width: 250,
-                height: 250,
-                padding: const EdgeInsets.all(15),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'DIGI Mobile',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
+  void _showSuccessDialog() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: "Success",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return FadeTransition(
+          opacity: animation,
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Container(
+              width: 250,
+              height: 250,
+              padding: const EdgeInsets.all(15),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'DIGI Mobile',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
                     ),
-                    const Icon(
-                      Icons.check_circle_outline,
-                      color: Colors.green,
-                      size: 48,
+                  ),
+                  const Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.green,
+                    size: 48,
+                  ),
+                  const Text(
+                    'Aktivasi Tabungan Berhasil Dilakukan!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.normal,
+                      color: Colors.black,
                     ),
-                    const Text(
-                      'Aktivasi Tabungan Berhasil Dilakukan!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.normal,
-                        color: Colors.black,
-                      ),
-                    ),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 37,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).push(PageRouteBuilder(
-                            transitionDuration:
-                                const Duration(milliseconds: 400),
-                            pageBuilder:
-                                (context, animation, secondaryAnimation) {
-                              return FadeTransition(
-                                opacity: animation,
-                                child: DetailTabunganBergilir(
-                                  isActive: true,
-                                ),
-                              );
-                            },
-                          ));
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.yellow.shade700,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                  ),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 37,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context)
+                            .pop(); // Pop AktivasiTabunganBergilir page
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (context) => DetailTabunganBergilir(
+                              savingGroupId: widget.savingGroupId,
+                              isActive: true, // Indicate that it's now active
+                            ),
                           ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.yellow.shade700,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          'OK',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color(0XFF1F597F),
-                          ),
+                      ),
+                      child: const Text(
+                        'OK',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0XFF1F597F),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          );
-        },
-      );
-    });
+          ),
+        );
+      },
+    );
   }
 
   void _showErrorDialog(String message) {
@@ -727,12 +806,16 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                               isWeeklyEnabled = value;
                               if (isWeeklyEnabled) {
                                 isDateEnabled = false;
+                                _selectedDate =
+                                    null; // Reset selected date when switching to weekly
                               }
                             });
                             setState(() {
                               isWeeklyEnabled = value;
                               if (isWeeklyEnabled) {
                                 isDateEnabled = false;
+                                _selectedDate =
+                                    null; // Reset selected date when switching to weekly
                               }
                               _updateDurasiTabungan();
                             });
@@ -747,7 +830,8 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                     children: [
                       const Expanded(
                         flex: 3,
-                        child: Text('Setiap', style: TextStyle(fontSize: 16)),
+                        child: Text('Setiap Tanggal',
+                            style: TextStyle(fontSize: 16)),
                       ),
                       Expanded(
                         flex: 5,
@@ -756,10 +840,8 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                           child: TextFormField(
                             controller: TextEditingController(
                                 text: isDateEnabled && _selectedDate != null
-                                    ? _selectedDate!
-                                        .toLocal()
-                                        .toString()
-                                        .split(' ')[0]
+                                    ? DateFormat('dd MMMM yyyy')
+                                        .format(_selectedDate!)
                                     : ''),
                             decoration: InputDecoration(
                               fillColor: Colors.blue.shade50,
@@ -804,12 +886,16 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                               isDateEnabled = value;
                               if (isDateEnabled) {
                                 isWeeklyEnabled = false;
+                                _selectedWeek =
+                                    null; // Reset selected week when switching to date
                               }
                             });
                             setState(() {
                               isDateEnabled = value;
                               if (isDateEnabled) {
                                 isWeeklyEnabled = false;
+                                _selectedWeek =
+                                    null; // Reset selected week when switching to date
                               }
                             });
                           },
@@ -830,13 +916,15 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                             DateTime calculatedDate =
                                 DateTime.now().add(Duration(days: 7 * weeks));
                             _periodeTabunganController.text =
-                                '${_selectedWeek!} dari tanggal hari ini: ${calculatedDate.toLocal().toString().split(' ')[0]}';
+                                '${_selectedWeek!} mulai ${DateFormat('dd MMMM yyyy').format(calculatedDate)}';
                           } else if (isDateEnabled && _selectedDate != null) {
-                            _periodeTabunganController.text = _selectedDate!
-                                .toLocal()
-                                .toString()
-                                .split(' ')[0];
+                            _periodeTabunganController.text =
+                                'Setiap tanggal ${DateFormat('dd MMMM yyyy').format(_selectedDate!)}';
+                          } else {
+                            _periodeTabunganController.text =
+                                'Setiap Bulan'; // Default text if none selected
                           }
+
                           if (_nominalController.text.isNotEmpty &&
                               _jumlahAnggotaController.text.isNotEmpty) {
                             double nominal = double.parse(_nominalController
@@ -1025,6 +1113,12 @@ class _AktivasiTabunganBergilirState extends State<AktivasiTabunganBergilir> {
                   ),
                   readOnly: true,
                   onTap: _showPeriodePenagihanModal,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Periode Penagihan tidak boleh kosong';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
                 // Jumlah Anggota

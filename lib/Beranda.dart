@@ -3,17 +3,16 @@
 
 import 'dart:convert';
 import 'package:digigoals_app/Inbox.dart';
-import 'package:digigoals_app/LoginDigi.dart'; // Import LoginDigi untuk navigasi logout
-import 'package:digigoals_app/auth/token_manager.dart'; // Import TokenManager
+import 'package:digigoals_app/LoginDigi.dart';
+import 'package:digigoals_app/auth/token_manager.dart';
 import 'package:digigoals_app/OurGoals.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
-import 'package:digigoals_app/api/api_config.dart'; // Import baseUrl dari api_config.dart
+import 'package:digigoals_app/api/api_config.dart';
 
-// Model Data Rekening
 class Account {
   final String accountNumber;
   final String accountHolder;
@@ -26,13 +25,11 @@ class Account {
   });
 
   factory Account.fromJson(Map<String, dynamic> json) {
-    // Cari primary account, jika tidak ada, ambil akun pertama atau default ke N/A
     var primaryAccount = (json['accounts'] as List?)?.firstWhere(
       (account) => account['is_primary'] == true,
       orElse: () => (json['accounts'] as List?)?.isNotEmpty == true
-          ? (json['accounts'] as List)[
-              0] // Ambil akun pertama jika ada dan primary tidak ditemukan
-          : null, // Default null jika tidak ada akun
+          ? (json['accounts'] as List)[0]
+          : null,
     );
 
     return Account(
@@ -45,7 +42,6 @@ class Account {
   }
 }
 
-// Enum untuk State Data
 enum DataState {
   initial,
   loading,
@@ -53,7 +49,6 @@ enum DataState {
   error,
 }
 
-// Widget Shimmer Text dengan Animasi Loading
 class ShimmerText extends StatelessWidget {
   final double? width;
   final double? height;
@@ -84,19 +79,18 @@ class ShimmerText extends StatelessWidget {
   }
 }
 
-// Widget Item Menu Grid (dipindahkan dari LoginDigi.dart dan disatukan)
 class MenuItem extends StatelessWidget {
   final Widget icon;
   final String label;
   final VoidCallback onTap;
-  final Color labelColor; // Tambahkan parameter untuk warna label
+  final Color labelColor;
 
   const MenuItem({
     super.key,
     required this.icon,
     required this.label,
     required this.onTap,
-    this.labelColor = Colors.blueGrey, // Warna default untuk label
+    this.labelColor = Colors.blueGrey,
   });
 
   @override
@@ -126,7 +120,7 @@ class MenuItem extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: labelColor, // Gunakan warna label dari parameter
+              color: labelColor,
               fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
@@ -138,7 +132,6 @@ class MenuItem extends StatelessWidget {
   }
 }
 
-// Widget Halaman Beranda
 class Beranda extends StatefulWidget {
   const Beranda({super.key});
 
@@ -147,8 +140,8 @@ class Beranda extends StatefulWidget {
 }
 
 class _BerandaState extends State<Beranda> {
-  bool _isLoadingLogout = false; // State untuk loading logout
-  final TokenManager _tokenManager = TokenManager(); // Instance TokenManager
+  bool _isLoadingLogout = false;
+  final TokenManager _tokenManager = TokenManager();
 
   @override
   Widget build(BuildContext context) {
@@ -165,19 +158,17 @@ class _BerandaState extends State<Beranda> {
                 FloatingActionButtonLocation.centerDocked,
             floatingActionButton: _buildFAB(context),
           ),
-          if (_isLoadingLogout)
-            _buildLogoutLoadingOverlay(), // Overlay loading saat logout
+          if (_isLoadingLogout) _buildLogoutLoadingOverlay(),
         ],
       ),
     );
   }
 
-  // AppBar Widget
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.blue.shade700,
       elevation: 0,
-      leading: _buildStatusIndicator(), // Indikator Status (Dot Hijau)
+      leading: _buildStatusIndicator(),
       actions: [
         _buildAppBarIconButton(
           context,
@@ -195,7 +186,6 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  // Status Indicator Widget (Dot Hijau)
   Widget _buildStatusIndicator() {
     return Container(
       margin: const EdgeInsets.all(22),
@@ -208,7 +198,6 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  // AppBar Icon Button - Reusable
   Widget _buildAppBarIconButton(BuildContext context, IconData icon,
       VoidCallback onPressed, String tooltip) {
     return Container(
@@ -235,7 +224,6 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  // Body Utama Widget
   Widget _buildBody(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
@@ -250,21 +238,20 @@ class _BerandaState extends State<Beranda> {
       ),
       child: Column(
         children: [
-          _buildLogo(), // Logo Digi
-          _buildGreetingAndLoyalty(context), // Sapaan dan Loyalty Point
+          _buildLogo(),
+          _buildGreetingAndLoyalty(context),
           Consumer<BerandaState>(
             builder: (context, state, _) => state.dataState == DataState.loading
-                ? const AccountCardShimmer() // Shimmer loading saat loading
-                : const AccountCard(), // Kartu Akun
+                ? const AccountCardShimmer()
+                : const AccountCard(),
           ),
           const SizedBox(height: 16),
-          _buildMenuGrid(context), // Grid Menu
+          _buildMenuGrid(context),
         ],
       ),
     );
   }
 
-  // Logo Digi Widget
   Widget _buildLogo() {
     return Center(
       child: Image.asset(
@@ -275,7 +262,6 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  // Greeting dan Loyalty Point Widget
   Widget _buildGreetingAndLoyalty(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
@@ -285,7 +271,6 @@ class _BerandaState extends State<Beranda> {
           Consumer<BerandaState>(
             builder: (context, state, _) {
               if (state.dataState == DataState.error) {
-                // Tampilkan pesan error jika state error
                 return Text(
                   state.errorMessage ?? 'Terjadi kesalahan',
                   style: const TextStyle(
@@ -295,7 +280,6 @@ class _BerandaState extends State<Beranda> {
                   ),
                 );
               }
-              // Tampilkan shimmer loading atau nama pengguna
               return state.dataState == DataState.loading
                   ? const ShimmerText(
                       width: 150, height: 20, hasAnimation: true)
@@ -312,13 +296,12 @@ class _BerandaState extends State<Beranda> {
                     );
             },
           ),
-          _buildLoyaltyRow(), // Baris Loyalty Point dan Reload
+          _buildLoyaltyRow(),
         ],
       ),
     );
   }
 
-  // Baris Loyalty Point dan Reload Button
   Widget _buildLoyaltyRow() {
     return Row(
       children: [
@@ -329,7 +312,7 @@ class _BerandaState extends State<Beranda> {
         ),
         const SizedBox(width: 10),
         ElevatedButton.icon(
-          onPressed: () {}, // TODO: Implement reload loyalty point
+          onPressed: () {},
           icon: const Icon(Icons.refresh, color: Colors.white, size: 18),
           label: const Text(
             'Reload',
@@ -348,7 +331,6 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  // Menu Grid Widget
   Widget _buildMenuGrid(BuildContext context) {
     return Expanded(
       child: Container(
@@ -363,8 +345,7 @@ class _BerandaState extends State<Beranda> {
           builder: (context, constraints) {
             final screenWidth = constraints.maxWidth;
             return GridView.count(
-              crossAxisCount:
-                  screenWidth > 600 ? 6 : 4, // Responsif jumlah kolom
+              crossAxisCount: screenWidth > 600 ? 6 : 4,
               mainAxisSpacing: 12.0,
               crossAxisSpacing: 8.0,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -372,7 +353,7 @@ class _BerandaState extends State<Beranda> {
               shrinkWrap: true,
               physics: const ClampingScrollPhysics(),
               clipBehavior: Clip.none,
-              children: _buildMenuItems(context), // Daftar Item Menu
+              children: _buildMenuItems(context),
             );
           },
         ),
@@ -380,7 +361,6 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  // Daftar Menu Items
   List<Widget> _buildMenuItems(BuildContext context) {
     return [
       MenuItem(
@@ -448,12 +428,10 @@ class _BerandaState extends State<Beranda> {
               ),
             );
           },
-          labelColor:
-              Colors.blue.shade700), // Warna label khusus untuk menu Our Goals
+          labelColor: Colors.blue.shade700),
     ];
   }
 
-  // BottomAppBar Widget
   BottomAppBar _buildBottomAppBar(BuildContext context) {
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
@@ -465,7 +443,6 @@ class _BerandaState extends State<Beranda> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildBottomNavItem(context, Icons.inbox, 'Inbox', () async {
-              // Navigasi ke Inbox setelah memeriksa token
               final tokenManager = TokenManager();
               final accessToken = await tokenManager.getToken();
 
@@ -479,30 +456,25 @@ class _BerandaState extends State<Beranda> {
                   ),
                 );
               } else {
-                _showTokenNotFoundSnackbar(
-                    context); // Tampilkan Snackbar jika token tidak ada
+                _showTokenNotFoundSnackbar(context);
               }
             }),
-            _buildBottomNavItem(
-                context, Icons.favorite, 'Favorite'), // Item Favorite
-            const SizedBox(width: 40), // Ruang untuk FAB
-            _buildBottomNavItem(
-                context, Icons.settings, 'Settings'), // Item Settings
+            _buildBottomNavItem(context, Icons.favorite, 'Favorite'),
+            const SizedBox(width: 40),
+            _buildBottomNavItem(context, Icons.settings, 'Settings'),
             _buildBottomNavItem(context, Icons.logout, 'Logout', () async {
-              // Logout dan navigasi ke Login
               await _performLogout(context);
-            }), // Item Logout
+            }),
           ],
         ),
       ),
     );
   }
 
-  // Item Navigation Bottom Bar - Reusable
   Widget _buildBottomNavItem(BuildContext context, IconData icon, String label,
       [VoidCallback? onTap]) {
     return InkWell(
-      onTap: onTap ?? () {}, // Provide an empty function if onTap is null
+      onTap: onTap ?? () {},
       child: Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -544,12 +516,11 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  // Floating Action Button (FAB)
   Widget _buildFAB(BuildContext context) {
     return FloatingActionButton(
       shape: const CircleBorder(),
       elevation: 4,
-      onPressed: () {}, // TODO: Implement QR Code Scan
+      onPressed: () {},
       tooltip: 'Scan QR Code',
       child: Container(
         decoration: BoxDecoration(
@@ -574,7 +545,6 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  // Loading Overlay saat Logout
   Widget _buildLogoutLoadingOverlay() {
     return Container(
       color: Colors.black.withOpacity(0.5),
@@ -586,27 +556,23 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  // Fungsi untuk Logout
   Future<void> _performLogout(BuildContext context) async {
     setState(() {
-      _isLoadingLogout = true; // Set state loading logout menjadi true
+      _isLoadingLogout = true;
     });
-    await Future.delayed(const Duration(seconds: 1)); // Simulasi proses logout
-    await _tokenManager.deleteAllData(); // Hapus semua data token
+    await Future.delayed(const Duration(seconds: 1));
+    await _tokenManager.deleteAllData();
 
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-              builder: (context) => const LoginDigi()), // Navigasi ke LoginDigi
-          (Route<dynamic> route) => false); // Hapus semua route sebelumnya
+          MaterialPageRoute(builder: (context) => const LoginDigi()),
+          (Route<dynamic> route) => false);
     }
     setState(() {
-      _isLoadingLogout =
-          false; // Set state loading logout menjadi false setelah selesai
+      _isLoadingLogout = false;
     });
   }
 
-  // Fungsi untuk menampilkan Snackbar jika Token tidak ditemukan
   void _showTokenNotFoundSnackbar(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -617,7 +583,6 @@ class _BerandaState extends State<Beranda> {
   }
 }
 
-// State Management Halaman Beranda
 class BerandaState with ChangeNotifier {
   Account? _account;
   DataState _dataState = DataState.initial;
@@ -627,13 +592,11 @@ class BerandaState with ChangeNotifier {
   String? defaultName;
   Account? _cachedAccount;
   DateTime? _cacheTime;
-  static const Duration cacheDuration =
-      Duration(minutes: 5); // Durasi cache 5 menit
+  static const Duration cacheDuration = Duration(minutes: 5);
 
   DataState get dataState => _dataState;
   Account? get account => _account;
 
-  // Setter untuk Account dan update state menjadi loaded
   void setAccount(Account account) {
     _account = account;
     _cachedAccount = account;
@@ -643,20 +606,17 @@ class BerandaState with ChangeNotifier {
     notifyListeners();
   }
 
-  // Setter untuk Error dan update state menjadi error
   void setError(String message) {
     _dataState = DataState.error;
     errorMessage = message;
     notifyListeners();
   }
 
-  // Toggle visibilitas saldo
   void toggleSaldoVisibility() {
     isSaldoVisible = !isSaldoVisible;
     notifyListeners();
   }
 
-  // Cek apakah cache masih valid
   bool _isCacheValid() {
     if (_cachedAccount == null || _cacheTime == null) {
       return false;
@@ -664,36 +624,31 @@ class BerandaState with ChangeNotifier {
     return DateTime.now().difference(_cacheTime!) <= cacheDuration;
   }
 
-  // Fungsi untuk mengambil data akun dari API
   Future<void> fetchAccountData() async {
-    // Jika cache valid, gunakan data dari cache
     if (_isCacheValid() && _cachedAccount != null) {
       _account = _cachedAccount;
       _dataState = DataState.loaded;
       notifyListeners();
       return;
     }
-    _dataState = DataState.loading; // Set state menjadi loading
+    _dataState = DataState.loading;
     notifyListeners();
 
-    final token = accessToken ??
-        await TokenManager()
-            .getToken(); // Ambil token dari constructor atau TokenManager
+    final token = accessToken ?? await TokenManager().getToken();
 
     if (token == null) {
-      setError("Token tidak ditemukan"); // Set error jika token tidak ada
+      setError("Token tidak ditemukan");
       return;
     }
 
     try {
       const String profileEndpoint = "/users/profile";
-      final String profileApiUrl =
-          baseUrl + profileEndpoint; // Menggunakan baseUrl dari api_config.dart
+      final String profileApiUrl = baseUrl + profileEndpoint;
 
       final profileResponse = await http.get(
         Uri.parse(profileApiUrl),
         headers: {
-          'Authorization': 'Bearer $token', // Sertakan token di header
+          'Authorization': 'Bearer $token',
         },
       );
 
@@ -702,30 +657,28 @@ class BerandaState with ChangeNotifier {
             json.decode(profileResponse.body);
         if (profileData['code'] == 200 && profileData['status'] == 'OK') {
           final Account fetchedAccount = Account.fromJson(profileData['data']);
-          setAccount(fetchedAccount); // Set account data jika sukses
+          setAccount(fetchedAccount);
         } else {
           setError(profileData['errors'] != null &&
                   (profileData['errors'] as List).isNotEmpty
               ? (profileData['errors'] as List)[0].toString()
-              : "Gagal mengambil data profile, silahkan coba lagi!"); // Set error jika response code OK tapi data tidak OK
+              : "Gagal mengambil data profile, silahkan coba lagi!");
         }
       } else {
         setError(
-            "Gagal mengambil data profile, kode status: ${profileResponse.statusCode}. Silahkan coba lagi!"); // Set error jika status code bukan 200
+            "Gagal mengambil data profile, kode status: ${profileResponse.statusCode}. Silahkan coba lagi!");
       }
     } catch (e) {
       setError(
-          "Terjadi kesalahan saat mengambil data profile, pesan error: ${e.toString()}"); // Set error jika terjadi exception
+          "Terjadi kesalahan saat mengambil data profile, pesan error: ${e.toString()}");
     }
   }
 
-  // Constructor untuk BerandaState, langsung fetch data saat inisialisasi
   BerandaState({this.accessToken}) {
     fetchAccountData();
   }
 }
 
-// Widget Account Card
 class AccountCard extends StatelessWidget {
   const AccountCard({super.key});
 
@@ -781,7 +734,7 @@ class AccountCard extends StatelessWidget {
                                       symbol: 'IDR ',
                                       decimalDigits: 2)
                                   .format(state.account?.balance)
-                              : 'IDR ******', // Tampilkan saldo atau bintang-bintang
+                              : 'IDR ******',
                           style: const TextStyle(
                             fontSize: 16,
                             color: Colors.white,
@@ -810,13 +763,12 @@ class AccountCard extends StatelessWidget {
                       child: Icon(
                         state.isSaldoVisible
                             ? Icons.visibility
-                            : Icons.visibility_off, // Icon visibilitas saldo
+                            : Icons.visibility_off,
                         color: Colors.white,
                       ),
                     ),
                     tooltip: 'Toggle Balance Visibility',
-                    onPressed:
-                        state.toggleSaldoVisibility, // Toggle visibilitas saldo
+                    onPressed: state.toggleSaldoVisibility,
                   ),
                   const SizedBox(width: 5),
                   Container(
@@ -835,7 +787,7 @@ class AccountCard extends StatelessWidget {
                           end: Alignment.bottomCenter,
                         ).createShader(bounds),
                         child: const Icon(Icons.arrow_forward_ios,
-                            size: 20, color: Colors.white), // Icon panah kanan
+                            size: 20, color: Colors.white),
                       ),
                       onPressed: () {
                         // TODO: Navigate to account list atau detail akun
@@ -852,7 +804,6 @@ class AccountCard extends StatelessWidget {
   }
 }
 
-// Widget Account Card saat Loading - Shimmer
 class AccountCardShimmer extends StatelessWidget {
   const AccountCardShimmer({super.key});
 
@@ -884,14 +835,9 @@ class AccountCardShimmer extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const ShimmerText(
-                        width: 120,
-                        height: 18,
-                        hasAnimation:
-                            true), // Shimmer text untuk nomor rekening
+                        width: 120, height: 18, hasAnimation: true),
                     const ShimmerText(
-                        width: 150,
-                        height: 18,
-                        hasAnimation: true), // Shimmer text untuk saldo
+                        width: 150, height: 18, hasAnimation: true),
                   ],
                 ),
               ],
@@ -905,15 +851,14 @@ class AccountCardShimmer extends StatelessWidget {
                     Icons.visibility_off,
                     color: Colors.white,
                     size: 24,
-                  ), // Shimmer icon untuk visibilitas
+                  ),
                 ),
                 const SizedBox(width: 5),
                 Shimmer.fromColors(
                   baseColor: Colors.grey[300]!,
                   highlightColor: Colors.grey[100]!,
                   child: const Icon(Icons.arrow_forward_ios,
-                      size: 20,
-                      color: Colors.white), // Shimmer icon untuk arrow
+                      size: 20, color: Colors.white),
                 ),
               ],
             ),

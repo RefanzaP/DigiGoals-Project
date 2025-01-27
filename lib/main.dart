@@ -1,12 +1,11 @@
 import 'package:digigoals_app/Beranda.dart';
 import 'package:digigoals_app/SplashScreen.dart';
 import 'package:digigoals_app/OurGoals.dart';
-import 'package:digigoals_app/auth/token_manager.dart'; // Import TokenManager
+import 'package:digigoals_app/auth/token_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Import Provider
+import 'package:provider/provider.dart';
 
 void main() => runApp(
-      // Gunakan MultiProvider untuk menyediakan TokenManager
       MultiProvider(
         providers: [
           Provider<TokenManager>(create: (_) => TokenManager()),

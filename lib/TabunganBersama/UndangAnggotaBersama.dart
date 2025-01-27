@@ -1,22 +1,19 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
-import 'dart:convert'; // Import untuk encoding dan decoding JSON
+import 'dart:convert';
+import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart';
+import 'package:digigoals_app/api/api_config.dart';
+import 'package:digigoals_app/auth/token_manager.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 
-import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart'; // Import halaman DetailTabunganBersama
-import 'package:digigoals_app/api/api_config.dart'; // Import konfigurasi API
-import 'package:digigoals_app/auth/token_manager.dart'; // Import Token Manager untuk otentikasi
-import 'package:flutter/material.dart'; // Import library Flutter Material Design
-import 'package:flutter/services.dart'; // Import untuk input formatters
-import 'package:provider/provider.dart'; // Import Provider untuk state management
-import 'package:http/http.dart'
-    as http; // Import library HTTP untuk request API
-
-// Model Account untuk data akun yang diundang
 class Account {
   final String nomorRekening;
   final String namaRekening;
   final String jenisTabungan;
-  final String userId; // User ID dari akun yang diundang
+  final String userId;
 
   Account({
     required this.nomorRekening,
@@ -25,10 +22,8 @@ class Account {
     required this.userId,
   });
 
-  // Factory constructor untuk membuat objek Account dari JSON
   factory Account.fromJson(Map<String, dynamic> json) {
-    final accountData =
-        json['accounts'][0]; // Asumsi akun pertama adalah yang relevan
+    final accountData = json['accounts'][0];
     return Account(
       userId: json['id'],
       nomorRekening: accountData['account_number'],
@@ -38,10 +33,9 @@ class Account {
   }
 }
 
-// Widget Utama Halaman Undang Anggota Bersama
 class UndangAnggotaBersama extends StatefulWidget {
-  final String savingGroupId; // ID Saving Group dari halaman sebelumnya
-  final String goalsName; // Nama Goals dari halaman sebelumnya
+  final String savingGroupId;
+  final String goalsName;
 
   const UndangAnggotaBersama({
     super.key,
@@ -53,115 +47,93 @@ class UndangAnggotaBersama extends StatefulWidget {
   _UndangAnggotaBersamaState createState() => _UndangAnggotaBersamaState();
 }
 
-// State Provider untuk Mengelola State Halaman Undang Anggota Bersama
 class UndangAnggotaBersamaStateProvider extends ChangeNotifier {
-  String nomorRekening = ''; // State untuk nomor rekening yang diinput
-  bool isLoading = false; // State untuk indikator loading
-  String? errorMessage; // State untuk pesan error
-  Account? invitedAccount; // State untuk data akun yang diundang
+  String nomorRekening = '';
+  bool isLoading = false;
+  String? errorMessage;
+  Account? invitedAccount;
 
-  final TokenManager _tokenManager =
-      TokenManager(); // Instance TokenManager untuk otentikasi
+  final TokenManager _tokenManager = TokenManager();
 
-  // Fungsi untuk memperbarui state nomor rekening
   void updateNomorRekening(String value) {
     nomorRekening = value;
-    notifyListeners(); // Beritahu listener (UI) bahwa state telah berubah
+    notifyListeners();
   }
 
-  // Fungsi untuk mengatur state loading
   void setLoading(bool value) {
     isLoading = value;
-    notifyListeners(); // Beritahu listener (UI) bahwa state telah berubah
+    notifyListeners();
   }
 
-  // Fungsi untuk mengambil data akun berdasarkan nomor rekening dari API
   Future<void> getAccountByAccountNumber() async {
-    setLoading(true); // Set loading state menjadi true
-    errorMessage = null; // Reset pesan error
-    invitedAccount = null; // Reset data akun yang diundang
-    notifyListeners(); // Beritahu listener (UI) bahwa state telah berubah
+    setLoading(true);
+    errorMessage = null;
+    invitedAccount = null;
+    notifyListeners();
 
-    String? token =
-        await _tokenManager.getToken(); // Ambil token dari TokenManager
+    String? token = await _tokenManager.getToken();
     if (token == null) {
-      errorMessage =
-          "Token tidak ditemukan"; // Set pesan error jika token tidak ada
-      setLoading(false); // Set loading state menjadi false
-      notifyListeners(); // Beritahu listener (UI) bahwa state telah berubah
+      errorMessage = "Token tidak ditemukan";
+      setLoading(false);
+      notifyListeners();
       return;
     }
 
-    final String accountNumber =
-        nomorRekening; // Ambil nomor rekening dari state
-    final String accountEndpoint =
-        "/users/accounts/$accountNumber"; // Endpoint API untuk akun berdasarkan nomor rekening
-    final String apiUrl =
-        baseUrl + accountEndpoint; // Gabungkan base URL dan endpoint
+    final String accountNumber = nomorRekening;
+    final String accountEndpoint = "/users/accounts/$accountNumber";
+    final String apiUrl = baseUrl + accountEndpoint;
 
     try {
       final response = await http.get(
         Uri.parse(apiUrl),
-        headers: {
-          'Authorization': 'Bearer $token'
-        }, // Sertakan token di header otorisasi
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
-        final responseData = json
-            .decode(utf8.decode(response.bodyBytes)); // Decode response body
+        final responseData = json.decode(utf8.decode(response.bodyBytes));
         if (responseData['code'] == 200 && responseData['status'] == 'OK') {
-          invitedAccount = Account.fromJson(
-              responseData['data']); // Parse data akun dari JSON
+          invitedAccount = Account.fromJson(responseData['data']);
         } else {
           errorMessage = responseData['errors'] != null &&
                   (responseData['errors'] as List).isNotEmpty
-              ? (responseData['errors'] as List)[0]
-                  .toString() // Ambil pesan error dari API response
-              : "Akun tidak ditemukan"; // Pesan error default jika tidak ada pesan spesifik dari API
+              ? (responseData['errors'] as List)[0].toString()
+              : "Akun tidak ditemukan";
         }
       } else {
         errorMessage =
-            "Gagal mengambil data akun. Status code: ${response.statusCode}"; // Set pesan error dengan status code
+            "Gagal mengambil data akun. Status code: ${response.statusCode}";
       }
     } catch (e) {
-      errorMessage =
-          "Terjadi kesalahan: ${e.toString()}"; // Set pesan error jika terjadi exception
+      errorMessage = "Terjadi kesalahan: ${e.toString()}";
     } finally {
-      setLoading(
-          false); // Set loading state menjadi false setelah proses selesai (berhasil atau gagal)
-      notifyListeners(); // Beritahu listener (UI) bahwa state telah berubah
+      setLoading(false);
+      notifyListeners();
     }
   }
 }
 
-// State Widget untuk UI Halaman Undang Anggota Bersama
 class _UndangAnggotaBersamaState extends State<UndangAnggotaBersama> {
-  final _formKey = GlobalKey<FormState>(); // Key untuk form validasi
+  final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) =>
-          UndangAnggotaBersamaStateProvider(), // Provide state provider
+      create: (_) => UndangAnggotaBersamaStateProvider(),
       child: Consumer<UndangAnggotaBersamaStateProvider>(
         builder: (context, state, _) => Stack(
           children: [
             Scaffold(
-              appBar: _buildAppBar(context), // AppBar kustom
-              body: _buildBody(context, state), // Body halaman
-              bottomNavigationBar: _buildBottomNavigationBar(
-                  context, state), // Bottom navigation bar
+              appBar: _buildAppBar(context),
+              body: _buildBody(context, state),
+              bottomNavigationBar: _buildBottomNavigationBar(context, state),
             ),
-            if (state.isLoading)
-              _buildLoadingOverlay(), // Loading overlay ditampilkan saat isLoading true
+            if (state.isLoading) _buildLoadingOverlay(),
           ],
         ),
       ),
     );
   }
 
-  // AppBar Widget
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -180,7 +152,7 @@ class _UndangAnggotaBersamaState extends State<UndangAnggotaBersama> {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () {
-          Navigator.pop(context); // Navigasi kembali ke halaman sebelumnya
+          Navigator.pop(context);
         },
       ),
       title: const Text(
@@ -207,7 +179,6 @@ class _UndangAnggotaBersamaState extends State<UndangAnggotaBersama> {
     );
   }
 
-  // Body Widget Halaman Undang Anggota
   Widget _buildBody(
       BuildContext context, UndangAnggotaBersamaStateProvider state) {
     return Padding(
@@ -227,31 +198,28 @@ class _UndangAnggotaBersamaState extends State<UndangAnggotaBersama> {
             ),
             const SizedBox(height: 10),
             TextFormField(
-              keyboardType: TextInputType.number, // Keyboard type number
+              keyboardType: TextInputType.number,
               inputFormatters: [
-                FilteringTextInputFormatter
-                    .digitsOnly, // Hanya menerima input angka
-                LengthLimitingTextInputFormatter(
-                    13), // Batasan panjang input 13 digit
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(13),
               ],
               decoration: InputDecoration(
-                fillColor: Colors.blue.shade50, // Warna fill input
-                filled: true, // Input terisi warna
-                hintText: 'Masukkan Nomor Rekening', // Hint text
-                errorText: state.errorMessage, // Pesan error dari state
+                fillColor: Colors.blue.shade50,
+                filled: true,
+                hintText: 'Masukkan Nomor Rekening',
+                errorText: state.errorMessage,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none, // Hilangkan border
+                  borderSide: BorderSide.none,
                 ),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Kamu perlu memasukkan nomor rekening!'; // Validasi tidak boleh kosong
+                  return 'Kamu perlu memasukkan nomor rekening!';
                 }
-                return null; // Validasi berhasil
+                return null;
               },
-              onChanged: (value) => state.updateNomorRekening(
-                  value), // Update state nomor rekening saat input berubah
+              onChanged: (value) => state.updateNomorRekening(value),
             ),
           ],
         ),
@@ -259,7 +227,6 @@ class _UndangAnggotaBersamaState extends State<UndangAnggotaBersama> {
     );
   }
 
-  // Bottom Navigation Bar Widget
   Widget _buildBottomNavigationBar(
       BuildContext context, UndangAnggotaBersamaStateProvider state) {
     return Padding(
@@ -269,14 +236,11 @@ class _UndangAnggotaBersamaState extends State<UndangAnggotaBersama> {
         height: 48,
         child: ElevatedButton(
           onPressed: state.isLoading
-              ? null // Disable button saat loading
+              ? null
               : () async {
                   if (_formKey.currentState!.validate()) {
-                    // Validasi form sebelum memanggil API
-                    await state
-                        .getAccountByAccountNumber(); // Panggil fungsi ambil akun berdasarkan nomor rekening
+                    await state.getAccountByAccountNumber();
                     if (state.invitedAccount != null) {
-                      // Jika akun ditemukan, navigasi ke halaman konfirmasi undangan
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -308,7 +272,6 @@ class _UndangAnggotaBersamaState extends State<UndangAnggotaBersama> {
     );
   }
 
-  // Loading Overlay Widget
   Widget _buildLoadingOverlay() {
     return Container(
       color: Colors.black.withOpacity(0.5),
@@ -321,11 +284,10 @@ class _UndangAnggotaBersamaState extends State<UndangAnggotaBersama> {
   }
 }
 
-// Widget Konfirmasi Undangan Bersama
 class KonfirmasiUndanganBersama extends StatefulWidget {
-  final Account invitedAccount; // Data akun yang diundang
-  final String goalsName; // Nama Goals dari halaman sebelumnya
-  final String savingGroupId; // ID Saving Group dari halaman sebelumnya
+  final Account invitedAccount;
+  final String goalsName;
+  final String savingGroupId;
 
   const KonfirmasiUndanganBersama({
     super.key,
@@ -340,98 +302,79 @@ class KonfirmasiUndanganBersama extends StatefulWidget {
 }
 
 class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
-  bool _isLoading = false; // State untuk indikator loading dialog
-  final TokenManager _tokenManager =
-      TokenManager(); // Instance TokenManager untuk otentikasi
+  bool _isLoading = false;
+  final TokenManager _tokenManager = TokenManager();
 
-  // Fungsi untuk mengirim undangan ke API
   Future<void> _sendInvitation() async {
     setState(() {
-      _isLoading = true; // Set loading menjadi true
+      _isLoading = true;
     });
-    _showLoadingDialog(); // Tampilkan loading dialog
+    _showLoadingDialog();
 
-    String? token =
-        await _tokenManager.getToken(); // Ambil token dari TokenManager
-    String? senderUserId = await _tokenManager
-        .getUserId(); // Ambil user ID pengirim dari TokenManager
+    String? token = await _tokenManager.getToken();
+    String? senderUserId = await _tokenManager.getUserId();
 
     if (token == null || senderUserId == null) {
-      Navigator.of(context).pop(); // Tutup loading dialog
+      Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-              'Sesi tidak valid, mohon login kembali.'), // SnackBar error token tidak valid
+          content: Text('Sesi tidak valid, mohon login kembali.'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    final String invitationEndpoint =
-        "/invitations"; // Endpoint API untuk undangan
-    final String apiUrl =
-        baseUrl + invitationEndpoint; // Gabungkan base URL dan endpoint
+    final String invitationEndpoint = "/invitations";
+    final String apiUrl = baseUrl + invitationEndpoint;
 
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {
-          'Authorization':
-              'Bearer $token', // Sertakan token di header otorisasi
-          'Content-Type': 'application/json', // Content type JSON
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          "saving_group_id": widget.savingGroupId, // ID saving group
-          "sender_user_id": senderUserId, // User ID pengirim
-          "receiver_user_id":
-              widget.invitedAccount.userId, // User ID penerima undangan
+          "saving_group_id": widget.savingGroupId,
+          "sender_user_id": senderUserId,
+          "receiver_user_id": widget.invitedAccount.userId,
         }),
       );
 
-      Navigator.of(context)
-          .pop(); // Tutup loading dialog setelah request selesai
+      Navigator.of(context).pop();
 
       if (response.statusCode == 201) {
-        _showSuccessDialog(); // Tampilkan dialog sukses jika status code 201 (Created)
+        _showSuccessDialog();
       } else {
-        Navigator.of(context)
-            .pop(); // Tutup loading dialog jika status code bukan 201
-        final responseData = json
-            .decode(utf8.decode(response.bodyBytes)); // Decode response body
+        Navigator.of(context).pop();
+        final responseData = json.decode(utf8.decode(response.bodyBytes));
         String message;
         if (responseData['errors'] != null) {
           if (responseData['errors'] is List) {
             message = (responseData['errors'] as List).isNotEmpty
-                ? (responseData['errors'] as List)[0]
-                    .toString() // Ambil pesan error pertama dari list error
-                : "Gagal mengundang anggota, silahkan coba lagi!"; // Pesan error default
+                ? (responseData['errors'] as List)[0].toString()
+                : "Gagal mengundang anggota, silahkan coba lagi!";
           } else if (responseData['errors'] is String) {
-            message = responseData['errors']
-                as String; // Gunakan pesan error string langsung
+            message = responseData['errors'] as String;
           } else {
-            message =
-                "Gagal mengundang anggota, silahkan coba lagi!"; // Pesan error fallback
+            message = "Gagal mengundang anggota, silahkan coba lagi!";
           }
         } else {
-          message =
-              "Gagal mengundang anggota, silahkan coba lagi!"; // Pesan error fallback jika tidak ada errors di response
+          message = "Gagal mengundang anggota, silahkan coba lagi!";
         }
-        _showFailedDialog(message); // Tampilkan dialog gagal dengan pesan error
+        _showFailedDialog(message);
       }
     } catch (e) {
-      Navigator.of(context)
-          .pop(); // Tutup loading dialog jika terjadi exception
-      _showFailedDialog(
-          e.toString()); // Tampilkan dialog gagal dengan pesan exception
+      Navigator.of(context).pop();
+      _showFailedDialog(e.toString());
     } finally {
       setState(() {
-        _isLoading = false; // Set loading state menjadi false
+        _isLoading = false;
       });
     }
   }
 
-  // Dialog Konfirmasi Undang Anggota
   void _showConfirmationDialog() {
     showGeneralDialog(
       context: context,
@@ -477,7 +420,7 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
                         height: 40,
                         child: OutlinedButton(
                           onPressed: () {
-                            Navigator.pop(context); // Tutup dialog konfirmasi
+                            Navigator.pop(context);
                           },
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: Colors.yellow.shade700),
@@ -500,7 +443,7 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
                         height: 40,
                         child: ElevatedButton(
                           onPressed: () {
-                            _sendInvitation(); // Panggil fungsi kirim undangan
+                            _sendInvitation();
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.yellow.shade700,
@@ -528,7 +471,6 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
     );
   }
 
-  // Dialog Loading saat Mengirim Undangan
   void _showLoadingDialog() {
     showGeneralDialog(
       context: context,
@@ -569,7 +511,29 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
     );
   }
 
-  // Dialog Sukses Undang Anggota
+  void _showFailedDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Gagal'),
+        content: Text('Gagal mengundang anggota: $message'),
+        actions: <Widget>[
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('OK'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showSuccessDialog() {
     showGeneralDialog(
       context: context,
@@ -617,16 +581,14 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
                     height: 37,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context); // Close success dialog
+                        Navigator.pop(context);
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
                             builder: (context) => DetailTabunganBersama(
-                                savingGroupId: widget
-                                    .savingGroupId), // Navigasi ke DetailTabunganBersama
-                            settings: const RouteSettings(arguments: {
-                              'invitationSuccess': true
-                            }), // Kirim argumen sukses undangan
+                                savingGroupId: widget.savingGroupId),
+                            settings: const RouteSettings(
+                                arguments: {'invitationSuccess': true}),
                           ),
                         );
                       },
@@ -654,31 +616,6 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
     );
   }
 
-  // Dialog Gagal Undang Anggota
-  void _showFailedDialog(String message) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text('Gagal'),
-        content: Text(
-            'Gagal mengundang anggota: $message'), // Tampilkan pesan error dari parameter
-        actions: <Widget>[
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('OK'),
-            onPressed: () {
-              Navigator.of(context).pop(); // Tutup dialog gagal
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -688,8 +625,7 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
             backgroundColor: Colors.blue.shade700,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(
-                  context), // Navigasi kembali ke halaman sebelumnya
+              onPressed: () => Navigator.pop(context),
             ),
             title: const Text(
               'Konfirmasi Undangan',
@@ -732,7 +668,7 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Nomor Rekening: ${widget.invitedAccount.nomorRekening}', // Tampilkan nomor rekening akun yang diundang
+                            'Nomor Rekening: ${widget.invitedAccount.nomorRekening}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 13,
@@ -742,7 +678,7 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Nama Goals: ${widget.goalsName}', // Tampilkan nama goals
+                            'Nama Goals: ${widget.goalsName}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 13,
@@ -755,8 +691,7 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
                     ),
                     OutlinedButton.icon(
                       onPressed: () {
-                        Navigator.pop(
-                            context); // Navigasi kembali ke halaman undang anggota
+                        Navigator.pop(context);
                       },
                       icon:
                           const Icon(Icons.edit, color: Colors.white, size: 16),
@@ -786,7 +721,7 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Tabungan ${widget.invitedAccount.jenisTabungan} - ${widget.invitedAccount.nomorRekening}', // Info jenis tabungan dan nomor rekening
+                        'Tabungan ${widget.invitedAccount.jenisTabungan} - ${widget.invitedAccount.nomorRekening}',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
@@ -804,8 +739,7 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
                         alignment: Alignment.centerLeft,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          widget.invitedAccount
-                              .namaRekening, // Tampilkan nama rekening
+                          widget.invitedAccount.namaRekening,
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
@@ -825,9 +759,7 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: _isLoading
-                    ? null
-                    : _showConfirmationDialog, // Button konfirmasi undang anggota
+                onPressed: _isLoading ? null : _showConfirmationDialog,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.yellow.shade700,
                   shape: RoundedRectangleBorder(
@@ -859,7 +791,6 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
   }
 }
 
-// Loading Overlay Widget (Reusable dari file lain)
 class LoadingOverlay extends StatelessWidget {
   const LoadingOverlay({super.key});
 

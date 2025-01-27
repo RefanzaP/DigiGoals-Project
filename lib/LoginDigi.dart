@@ -9,140 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-import 'package:digigoals_app/api/api_config.dart'; // Import baseUrl dari api_config.dart
+import 'package:digigoals_app/api/api_config.dart';
 
-// Widget untuk input text form, reusable
-class DigiTextFormField extends StatelessWidget {
-  final TextEditingController controller;
-  final String labelText;
-  final String hintText;
-  final bool obscureText;
-  final bool isUsername;
-  final bool isPassword;
-  final TextInputType? keyboardType;
-  final String? Function(String?)? validator;
-  final String? errorText;
-  final Widget? suffixIcon;
-
-  const DigiTextFormField({
-    super.key,
-    required this.controller,
-    required this.labelText,
-    required this.hintText,
-    this.obscureText = false,
-    this.isUsername = false,
-    this.isPassword = false,
-    this.keyboardType,
-    this.validator,
-    this.errorText,
-    this.suffixIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          labelText,
-          style: TextStyle(
-            fontSize: _calculateFontSize(context, 16),
-            fontWeight: FontWeight.bold,
-            color: Colors.blue.shade800,
-          ),
-        ),
-        SizedBox(height: _calculateSpacing(context, 10)),
-        TextFormField(
-          controller: controller,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          validator: validator,
-          style: const TextStyle(fontWeight: FontWeight.w500),
-          decoration: InputDecoration(
-            fillColor: Colors.blue.shade50,
-            filled: true,
-            hintText: hintText,
-            hintStyle: const TextStyle(
-                color: Colors.black54, fontWeight: FontWeight.bold),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              vertical: _calculatePadding(context, 10),
-              horizontal: _calculatePadding(context, 12),
-            ),
-            errorText: errorText,
-            errorMaxLines: 2,
-            suffixIcon: suffixIcon,
-            errorStyle: TextStyle(
-                color: Colors.red, fontSize: _calculateFontSize(context, 12)),
-          ),
-          inputFormatters: isUsername
-              ? [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(13),
-                ]
-              : null,
-        ),
-      ],
-    );
-  }
-}
-
-// Widget item menu, reusable
-class MenuItem extends StatelessWidget {
-  final Widget icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const MenuItem({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: EdgeInsets.all(_calculatePadding(context, 10)),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  spreadRadius: 1,
-                  blurRadius: 3,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: icon,
-          ),
-          SizedBox(height: _calculateSpacing(context, 6)),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.blueGrey,
-              fontSize: _calculateFontSize(context, 12),
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Halaman utama login digi
 class LoginDigi extends StatefulWidget {
   const LoginDigi({super.key});
 
@@ -159,11 +27,9 @@ class _LoginDigiState extends State<LoginDigi> {
   String? _passwordError;
   String? _usernameError;
 
-  // Controllers
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
 
-  // Token Manager
   final TokenManager _tokenManager = TokenManager();
 
   @override
@@ -171,7 +37,6 @@ class _LoginDigiState extends State<LoginDigi> {
     super.initState();
   }
 
-  // Widget untuk membuat item menu di halaman login
   List<Widget> _buildMenuItems(BuildContext context) {
     final double iconSize = _calculateIconSize(context, 65);
 
@@ -225,16 +90,13 @@ class _LoginDigiState extends State<LoginDigi> {
     return rows;
   }
 
-  // Method untuk toggle visibilitas password
   void _togglePasswordVisibility() {
     setState(() {
       _obscureText = !_obscureText;
     });
   }
 
-  // method untuk menampilkan modal bottom sheet untuk login
   void _showLoginDialog() {
-    // Reset input fields dan errors ketika dialog dibuka
     _usernameController.clear();
     _passwordController.clear();
     setState(() {
@@ -286,57 +148,136 @@ class _LoginDigiState extends State<LoginDigi> {
                                 ),
                               ),
                               SizedBox(height: _calculateSpacing(context, 16)),
-                              DigiTextFormField(
-                                controller: _usernameController,
-                                labelText: 'Nomor Telepon',
-                                hintText: 'Masukan Nomor Telepon',
-                                isUsername: true,
-                                keyboardType: TextInputType.number,
-                                errorText: _usernameError,
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Nomor telepon tidak boleh kosong';
-                                  }
-                                  if (value.length < 10) {
-                                    return 'Nomor telepon minimal 10 digit';
-                                  }
-                                  if (value.length > 13) {
-                                    return 'Nomor telepon maksimal 13 digit';
-                                  }
-                                  return null;
-                                },
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Nomor Telepon',
+                                    style: TextStyle(
+                                      fontSize: _calculateFontSize(context, 16),
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue.shade800,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                      height: _calculateSpacing(context, 10)),
+                                  TextFormField(
+                                    controller: _usernameController,
+                                    obscureText: false,
+                                    keyboardType: TextInputType.number,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Nomor telepon tidak boleh kosong';
+                                      }
+                                      if (value.length < 10) {
+                                        return 'Nomor telepon minimal 10 digit';
+                                      }
+                                      if (value.length > 13) {
+                                        return 'Nomor telepon maksimal 13 digit';
+                                      }
+                                      return null;
+                                    },
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w500),
+                                    decoration: InputDecoration(
+                                      fillColor: Colors.blue.shade50,
+                                      filled: true,
+                                      hintText: 'Masukan Nomor Telepon',
+                                      hintStyle: const TextStyle(
+                                          color: Colors.black54,
+                                          fontWeight: FontWeight.bold),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical:
+                                            _calculatePadding(context, 10),
+                                        horizontal:
+                                            _calculatePadding(context, 12),
+                                      ),
+                                      errorText: _usernameError,
+                                      errorMaxLines: 2,
+                                      errorStyle: TextStyle(
+                                          color: Colors.red,
+                                          fontSize:
+                                              _calculateFontSize(context, 12)),
+                                    ),
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(13),
+                                    ],
+                                  ),
+                                ],
                               ),
                               SizedBox(height: _calculateSpacing(context, 16)),
-                              DigiTextFormField(
-                                controller: _passwordController,
-                                labelText: 'Password',
-                                hintText: 'Masukan Password',
-                                obscureText: _obscureText,
-                                isPassword: true,
-                                errorText: _passwordError,
-                                suffixIcon: IconButton(
-                                  onPressed: () {
-                                    setStateDialog(() {
-                                      _togglePasswordVisibility();
-                                    });
-                                  },
-                                  icon: Icon(
-                                    _obscureText
-                                        ? Icons.visibility_off
-                                        : Icons.visibility,
-                                    color: Colors.grey,
-                                    size: _calculateIconSize(context, 24),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Password',
+                                    style: TextStyle(
+                                      fontSize: _calculateFontSize(context, 16),
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue.shade800,
+                                    ),
                                   ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Password tidak boleh kosong';
-                                  }
-                                  if (value.length < 8) {
-                                    return 'Password minimal 8 karakter';
-                                  }
-                                  return null;
-                                },
+                                  SizedBox(
+                                      height: _calculateSpacing(context, 10)),
+                                  TextFormField(
+                                    controller: _passwordController,
+                                    obscureText: _obscureText,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Password tidak boleh kosong';
+                                      }
+                                      if (value.length < 8) {
+                                        return 'Password minimal 8 karakter';
+                                      }
+                                      return null;
+                                    },
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w500),
+                                    decoration: InputDecoration(
+                                      fillColor: Colors.blue.shade50,
+                                      filled: true,
+                                      hintText: 'Masukan Password',
+                                      hintStyle: const TextStyle(
+                                          color: Colors.black54,
+                                          fontWeight: FontWeight.bold),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical:
+                                            _calculatePadding(context, 10),
+                                        horizontal:
+                                            _calculatePadding(context, 12),
+                                      ),
+                                      errorText: _passwordError,
+                                      errorMaxLines: 2,
+                                      suffixIcon: IconButton(
+                                        onPressed: () {
+                                          setStateDialog(() {
+                                            _togglePasswordVisibility();
+                                          });
+                                        },
+                                        icon: Icon(
+                                          _obscureText
+                                              ? Icons.visibility_off
+                                              : Icons.visibility,
+                                          color: Colors.grey,
+                                          size: _calculateIconSize(context, 24),
+                                        ),
+                                      ),
+                                      errorStyle: TextStyle(
+                                          color: Colors.red,
+                                          fontSize:
+                                              _calculateFontSize(context, 12)),
+                                    ),
+                                  ),
+                                ],
                               ),
                               Align(
                                 alignment: Alignment.bottomRight,
@@ -361,8 +302,7 @@ class _LoginDigiState extends State<LoginDigi> {
                               SizedBox(height: _calculateSpacing(context, 10)),
                               SizedBox(
                                 width: double.infinity,
-                                height: _calculatePadding(
-                                    context, 48), // Reverted to fixed height
+                                height: _calculatePadding(context, 48),
                                 child: ElevatedButton(
                                   onPressed: () async {
                                     await _validateLogin(
@@ -397,7 +337,6 @@ class _LoginDigiState extends State<LoginDigi> {
         );
       },
     ).whenComplete(() {
-      // Reset input fields dan errors ketika dialog ditutup
       setState(() {
         _usernameController.clear();
         _passwordController.clear();
@@ -408,23 +347,19 @@ class _LoginDigiState extends State<LoginDigi> {
     });
   }
 
-  // method untuk validasi login dan memanggil API
   Future<void> _validateLogin(
       BuildContext context, StateSetter setStateDialog) async {
     if (_formKey.currentState!.validate()) {
       setStateDialog(() {});
 
-      _showLoadingOverlay(context); // Tampilkan loading overlay
+      _showLoadingOverlay(context);
 
       final String username = _usernameController.text;
       final String password = _passwordController.text;
 
-      // Konfigurasi Endpoint API
       const String loginEndpoint = "/auth/login";
-      final String apiUrl =
-          baseUrl + loginEndpoint; // Menggunakan baseUrl dari api_config.dart
+      final String apiUrl = baseUrl + loginEndpoint;
 
-      // Payload API
       final Map<String, String> bodyData = {
         'username': username,
         'password': password,
@@ -437,10 +372,6 @@ class _LoginDigiState extends State<LoginDigi> {
           body: jsonEncode(bodyData),
         );
 
-        // Log response untuk debugging
-        // print('Response status: ${response.statusCode}');
-        // print('Response body: ${response.body}');
-
         if (response.statusCode == 200) {
           final Map<String, dynamic> responseData = json.decode(response.body);
           if (responseData['code'] == 200 && responseData['status'] == 'OK') {
@@ -450,7 +381,6 @@ class _LoginDigiState extends State<LoginDigi> {
             if (loginResponse.accessToken != null) {
               await _tokenManager.saveToken(loginResponse.accessToken!);
 
-              // Endpoint untuk introspect user
               const String introspectEndpoint = "/auth/introspect";
               final String introspectApiUrl = baseUrl + introspectEndpoint;
 
@@ -471,13 +401,11 @@ class _LoginDigiState extends State<LoginDigi> {
                       introspectData['data']['customer_id'];
                   final String userId = introspectData['data']['user_id'];
 
-                  // Simpan customer_id dan user_id
                   await _tokenManager.saveCustomerId(customerId);
                   await _tokenManager.saveUserId(userId);
 
                   if (context.mounted) {
-                    _hideLoadingOverlay(
-                        context); // Sembunyikan loading overlay setelah berhasil
+                    _hideLoadingOverlay(context);
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
@@ -493,10 +421,8 @@ class _LoginDigiState extends State<LoginDigi> {
                     );
                   }
                 } else {
-                  // Gagal introspect user
                   if (mounted) {
-                    _hideLoadingOverlay(
-                        context); // Sembunyikan loading overlay jika gagal
+                    _hideLoadingOverlay(context);
                     setStateDialog(() {
                       _loginError = introspectData['errors'] != null &&
                               (introspectData['errors'] as List).isNotEmpty
@@ -508,10 +434,8 @@ class _LoginDigiState extends State<LoginDigi> {
                   }
                 }
               } else {
-                // Gagal introspect user - status code error
                 if (mounted) {
-                  _hideLoadingOverlay(
-                      context); // Sembunyikan loading overlay jika gagal
+                  _hideLoadingOverlay(context);
                   setStateDialog(() {
                     _loginError =
                         "Gagal introspect user, kode status: ${introspectResponse.statusCode}. Silakan coba lagi";
@@ -521,10 +445,8 @@ class _LoginDigiState extends State<LoginDigi> {
                 }
               }
             } else {
-              // Access token null dari login response
               if (mounted) {
-                _hideLoadingOverlay(
-                    context); // Sembunyikan loading overlay jika gagal
+                _hideLoadingOverlay(context);
                 setStateDialog(() {
                   _loginError = "Gagal login, silahkan coba lagi!";
                   _passwordError = _loginError;
@@ -533,10 +455,8 @@ class _LoginDigiState extends State<LoginDigi> {
               }
             }
           } else {
-            // Response code bukan 200 OK dari API login
             if (mounted) {
-              _hideLoadingOverlay(
-                  context); // Sembunyikan loading overlay jika gagal
+              _hideLoadingOverlay(context);
               setStateDialog(() {
                 _loginError = responseData['errors'] != null &&
                         (responseData['errors'] as List).isNotEmpty
@@ -548,10 +468,8 @@ class _LoginDigiState extends State<LoginDigi> {
             }
           }
         } else {
-          // Handle status code lainnya selain 200 dari API login
           if (mounted) {
-            _hideLoadingOverlay(
-                context); // Sembunyikan loading overlay jika gagal
+            _hideLoadingOverlay(context);
             setStateDialog(() {
               _loginError =
                   "Terjadi kesalahan saat login, kode status: ${response.statusCode}. Silakan coba lagi";
@@ -561,10 +479,8 @@ class _LoginDigiState extends State<LoginDigi> {
           }
         }
       } catch (e) {
-        // Error pada saat memanggil API login (misalnya, jaringan)
         if (mounted) {
-          _hideLoadingOverlay(
-              context); // Sembunyikan loading overlay jika error
+          _hideLoadingOverlay(context);
           setStateDialog(() {
             _loginError =
                 "Terjadi kesalahan saat login, pesan error: ${e.toString()}. Silakan coba lagi";
@@ -574,31 +490,34 @@ class _LoginDigiState extends State<LoginDigi> {
         }
       }
     } else {
-      // Form tidak valid
       setState(() {
-        _errorMessage = null; // Reset general error message jika ada
+        _errorMessage = null;
       });
       return;
     }
   }
 
-  // Method untuk menampilkan loading overlay
   void _showLoadingOverlay(BuildContext context) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        return const LoadingOverlay();
+        return Container(
+          color: Colors.black.withOpacity(0.5),
+          child: Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.yellow.shade700),
+            ),
+          ),
+        );
       },
     );
   }
 
-  // Method untuk menyembunyikan loading overlay
   void _hideLoadingOverlay(BuildContext context) {
     Navigator.of(context, rootNavigator: true).pop();
   }
 
-  // Build Method
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -721,8 +640,7 @@ class _LoginDigiState extends State<LoginDigi> {
                               vertical: _calculatePadding(context, 5)),
                           child: SizedBox(
                             width: double.infinity,
-                            height: _calculatePadding(
-                                context, 48), // Reverted to fixed height
+                            height: _calculatePadding(context, 48),
                             child: ElevatedButton(
                               onPressed: () {
                                 _showLoginDialog();
@@ -767,32 +685,57 @@ class _LoginDigiState extends State<LoginDigi> {
   }
 }
 
-// Helper Functions (dipindahkan ke bagian bawah untuk keterbacaan)
-double _calculateFontSize(BuildContext context, double baseSize) {
-  final screenWidth = MediaQuery.of(context).size.width;
-  final double scaleFactor = screenWidth / 375;
-  return baseSize * scaleFactor;
+class MenuItem extends StatelessWidget {
+  final Widget icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const MenuItem({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(_calculatePadding(context, 10)),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: icon,
+          ),
+          SizedBox(height: _calculateSpacing(context, 6)),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.blueGrey,
+              fontSize: _calculateFontSize(context, 12),
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-double _calculatePadding(BuildContext context, double basePadding) {
-  final screenWidth = MediaQuery.of(context).size.width;
-  final double scaleFactor = screenWidth / 375;
-  return basePadding * scaleFactor;
-}
-
-double _calculateSpacing(BuildContext context, double baseSpacing) {
-  final screenWidth = MediaQuery.of(context).size.width;
-  final double scaleFactor = screenWidth / 375;
-  return baseSpacing * scaleFactor;
-}
-
-double _calculateIconSize(BuildContext context, double baseSize) {
-  final screenWidth = MediaQuery.of(context).size.width;
-  final double scaleFactor = screenWidth / 375;
-  return baseSize * scaleFactor;
-}
-
-// Widget untuk ikon menu
 class MenuIcon extends StatelessWidget {
   final IconData iconData;
   final double size;
@@ -823,19 +766,26 @@ class MenuIcon extends StatelessWidget {
   }
 }
 
-// Loading Overlay Widget
-class LoadingOverlay extends StatelessWidget {
-  const LoadingOverlay({super.key});
+double _calculateFontSize(BuildContext context, double baseSize) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final double scaleFactor = screenWidth / 375;
+  return baseSize * scaleFactor;
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.black.withOpacity(0.5),
-      child: Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.yellow.shade700),
-        ),
-      ),
-    );
-  }
+double _calculatePadding(BuildContext context, double basePadding) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final double scaleFactor = screenWidth / 375;
+  return basePadding * scaleFactor;
+}
+
+double _calculateSpacing(BuildContext context, double baseSpacing) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final double scaleFactor = screenWidth / 375;
+  return baseSpacing * scaleFactor;
+}
+
+double _calculateIconSize(BuildContext context, double baseSize) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final double scaleFactor = screenWidth / 375;
+  return baseSize * scaleFactor;
 }

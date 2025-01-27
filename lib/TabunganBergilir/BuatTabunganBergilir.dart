@@ -19,12 +19,11 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
   bool _termsAccepted = false;
   String _namaTabunganBergilir = '';
   final TokenManager _tokenManager = TokenManager();
-  bool _isLoading =
-      false; // Gunakan state _isLoading untuk mengontrol bottom sheet button
+  bool _isLoading = false;
 
   Future<void> _submitToApi() async {
     if (!_formKey.currentState!.validate() || !_termsAccepted) {
-      return; // Stop if form is invalid or terms not accepted
+      return;
     }
 
     _namaTabunganBergilir = _namaTabunganBergilirController.text;
@@ -32,7 +31,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
     _showLoadingDialog(context);
 
     setState(() {
-      _isLoading = true; // Set loading jadi true saat mulai submit
+      _isLoading = true;
     });
 
     try {
@@ -41,12 +40,9 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
         throw Exception("Token tidak ditemukan");
       }
 
-      // Konfigurasi Endpoint API
-      const String createGoalsEndpoint =
-          "/saving-groups/rotating"; // Endpoint diperbaiki
+      const String createGoalsEndpoint = "/saving-groups/rotating";
       final String apiUrl = baseUrl + createGoalsEndpoint;
 
-      // Payload API
       final Map<String, dynamic> bodyData = {
         'name': _namaTabunganBergilir,
       };
@@ -61,16 +57,16 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
       );
 
       if (response.statusCode == 201) {
-        Navigator.pop(context); // Tutup Loading Dialog
+        Navigator.pop(context);
         _showSuccessDialog();
       } else {
-        Navigator.pop(context); // Tutup Loading Dialog
+        Navigator.pop(context);
         final Map<String, dynamic> responseData = json.decode(response.body);
         throw Exception(
             "Gagal membuat tabungan bergilir. Status Code: ${response.statusCode}, Error: ${responseData['errors'] != null && (responseData['errors'] as List).isNotEmpty ? (responseData['errors'] as List)[0].toString() : 'Terjadi Kesalahan'}");
       }
     } catch (e) {
-      Navigator.pop(context); // Tutup Loading Dialog
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content:
@@ -80,8 +76,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
       );
     } finally {
       setState(() {
-        _isLoading =
-            false; // Set loading jadi false setelah proses selesai (berhasil atau gagal)
+        _isLoading = false;
       });
     }
   }
@@ -187,8 +182,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
             builder: (BuildContext context, StateSetter setModalState) {
               return Padding(
                 padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                ),
+                    bottom: MediaQuery.of(context).viewInsets.bottom),
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   child: Column(
@@ -584,7 +578,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
-        onPressed: _termsAccepted && !_isLoading // Disable button saat loading
+        onPressed: _termsAccepted && !_isLoading
             ? () async {
                 Navigator.pop(context);
                 await _submitToApi();
@@ -593,7 +587,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
         style: ElevatedButton.styleFrom(
           backgroundColor: _termsAccepted && !_isLoading
               ? Colors.yellow.shade700
-              : Colors.grey, // Disable color saat loading
+              : Colors.grey,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
@@ -601,10 +595,9 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
         child: Text(
           'Buat Tabungan Bergilir',
           style: TextStyle(
-            color:
-                _termsAccepted && !_isLoading // Disable text color saat loading
-                    ? Colors.blue.shade800
-                    : Colors.black,
+            color: _termsAccepted && !_isLoading
+                ? Colors.blue.shade800
+                : Colors.black,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -772,7 +765,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
             ),
           ),
         ),
-        if (_isLoading) // Loading Overlay
+        if (_isLoading)
           Container(
             color: Colors.black.withOpacity(0.5),
             child: Center(

@@ -11,7 +11,6 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:http/http.dart' as http;
 
-// Model for Saving Group (Unified Model for both Joint and Rotating)
 class SavingGroup {
   final String id;
   final String name;
@@ -49,7 +48,6 @@ class SavingGroup {
   }
 }
 
-// Model for Member
 class Member {
   final String id;
   final String name;
@@ -98,7 +96,6 @@ class _OurGoalsState extends State<OurGoals> {
     }
   }
 
-  // Function to check if deletion was successful and show snackbar
   void _checkDeletionSuccess() {
     final arguments = ModalRoute.of(context)?.settings.arguments;
     if (arguments != null && arguments is Map<String, dynamic>) {
@@ -290,7 +287,6 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
-  // AppBar Widget
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -336,7 +332,6 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
-  // Navigation Overlay Widget
   Widget _buildNavigationOverlay() {
     return Stack(
       children: [
@@ -353,11 +348,10 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
-  // Function to navigate to detail page
   void _navigateToDetail(
       BuildContext context, String savingGroupId, String goalType) {
     setState(() {
-      _isNavigating = true; // Set navigating state to true before navigation
+      _isNavigating = true;
     });
     if (goalType == 'JOINT_SAVING') {
       Navigator.push(
@@ -368,27 +362,24 @@ class _OurGoalsState extends State<OurGoals> {
         ),
       ).then((_) {
         setState(() {
-          _isNavigating =
-              false; // Set navigating state back to false after returning
+          _isNavigating = false;
         });
       });
     } else if (goalType == 'ROTATING_SAVING') {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => DetailTabunganBergilir(
-              savingGroupId: savingGroupId), // Pass savingGroupId here
+          builder: (context) =>
+              DetailTabunganBergilir(savingGroupId: savingGroupId),
         ),
       ).then((_) {
         setState(() {
-          _isNavigating =
-              false; // Set navigating state back to false after returning
+          _isNavigating = false;
         });
       });
     }
   }
 
-  // Create Goal Card Widget
   Widget _buildCreateGoalCard(BuildContext context) {
     return Card(
       color: Colors.white,
@@ -417,7 +408,6 @@ class _OurGoalsState extends State<OurGoals> {
                   setState(() {
                     _isNavigating = false;
                   });
-                  // Refresh data goals ketika kembali dari PilihGoals
                   _fetchGoals();
                 });
               },
@@ -455,7 +445,6 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
-  // Create Goal Icon Widget
   Widget _buildCreateGoalIcon() {
     return Container(
       width: 62,
@@ -470,7 +459,6 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
-  // Create Goal Title Widget
   Widget _buildCreateGoalTitle() {
     return const Text(
       'Buat Goals Kamu!',
@@ -478,7 +466,6 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
-  // Create Goal Description Widget
   Widget _buildCreateGoalDescription(BuildContext context) {
     return Text(
       'Sesuaikan Goals kamu untuk hal yang kamu inginkan',
@@ -490,7 +477,6 @@ class _OurGoalsState extends State<OurGoals> {
     );
   }
 
-  // Shimmer Loader Widget
   Widget _buildShimmerLoader(int count) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -513,7 +499,6 @@ class _OurGoalsState extends State<OurGoals> {
   }
 }
 
-// Goal Card Widget
 class GoalCard extends StatelessWidget {
   final SavingGroup goal;
   final VoidCallback? onTap;
@@ -592,7 +577,6 @@ class GoalCard extends StatelessWidget {
     );
   }
 
-  // Goal Card Header Widget
   Widget _buildGoalCardHeader(SavingGroup goal, List<Widget> memberAvatars) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -603,7 +587,6 @@ class GoalCard extends StatelessWidget {
     );
   }
 
-  // Goal Type Row Widget
   Widget _buildGoalTypeRow(SavingGroup goal) {
     return Row(
       children: [
@@ -624,12 +607,10 @@ class GoalCard extends StatelessWidget {
     );
   }
 
-  // Member Avatars Row Widget
   Widget _buildMemberAvatarsRow(List<Widget> memberAvatars) {
     return Row(children: memberAvatars);
   }
 
-  // Goal Name Text Widget
   Widget _buildGoalNameText(SavingGroup goal) {
     return Text(
       goal.name,
@@ -641,7 +622,6 @@ class GoalCard extends StatelessWidget {
     );
   }
 
-  // Goal Progress Text Widget
   Widget _buildGoalProgressText(String formattedTarget) {
     return Text(
       '0 / $formattedTarget',
@@ -650,7 +630,6 @@ class GoalCard extends StatelessWidget {
     );
   }
 
-  // Progress Bar Widget
   Widget _buildProgressBar() {
     return Stack(
       children: [
@@ -675,7 +654,6 @@ class GoalCard extends StatelessWidget {
     );
   }
 
-  // Goal Summary Row Widget
   Widget _buildGoalSummaryRow(SavingGroup goal) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -686,7 +664,6 @@ class GoalCard extends StatelessWidget {
     );
   }
 
-  // Progress Percentage Text Widget
   Widget _buildProgressPercentageText() {
     return const Text(
       '50%',
@@ -695,7 +672,6 @@ class GoalCard extends StatelessWidget {
     );
   }
 
-  // Remaining Days Text Widget
   Widget _buildRemainingDaysText(SavingGroup goal) {
     return Text(
       'Sisa ${goal.duration} hari',
