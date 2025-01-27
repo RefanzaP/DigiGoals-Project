@@ -390,14 +390,10 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
         final responseData = json.decode(utf8.decode(response.bodyBytes));
         if (responseData['code'] == 200 && responseData['status'] == 'OK') {
           // Navigasi kembali ke OurGoals dengan flag sukses hapus, jika hapus berhasil, kembali ke halaman OurGoals
-          Navigator.pushReplacement(
+          Navigator.popAndPushNamed(
             context,
-            MaterialPageRoute(
-              builder: (context) => const OurGoals(),
-              settings: const RouteSettings(arguments: {
-                'deletionSuccess': true
-              }), // Kirim argumen sukses hapus, mengirimkan argumen ke halaman OurGoals untuk menampilkan SnackBar sukses
-            ),
+            '/ourGoals',
+            arguments: {'deletionSuccess': true},
           );
         } else {
           // Tampilkan SnackBar error hapus, jika hapus gagal, tampilkan SnackBar error
@@ -412,14 +408,10 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
             ),
           );
           // Navigasi kembali ke OurGoals dengan flag gagal hapus, tetap kembali ke halaman OurGoals meskipun hapus gagal
-          Navigator.pushReplacement(
+          Navigator.popAndPushNamed(
             context,
-            MaterialPageRoute(
-              builder: (context) => const OurGoals(),
-              settings: const RouteSettings(arguments: {
-                'deletionSuccess': false
-              }), // Kirim argumen gagal hapus, mengirimkan argumen ke halaman OurGoals untuk menampilkan SnackBar gagal
-            ),
+            '/ourGoals',
+            arguments: {'deletionSuccess': true},
           );
         }
       } else {
@@ -432,15 +424,7 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
           ),
         );
         // Navigasi kembali ke OurGoals dengan flag gagal hapus, tetap kembali ke halaman OurGoals meskipun hapus gagal karena status code error
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const OurGoals(),
-            settings: const RouteSettings(arguments: {
-              'deletionSuccess': false
-            }), // Kirim argumen gagal hapus, mengirimkan argumen ke halaman OurGoals untuk menampilkan SnackBar gagal
-          ),
-        );
+        Navigator.popUntil(context, ModalRoute.withName('/ourGoals'));
       }
     } catch (e) {
       // Tampilkan SnackBar error exception, jika terjadi exception saat request API, tampilkan SnackBar error
@@ -452,14 +436,10 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
         ),
       );
       // Navigasi kembali ke OurGoals dengan flag gagal hapus, tetap kembali ke halaman OurGoals meskipun hapus gagal karena exception
-      Navigator.pushReplacement(
+      Navigator.popAndPushNamed(
         context,
-        MaterialPageRoute(
-          builder: (context) => const OurGoals(),
-          settings: const RouteSettings(arguments: {
-            'deletionSuccess': false
-          }), // Kirim argumen gagal hapus, mengirimkan argumen ke halaman OurGoals untuk menampilkan SnackBar gagal
-        ),
+        '/ourGoals',
+        arguments: {'deletionSuccess': true},
       );
     }
   }

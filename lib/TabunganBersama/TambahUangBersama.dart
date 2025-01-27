@@ -1699,13 +1699,13 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            Navigator.pushReplacement<void, void>(
-                              context,
-                              MaterialPageRoute<void>(
-                                builder: (BuildContext context) =>
-                                    DetailTabunganBersama(),
-                              ),
-                            );
+                            // Navigator.pushReplacement<void, void>(
+                            //   context,
+                            //   MaterialPageRoute<void>(
+                            //     builder: (BuildContext context) =>
+                            //         DetailTabunganBersama(),
+                            //   ),
+                            // );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.yellow.shade700,

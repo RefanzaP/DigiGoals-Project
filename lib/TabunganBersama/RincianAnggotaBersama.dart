@@ -1,22 +1,20 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
-import 'dart:convert'; // Import untuk encoding dan decoding JSON
-import 'package:digigoals_app/api/api_config.dart'; // Import konfigurasi API
-import 'package:digigoals_app/auth/token_manager.dart'; // Import Token Manager untuk otentikasi
-import 'package:flutter/material.dart'; // Import library Flutter Material Design
-import 'package:intl/intl.dart'; // Import library untuk format tanggal
-import 'package:shimmer/shimmer.dart'; // Import library Shimmer untuk efek loading
-import 'package:http/http.dart'
-    as http; // Import library HTTP untuk request API
+import 'dart:convert';
+import 'package:digigoals_app/api/api_config.dart';
+import 'package:digigoals_app/auth/token_manager.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:http/http.dart' as http;
 
-// Model untuk merepresentasikan detail anggota tabungan bersama
 class MemberDetail {
-  final String memberId; // ID Member
-  final String name; // Nama Member
-  final String accountNumber; // Nomor Rekening Member
-  final String role; // Role Member (Pemilik/Anggota)
-  final DateTime joinDate; // Tanggal Bergabung Member
-  final Color avatarColor; // Warna Avatar Member
+  final String memberId;
+  final String name;
+  final String accountNumber;
+  final String role;
+  final DateTime joinDate;
+  final Color avatarColor;
 
   MemberDetail({
     required this.memberId,
@@ -27,34 +25,26 @@ class MemberDetail {
     required this.avatarColor,
   });
 
-  // Factory constructor untuk membuat objek MemberDetail dari JSON
   factory MemberDetail.fromJson(Map<String, dynamic> json, int index) {
-    final user = json['user']; // Data user dari JSON
-    final customer = user['customer']; // Data customer dari JSON
+    final user = json['user'];
+    final customer = user['customer'];
     return MemberDetail(
-      memberId: user['id'].toString(), // Konversi ID user ke String
-      name:
-          customer['name'] ?? 'N/A', // Ambil nama customer atau 'N/A' jika null
-      accountNumber: json['account']?['account_number']?.toString() ??
-          'N/A', // Ambil nomor rekening atau 'N/A' jika null
-      role: json['role'] == 'ADMIN'
-          ? 'Pemilik'
-          : 'Anggota', // Set role berdasarkan nilai 'role' di JSON
+      memberId: user['id'].toString(),
+      name: customer['name'] ?? 'N/A',
+      accountNumber: json['account']?['account_number']?.toString() ?? 'N/A',
+      role: json['role'] == 'ADMIN' ? 'Pemilik' : 'Anggota',
       joinDate: json['join_date'] != null
-          ? DateTime.parse(
-              json['join_date']) // Parse tanggal bergabung jika tidak null
-          : DateTime.now(), // Fallback ke tanggal sekarang jika join_date null
-      avatarColor: Colors.primaries[index %
-          Colors.primaries.length], // Pilih warna avatar berdasarkan index
+          ? DateTime.parse(json['join_date'])
+          : DateTime.now(),
+      avatarColor: Colors.primaries[index % Colors.primaries.length],
     );
   }
 }
 
-// Widget Utama Halaman Rincian Anggota Bersama
 class RincianAnggotaBersama extends StatefulWidget {
-  final String savingGroupId; // ID Saving Group dari halaman sebelumnya
-  final String goalsName; // Nama Goals dari halaman sebelumnya
-  final bool isActive; // Status aktif tabungan (belum digunakan di UI saat ini)
+  final String savingGroupId;
+  final String goalsName;
+  final bool isActive;
 
   const RincianAnggotaBersama({
     super.key,
@@ -68,111 +58,117 @@ class RincianAnggotaBersama extends StatefulWidget {
 }
 
 class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
-  List<MemberDetail> members = []; // State untuk daftar member
-  bool isLoading = true; // State untuk indikator loading
-  String? _errorMessage; // State untuk pesan error
-  late String tabunganName; // State untuk nama tabungan (diambil dari widget)
-  int jumlahAnggota = 0; // State untuk jumlah anggota
-  final TokenManager _tokenManager =
-      TokenManager(); // Instance TokenManager untuk otentikasi
+  List<MemberDetail> members = [];
+  bool isLoading = true;
+  String? _errorMessage;
+  late String tabunganName;
+  int jumlahAnggota = 0;
+  final TokenManager _tokenManager = TokenManager();
+  String? _loggedInUserRole; // State untuk menyimpan role user yang login
 
   @override
   void initState() {
     super.initState();
-    tabunganName = widget.goalsName; // Inisialisasi nama tabungan
-    _loadMembers(); // Panggil fungsi untuk memuat daftar anggota saat widget diinisialisasi
+    tabunganName = widget.goalsName;
+    _loadMembers();
   }
 
-  // Fungsi untuk memuat daftar anggota dari API
   Future<void> _loadMembers() async {
     setState(() {
-      isLoading = true; // Set state loading menjadi true
-      _errorMessage = null; // Reset pesan error
-      members = []; // Bersihkan daftar member sebelumnya
-      jumlahAnggota = 0; // Reset jumlah anggota
+      isLoading = true;
+      _errorMessage = null;
+      members = [];
+      jumlahAnggota = 0;
+      _loggedInUserRole = null; // Reset role user saat loading baru
     });
 
-    String? token =
-        await _tokenManager.getToken(); // Ambil token dari TokenManager
+    String? token = await _tokenManager.getToken();
     if (token == null) {
       setState(() {
-        isLoading = false; // Set state loading menjadi false
-        _errorMessage =
-            "Sesi Anda telah berakhir. Mohon login kembali."; // Pesan error user-friendly
+        isLoading = false;
+        _errorMessage = "Sesi Anda telah berakhir. Mohon login kembali.";
       });
       return;
     }
 
-    final String savingGroupId =
-        widget.savingGroupId; // Ambil savingGroupId dari widget
-    final membersUrl = Uri.parse(
-        '$baseUrl/members?savingGroupId=$savingGroupId'); // Endpoint API untuk daftar member
+    final String savingGroupId = widget.savingGroupId;
+    final membersUrl =
+        Uri.parse('$baseUrl/members?savingGroupId=$savingGroupId');
+    final introspectUrl = Uri.parse(
+        '$baseUrl/auth/introspect'); // Endpoint untuk introspect role user
 
     try {
-      final response = await http.get(
-        membersUrl,
-        headers: {
+      final responses = await Future.wait([
+        http.get(membersUrl, headers: {'Authorization': 'Bearer $token'}),
+        http.get(introspectUrl, headers: {
           'Authorization': 'Bearer $token'
-        }, // Sertakan token di header otorisasi
-      );
+        }), // Request introspect user
+      ]);
 
-      if (response.statusCode == 200) {
-        final responseBody =
-            utf8.decode(response.bodyBytes); // Decode response body bytes
-        final responseData =
-            json.decode(responseBody); // Decode response body JSON
-        if (responseData['code'] == 200 && responseData['status'] == 'OK') {
-          List<dynamic> memberDataList =
-              responseData['data']; // Ambil list data member dari response
-          List<MemberDetail> fetchedMembers =
-              []; // List untuk menyimpan objek MemberDetail
+      final membersResponse = responses[0];
+      final introspectResponse = responses[1];
+
+      if (membersResponse.statusCode == 200 &&
+          introspectResponse.statusCode == 200) {
+        final responseBody = utf8.decode(membersResponse.bodyBytes);
+        final responseData = json.decode(responseBody);
+        final introspectData =
+            json.decode(utf8.decode(introspectResponse.bodyBytes));
+
+        if (responseData['code'] == 200 &&
+            responseData['status'] == 'OK' &&
+            introspectData['code'] == 200 &&
+            introspectData['status'] == 'OK') {
+          List<dynamic> memberDataList = responseData['data'];
+          List<MemberDetail> fetchedMembers = [];
           for (int i = 0; i < memberDataList.length; i++) {
-            fetchedMembers.add(MemberDetail.fromJson(
-                memberDataList[i], i)); // Map setiap item ke objek MemberDetail
+            fetchedMembers.add(MemberDetail.fromJson(memberDataList[i], i));
           }
 
           setState(() {
-            members =
-                fetchedMembers; // Set state members dengan data yang diambil dari API
-            jumlahAnggota = members.length; // Update jumlah anggota
-            isLoading = false; // Set state loading menjadi false
+            members = fetchedMembers;
+            jumlahAnggota = members.length;
+            isLoading = false;
+            _loggedInUserRole =
+                introspectData['data']['role']; // Set role user yang login
           });
         } else {
           setState(() {
-            isLoading = false; // Set state loading menjadi false
+            isLoading = false;
             _errorMessage = responseData['errors'] != null &&
                     (responseData['errors'] as List).isNotEmpty
-                ? (responseData['errors'] as List)[0]
-                    .toString() // Ambil pesan error dari API response
-                : "Gagal mengambil data anggota tabungan, silahkan coba lagi."; // Pesan error default
+                ? (responseData['errors'] as List)[0].toString()
+                : introspectData['errors'] != null &&
+                        (introspectData['errors'] as List).isNotEmpty
+                    ? (introspectData['errors'] as List)[0].toString()
+                    : "Gagal mengambil data anggota atau informasi user, silahkan coba lagi.";
           });
         }
       } else {
         setState(() {
-          isLoading = false; // Set state loading menjadi false
+          isLoading = false;
           _errorMessage =
-              "Gagal memuat data anggota. Status code: ${response.statusCode}"; // Pesan error dengan status code
+              "Gagal memuat data anggota. Status code Member: ${membersResponse.statusCode}, Status User: ${introspectResponse.statusCode}";
         });
       }
     } catch (e) {
       setState(() {
-        isLoading = false; // Set state loading menjadi false
+        isLoading = false;
         _errorMessage =
-            "Terjadi kesalahan saat memuat data anggota: ${e.toString()}"; // Pesan error exception
+            "Terjadi kesalahan saat memuat data anggota: ${e.toString()}";
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width; // Lebar layar
-    final isSmallScreen = screenWidth < 600; // Kondisi layar kecil
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
 
     return Scaffold(
-      appBar: _buildAppBar(context), // AppBar kustom
+      appBar: _buildAppBar(context),
       body: _errorMessage != null
-          ? Center(
-              child: Text(_errorMessage!)) // Tampilkan pesan error jika ada
+          ? Center(child: Text(_errorMessage!))
           : Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -184,16 +180,11 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
                     children: [
                       Flexible(
                         child: isLoading
-                            ? _buildShimmerLoader(
-                                height: 24,
-                                width:
-                                    200) // Shimmer loading untuk nama tabungan
+                            ? _buildShimmerLoader(height: 24, width: 200)
                             : Text(
-                                tabunganName, // Tampilkan nama tabungan
+                                tabunganName,
                                 style: TextStyle(
-                                  fontSize: isSmallScreen
-                                      ? 20
-                                      : 24, // Ukuran font responsif
+                                  fontSize: isSmallScreen ? 20 : 24,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -201,15 +192,11 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
                     ],
                   ),
                   isLoading
-                      ? _buildShimmerLoader(
-                          height: 16,
-                          width: 150) // Shimmer loading untuk jumlah anggota
+                      ? _buildShimmerLoader(height: 16, width: 150)
                       : Text(
-                          '$jumlahAnggota Anggota Bergabung', // Tampilkan jumlah anggota
+                          '$jumlahAnggota Anggota Bergabung',
                           style: TextStyle(
-                            fontSize: isSmallScreen
-                                ? 14
-                                : 16, // Ukuran font responsif
+                            fontSize: isSmallScreen ? 14 : 16,
                             color: Colors.grey,
                           ),
                         ),
@@ -217,33 +204,30 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
                   Expanded(
                     child: isLoading
                         ? ListView.builder(
-                            itemCount: 5, // Jumlah shimmer item saat loading
+                            itemCount: 5,
                             itemBuilder: (context, index) {
                               return Padding(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 8.0),
                                 child: _buildShimmerLoader(
-                                    height: 80,
-                                    width: double
-                                        .infinity), // Shimmer loading untuk list item
+                                    height: 80, width: double.infinity),
                               );
                             },
                           )
                         : ListView.builder(
-                            itemCount: members
-                                .length, // Jumlah item list sesuai data member
+                            itemCount: members.length,
                             itemBuilder: (context, index) {
-                              final member =
-                                  members[index]; // Ambil data member per index
+                              final member = members[index];
                               return _buildMemberTile(
-                                context,
-                                member.name,
-                                member.accountNumber,
-                                member.role,
-                                'Bergabung pada ${DateFormat('dd MMM yyyy').format(member.joinDate)}', // Format tanggal bergabung
-                                member.avatarColor,
-                                isSmallScreen,
-                              );
+                                  context,
+                                  member.name,
+                                  member.accountNumber,
+                                  member.role,
+                                  'Bergabung pada ${DateFormat('dd MMM yyyy').format(member.joinDate)}',
+                                  member.avatarColor,
+                                  isSmallScreen,
+                                  _loggedInUserRole // Kirim role user yang login ke _buildMemberTile
+                                  );
                             },
                           ),
                   ),
@@ -253,7 +237,7 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
     );
   }
 
-  // AppBar Widget
+  // AppBar Widget (sama seperti sebelumnya)
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -272,7 +256,7 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () {
-          Navigator.pop(context); // Navigasi kembali ke halaman sebelumnya
+          Navigator.pop(context);
         },
       ),
       title: const Text(
@@ -299,7 +283,7 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
     );
   }
 
-  // Shimmer Loader Widget (Reusable)
+  // Shimmer Loader Widget (sama seperti sebelumnya)
   Widget _buildShimmerLoader({required double height, required double width}) {
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
@@ -315,7 +299,7 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
     );
   }
 
-  // Widget untuk menampilkan tile member dalam list
+  // Widget untuk menampilkan tile member dalam list (Diperbarui dengan parameter loggedInUserRole)
   Widget _buildMemberTile(
       BuildContext context,
       String name,
@@ -323,7 +307,9 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
       String role,
       String subtitle,
       Color color,
-      bool isSmallScreen) {
+      bool isSmallScreen,
+      String? loggedInUserRole // Parameter baru untuk role user yang login
+      ) {
     return Card(
       color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -346,9 +332,9 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
                   child: Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: color, // Warna avatar dari model
+                        backgroundColor: color,
                         child: Text(
-                          name[0].toUpperCase(), // Inisial nama member
+                          name[0].toUpperCase(),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -364,36 +350,28 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
                               spacing: 8.0,
                               children: [
                                 Text(
-                                  name, // Nama member
+                                  name,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: isSmallScreen
-                                        ? 16
-                                        : 18, // Ukuran font responsif
+                                    fontSize: isSmallScreen ? 16 : 18,
                                   ),
                                 ),
                                 Text(
-                                  role, // Role member (Pemilik/Anggota)
+                                  role,
                                   style: TextStyle(
                                     color: role == 'Pemilik'
                                         ? Colors.blue
-                                        : Colors
-                                            .orange, // Warna role berbeda untuk Pemilik dan Anggota
+                                        : Colors.orange,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: isSmallScreen
-                                        ? 14
-                                        : 16, // Ukuran font responsif
+                                    fontSize: isSmallScreen ? 14 : 16,
                                   ),
                                 ),
                               ],
                             ),
-                            // const SizedBox(height: 4),
                             Text(
-                              '$accountNumber\n$subtitle', // Nomor rekening dan subtitle (tanggal bergabung)
+                              '$accountNumber\n$subtitle',
                               style: TextStyle(
-                                fontSize: isSmallScreen
-                                    ? 12
-                                    : 14, // Ukuran font responsif
+                                fontSize: isSmallScreen ? 12 : 14,
                                 color: Colors.grey,
                               ),
                             ),
@@ -403,20 +381,18 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
                     ],
                   ),
                 ),
-                if (role != 'Pemilik' &&
-                    !widget
-                        .isActive) // Tampilkan icon delete hanya jika bukan pemilik dan tabungan tidak aktif
+                // Kondisional menampilkan icon delete berdasarkan role user login dan role member
+                if (loggedInUserRole == 'ADMIN' &&
+                    role != 'Pemilik' &&
+                    !widget.isActive)
                   IconButton(
-                    icon: const Icon(Icons.delete,
-                        color: Colors.red), // Ikon delete
+                    icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
-                      _showDeleteConfirmationDialog(
-                          name); // Tampilkan dialog konfirmasi hapus
+                      _showDeleteConfirmationDialog(name);
                     },
                   )
                 else
-                  const SizedBox
-                      .shrink(), // Widget kosong jika bukan kondisi di atas
+                  const SizedBox.shrink(),
               ],
             ),
           ],
@@ -425,7 +401,7 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
     );
   }
 
-  // Fungsi untuk menampilkan dialog konfirmasi hapus anggota
+  // Fungsi untuk menampilkan dialog konfirmasi hapus anggota (sama seperti sebelumnya)
   void _showDeleteConfirmationDialog(String name) {
     showDialog(
       context: context,
@@ -433,30 +409,28 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
         return DeleteConfirmationDialog(
           name: name,
           onConfirm: () {
-            _deleteMember(name); // Panggil fungsi untuk hapus member dari API
-            Navigator.pop(context); // Tutup dialog konfirmasi
+            _deleteMember(name);
+            Navigator.pop(context);
           },
         );
       },
     );
   }
 
-  // Fungsi untuk menghapus member dari API (BELUM IMPLEMENTASI API CALL)
+  // Fungsi untuk menghapus member dari API (sama seperti sebelumnya, perlu implementasi API Call)
   Future<void> _deleteMember(String memberName) async {
     setState(() {
-      isLoading = true; // Set loading state menjadi true
+      isLoading = true;
     });
 
-    String? token =
-        await _tokenManager.getToken(); // Ambil token dari TokenManager
+    String? token = await _tokenManager.getToken();
     if (token == null) {
       setState(() {
-        isLoading = false; // Set loading state menjadi false
+        isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-              'Token tidak ditemukan, mohon login kembali.'), // SnackBar error token
+          content: Text('Token tidak ditemukan, mohon login kembali.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -464,30 +438,26 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
     }
 
     // TODO: Implementasi API call untuk delete member disini
-    // Contoh placeholder API call (perlu diganti dengan implementasi sebenarnya)
     await Future.delayed(const Duration(seconds: 1));
 
     setState(() {
-      isLoading =
-          false; // Set loading state menjadi false setelah API call (simulasi)
-      members.removeWhere((member) =>
-          member.name == memberName); // Hapus member dari list lokal
-      jumlahAnggota = members.length; // Update jumlah anggota
+      isLoading = false;
+      members.removeWhere((member) => member.name == memberName);
+      jumlahAnggota = members.length;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-            'Anggota $memberName berhasil dihapus.'), // SnackBar sukses hapus anggota
+        content: Text('Anggota $memberName berhasil dihapus.'),
       ),
     );
   }
 }
 
-// Widget Dialog Konfirmasi Hapus Anggota (Reusable)
+// Widget Dialog Konfirmasi Hapus Anggota (sama seperti sebelumnya)
 class DeleteConfirmationDialog extends StatelessWidget {
-  final String name; // Nama member yang akan dihapus
-  final VoidCallback onConfirm; // Callback function saat konfirmasi hapus
+  final String name;
+  final VoidCallback onConfirm;
 
   const DeleteConfirmationDialog(
       {super.key, required this.name, required this.onConfirm});
@@ -516,7 +486,7 @@ class DeleteConfirmationDialog extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Apakah Benar Anda Ingin Menghapus Anggota $name?', // Pesan konfirmasi hapus
+              'Apakah Benar Anda Ingin Menghapus Anggota $name?',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 16,
@@ -534,7 +504,7 @@ class DeleteConfirmationDialog extends StatelessWidget {
                   margin: const EdgeInsets.only(right: 8),
                   child: OutlinedButton(
                     onPressed: () {
-                      Navigator.pop(context); // Tutup dialog tanpa menghapus
+                      Navigator.pop(context);
                     },
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.transparent,
@@ -561,8 +531,8 @@ class DeleteConfirmationDialog extends StatelessWidget {
                   margin: const EdgeInsets.only(left: 8),
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context); // Tutup dialog
-                      onConfirm(); // Panggil callback onConfirm untuk hapus member
+                      Navigator.pop(context);
+                      onConfirm();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.yellow.shade700,

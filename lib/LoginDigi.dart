@@ -11,19 +11,6 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:digigoals_app/api/api_config.dart'; // Import baseUrl dari api_config.dart
 
-// Model Account Statis (Tidak digunakan dalam LoginDigi, bisa dipindahkan jika digunakan di tempat lain)
-class Account {
-  final String nomorRekening;
-  final String namaRekening;
-  final double saldoRekening;
-
-  Account({
-    required this.nomorRekening,
-    required this.namaRekening,
-    required this.saldoRekening,
-  });
-}
-
 // Widget untuk input text form, reusable
 class DigiTextFormField extends StatelessWidget {
   final TextEditingController controller;

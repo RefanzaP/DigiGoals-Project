@@ -617,8 +617,7 @@ class _KonfirmasiUndanganBersamaState extends State<KonfirmasiUndanganBersama> {
                     height: 37,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.of(context).popUntil(ModalRoute.withName(
-                            '/ourGoals')); // Kembali ke halaman OurGoals
+                        Navigator.pop(context); // Close success dialog
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(

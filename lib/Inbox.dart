@@ -65,7 +65,6 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
       curve: Curves.easeInOut,
     );
     // Cetak token yang diterima untuk debugging
-    print('Token diterima di Inbox: ${widget.token}');
   }
 
   Future<void> _loadInitialData() async {
