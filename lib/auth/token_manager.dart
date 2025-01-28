@@ -1,5 +1,6 @@
 // token_manager.dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart'; // Import jwt_jsonwebtoken package
 
 class TokenManager {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
@@ -48,5 +49,18 @@ class TokenManager {
   Future<void> deleteAllData() async {
     await deleteToken();
     await deleteCustomerAndUserId();
+  }
+
+  // New method to extract user ID from JWT token
+  String? getUserIdFromToken(String token) {
+    try {
+      final jwt = JWT.decode(token);
+      // Assuming user ID is stored in the 'userId' claim in the JWT payload
+      // You might need to adjust the claim name based on your JWT structure
+      return jwt.payload?['userId']?.toString();
+    } catch (e) {
+      // Token is invalid or expired
+      return null;
+    }
   }
 }

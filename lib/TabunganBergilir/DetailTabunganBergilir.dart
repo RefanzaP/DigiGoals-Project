@@ -16,6 +16,48 @@ import 'package:digigoals_app/api/api_config.dart'; // Import api_config.dart
 import 'package:digigoals_app/auth/token_manager.dart'; // Import TokenManager
 import 'package:http/http.dart' as http; // Import http package
 
+class MemberDetailTargetBergilir {
+  final String memberId;
+  final String name;
+  final String accountNumber;
+  final String role; // Keep role as String
+  final double lockedBalance;
+  final Color avatarColor;
+  final String status;
+
+  MemberDetailTargetBergilir({
+    required this.memberId,
+    required this.name,
+    required this.accountNumber,
+    required this.role,
+    required this.lockedBalance,
+    required this.avatarColor,
+    required this.status,
+  });
+
+  factory MemberDetailTargetBergilir.fromJson(
+      Map<String, dynamic> json, int index, double contributionAmount) {
+    final user = json['user'];
+    final customer = user['customer'];
+    final account = json['account'];
+    final lockedBalance =
+        (account?['total_locked_balance'] as num?)?.toDouble() ?? 0.0;
+    final targetPerMember = contributionAmount;
+    final isPaidOff = lockedBalance >= targetPerMember;
+    final role = json['role']; // Extract role directly from json
+
+    return MemberDetailTargetBergilir(
+      memberId: user['id'].toString(),
+      name: customer['name'] ?? 'N/A',
+      accountNumber: account?['account_number']?.toString() ?? 'N/A',
+      role: role, // Use extracted role
+      lockedBalance: lockedBalance,
+      avatarColor: Colors.primaries[index % Colors.primaries.length],
+      status: isPaidOff ? 'Lunas' : 'Belum Lunas',
+    );
+  }
+}
+
 class DetailTabunganBergilir extends StatefulWidget {
   final String savingGroupId; // Add savingGroupId parameter
   final bool isActive;
@@ -38,16 +80,20 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
   String? _errorMessage; // Error message state
   bool _isSnackBarShown =
       false; // State to prevent SnackBar from showing repeatedly
+  String? _userRole; // To store the current user's role
 
   late String goalsName = ''; // Initialize with empty string
   late String statusTabungan = 'INACTIVE'; // Initialize with default value
-  double progressTabungan = 0.0; // Keep static
+  double progressTabungan = 0.0;
+  double saldoTabungan = 0.0;
   late int targetSaldoTabungan = 0; // Initialize with 0
   late int durasiTabungan = 0; // Initialize with 0
   List<String> members = [];
   List<Map<String, dynamic>> historiTransaksi = []; // Keep static
   late String memberName;
   Map<String, dynamic> _goalsData = {};
+  late double targetKontribusi =
+      0.0; // New variable to store contribution_amount
 
   late List<String> _allMembers = []; // Initialize as empty list
   final TokenManager _tokenManager = TokenManager(); // Token Manager Instance
@@ -83,21 +129,27 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
     final arguments = ModalRoute.of(context)?.settings.arguments;
     if (arguments != null && arguments is Map<String, dynamic>) {
       if (arguments['deletionSuccess'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tabungan berhasil dihapus!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        _isSnackBarShown = true;
+        if (mounted) {
+          // ADD MOUNTED CHECK HERE
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Tabungan berhasil dihapus!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _isSnackBarShown = true;
+        }
       } else if (arguments['deletionSuccess'] == false) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal menghapus tabungan.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        _isSnackBarShown = true;
+        if (mounted) {
+          // ADD MOUNTED CHECK HERE
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal menghapus tabungan.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          _isSnackBarShown = true;
+        }
       }
     }
   }
@@ -110,19 +162,40 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
 
     await _fetchSavingGroupDetails();
     await _fetchMembers();
+    List<MemberDetailTargetBergilir> memberData =
+        await _fetchMemberDataForProgressCard(); // Fetch member data
 
-    setState(() {
-      isLoading = false;
-    });
+    double totalTargetKeseluruhan = targetKontribusi * memberData.length;
+    double totalSaldoKeseluruhan =
+        memberData.fold(0, (sum, member) => sum + member.lockedBalance);
+    progressTabungan = totalTargetKeseluruhan > 0
+        ? totalSaldoKeseluruhan / totalTargetKeseluruhan
+        : 0.0;
+    saldoTabungan = totalSaldoKeseluruhan;
+
+    if (mounted) {
+      // ADD MOUNTED CHECK HERE
+      setState(() {
+        // Update _goalsData with calculated values, remove static values
+        _goalsData['saldoTabungan'] =
+            saldoTabungan; // Use calculated saldoTabungan
+        _goalsData['progressTabungan'] =
+            progressTabungan; // Use calculated progressTabungan
+        isLoading = false;
+      });
+    }
   }
 
   // Function to fetch saving group details from API
   Future<void> _fetchSavingGroupDetails() async {
     String? token = await _tokenManager.getToken();
     if (token == null) {
-      setState(() {
-        _errorMessage = "Token tidak ditemukan";
-      });
+      if (mounted) {
+        // ADD MOUNTED CHECK HERE
+        setState(() {
+          _errorMessage = "Token tidak ditemukan";
+        });
+      }
       return;
     }
 
@@ -142,55 +215,67 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
         final responseData = json.decode(responseBody);
         if (responseData['code'] == 200 && responseData['status'] == 'OK') {
           final data = responseData['data'];
-          setState(() {
-            _goalsData = data;
-            goalsName = data['name'];
-            _goalsNameController.text = goalsName;
-            statusTabungan = data['status'];
-            targetSaldoTabungan = data['detail']['target_amount'] ?? 0;
-            durasiTabungan = data['detail']['duration'] ?? 0;
-            // Static data initialization - keep for now as per instructions
-            _goalsData['goalsName'] = goalsName;
-            _goalsData['saldoTabungan'] = 20000000.00; // Static Value
-            _goalsData['statusTabungan'] = statusTabungan;
-            _goalsData['progressTabungan'] = 0.4; // Static Value
-            _goalsData['targetTabungan'] = targetSaldoTabungan.toDouble();
-            _goalsData['durasiTabungan'] = '$durasiTabungan Bulan';
-            _goalsData['transactions'] = [
-              // Static Value
-              {
-                'jenisTransaksi': 'Setoran',
-                'tanggalTransaksi': DateTime(2024, 12, 10),
-                'jumlahTransaksi': 500000.00
-              },
-              {
-                'jenisTransaksi': 'Penarikan',
-                'tanggalTransaksi': DateTime(2024, 12, 12),
-                'jumlahTransaksi': 300000.00,
-              },
-            ];
-            historiTransaksi = List<Map<String, dynamic>>.from(
-                _goalsData['transactions']); // Static Value
-          });
+          if (mounted) {
+            // ADD MOUNTED CHECK HERE
+            setState(() {
+              _goalsData = data;
+              goalsName = data['name'];
+              _goalsNameController.text = goalsName;
+              statusTabungan = data['status'];
+              targetSaldoTabungan = data['detail']['target_amount'] ?? 0;
+              durasiTabungan = data['detail']['duration'] ?? 0;
+              targetKontribusi =
+                  (data['detail']['contribution_amount'] as num?)?.toDouble() ??
+                      0.0; // Get contribution_amount
+              // Static data initialization - keep for now as per instructions, adjust with API data when available
+              _goalsData['goalsName'] = goalsName;
+              _goalsData['targetTabungan'] = targetSaldoTabungan.toDouble();
+              _goalsData['durasiTabungan'] = '$durasiTabungan Bulan';
+              _goalsData['transactions'] = [
+                // Static Value - Will be replaced by API later
+                {
+                  'jenisTransaksi': 'Setoran',
+                  'tanggalTransaksi': DateTime(2024, 12, 10),
+                  'jumlahTransaksi': 500000.00
+                },
+                {
+                  'jenisTransaksi': 'Penarikan',
+                  'tanggalTransaksi': DateTime(2024, 12, 12),
+                  'jumlahTransaksi': 300000.00,
+                },
+              ];
+              historiTransaksi = List<Map<String, dynamic>>.from(_goalsData[
+                  'transactions']); // Static Value - Will be replaced by API later
+            });
+          }
         } else {
-          setState(() {
-            _errorMessage = responseData['errors'] != null &&
-                    (responseData['errors'] as List).isNotEmpty
-                ? (responseData['errors'] as List)[0].toString()
-                : "Gagal memuat detail tabungan.";
-          });
+          if (mounted) {
+            // ADD MOUNTED CHECK HERE
+            setState(() {
+              _errorMessage = responseData['errors'] != null &&
+                      (responseData['errors'] as List).isNotEmpty
+                  ? (responseData['errors'] as List)[0].toString()
+                  : "Gagal memuat detail tabungan.";
+            });
+          }
         }
       } else {
-        setState(() {
-          _errorMessage =
-              "Gagal memuat detail tabungan. Status code: ${response.statusCode}";
-        });
+        if (mounted) {
+          // ADD MOUNTED CHECK HERE
+          setState(() {
+            _errorMessage =
+                "Gagal memuat detail tabungan. Status code: ${response.statusCode}";
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        _errorMessage =
-            "Terjadi kesalahan saat memuat detail tabungan: ${e.toString()}";
-      });
+      if (mounted) {
+        // ADD MOUNTED CHECK HERE
+        setState(() {
+          _errorMessage =
+              "Terjadi kesalahan saat memuat detail tabungan: ${e.toString()}";
+        });
+      }
     }
   }
 
@@ -215,36 +300,102 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
             utf8.decode(response.bodyBytes); // Decode response body using UTF-8
         final responseData = json.decode(responseBody);
         if (responseData['code'] == 200 && responseData['status'] == 'OK') {
-          List<Member> fetchedMembers = (responseData['data'] as List)
-              .map((item) => Member.fromJson(item))
-              .toList();
-          setState(() {
-            _allMembers = fetchedMembers.map((member) => member.name).toList();
-            members = _allMembers; // For consistent member list
-            _goalsData['members'] = members; // Update static data for members
-            memberName = members.isNotEmpty
-                ? members.first
-                : 'N/A'; // Default member name
-          });
+          List<dynamic> memberDataList = responseData['data'];
+
+          String? currentUserId =
+              await _tokenManager.getUserId(); // Get current user ID
+
+          if (mounted) {
+            // ADD MOUNTED CHECK HERE
+            setState(() {
+              _allMembers = memberDataList
+                  .map((item) => item['user']['customer']['name'].toString())
+                  .toList();
+              members = _allMembers; // For consistent member list
+              _goalsData['members'] = members; // Update static data for members
+              memberName = members.isNotEmpty
+                  ? members.first
+                  : 'N/A'; // Default member name
+
+              // Determine and set current user's role
+              for (var memberJson in memberDataList) {
+                final user = memberJson['user'];
+                if (user['id'].toString() == currentUserId) {
+                  _userRole = memberJson['role'];
+                  break; // Exit loop once current user is found
+                }
+              }
+            });
+          }
         } else {
-          setState(() {
-            _errorMessage = responseData['errors'] != null &&
-                    (responseData['errors'] as List).isNotEmpty
-                ? (responseData['errors'] as List)[0].toString()
-                : "Gagal memuat anggota.";
-          });
+          if (mounted) {
+            // ADD MOUNTED CHECK HERE
+            setState(() {
+              _errorMessage = responseData['errors'] != null &&
+                      (responseData['errors'] as List).isNotEmpty
+                  ? (responseData['errors'] as List)[0].toString()
+                  : "Gagal memuat anggota.";
+            });
+          }
         }
       } else {
-        setState(() {
-          _errorMessage =
-              "Gagal memuat anggota. Status code: ${response.statusCode}";
-        });
+        if (mounted) {
+          // ADD MOUNTED CHECK HERE
+          setState(() {
+            _errorMessage =
+                "Gagal memuat anggota. Status code: ${response.statusCode}";
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        _errorMessage =
-            "Terjadi kesalahan saat memuat anggota: ${e.toString()}";
-      });
+      if (mounted) {
+        // ADD MOUNTED CHECK HERE
+        setState(() {
+          _errorMessage =
+              "Terjadi kesalahan saat memuat anggota: ${e.toString()}";
+        });
+      }
+    }
+  }
+
+  Future<List<MemberDetailTargetBergilir>>
+      _fetchMemberDataForProgressCard() async {
+    String? token = await _tokenManager.getToken();
+    if (token == null) {
+      return []; // Return empty list if token is null
+    }
+
+    final String savingGroupId = widget.savingGroupId;
+    final membersUrl =
+        Uri.parse('$baseUrl/members?savingGroupId=$savingGroupId');
+
+    try {
+      final response = await http.get(
+        membersUrl,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = utf8.decode(response.bodyBytes);
+        final responseData = json.decode(responseBody);
+        if (responseData['code'] == 200 && responseData['status'] == 'OK') {
+          List<dynamic> memberDataList = responseData['data'];
+          List<MemberDetailTargetBergilir> fetchedMembers = [];
+
+          for (int i = 0; i < memberDataList.length; i++) {
+            final memberDetail = MemberDetailTargetBergilir.fromJson(
+                memberDataList[i], i, targetKontribusi);
+            fetchedMembers.add(memberDetail);
+          }
+          return fetchedMembers;
+        } else {
+          return []; // Return empty list on API error
+        }
+      } else {
+        return []; // Return empty list on HTTP error
+      }
+    } catch (e) {
+      return []; // Return empty list on exception
     }
   }
 
@@ -476,9 +627,12 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
         );
       },
     ).whenComplete(() {
-      setState(() {
-        _goalsNameError = null;
-      });
+      if (mounted) {
+        // ADD MOUNTED CHECK HERE
+        setState(() {
+          _goalsNameError = null;
+        });
+      }
     });
   }
 
@@ -487,13 +641,16 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
     String? token = await _tokenManager
         .getToken(); // Ambil token dari TokenManager, mengambil token otentikasi dari TokenManager
     if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Token tidak ditemukan, mohon login kembali.'), // SnackBar error token, menampilkan SnackBar jika token tidak ditemukan
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        // ADD MOUNTED CHECK HERE
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Token tidak ditemukan, mohon login kembali.'), // SnackBar error token, menampilkan SnackBar jika token tidak ditemukan
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       return;
     }
 
@@ -527,58 +684,67 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
           }
         } else {
           // Tampilkan SnackBar error hapus, jika hapus gagal, tampilkan SnackBar error
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(responseData['errors'] != null &&
-                      (responseData['errors'] as List).isNotEmpty
-                  ? (responseData['errors'] as List)[0]
-                      .toString() // Pesan error dari API atau default, mengambil pesan error pertama dari response API jika ada
-                  : "Gagal menghapus tabungan, silahkan coba lagi!"), // Pesan error default jika tidak ada pesan error spesifik dari API
-              backgroundColor: Colors.red,
-            ),
-          );
-          // Navigasi kembali ke OurGoals dengan flag gagal hapus, tetap kembali ke halaman OurGoals meskipun hapus gagal
           if (mounted) {
+            // ADD MOUNTED CHECK HERE
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(responseData['errors'] != null &&
+                        (responseData['errors'] as List).isNotEmpty
+                    ? (responseData['errors'] as List)[0]
+                        .toString() // Pesan error dari API atau default, mengambil pesan error pertama dari response API jika ada
+                    : "Gagal menghapus tabungan, silahkan coba lagi!"), // Pesan error default jika tidak ada pesan error spesifik dari API
+                backgroundColor: Colors.red,
+              ),
+            );
+            // Navigasi kembali ke OurGoals dengan flag gagal hapus, tetap kembali ke halaman OurGoals meskipun hapus gagal
             Navigator.popAndPushNamed(
               context,
               '/ourGoals',
-              arguments: {'deletionSuccess': true},
+              arguments: {
+                'deletionSuccess': false
+              }, // Changed to false to reflect failure
             );
           }
         }
       } else {
         // Tampilkan SnackBar error status code, jika status code response bukan 200, tampilkan SnackBar error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                "Gagal menghapus tabungan. Status code: ${response.statusCode}"), // Pesan error status code, menampilkan status code dari response API
-            backgroundColor: Colors.red,
-          ),
-        );
-        // Navigasi kembali ke OurGoals dengan flag gagal hapus, tetap kembali ke halaman OurGoals meskipun hapus gagal karena status code error
         if (mounted) {
+          // ADD MOUNTED CHECK HERE
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  "Gagal menghapus tabungan. Status code: ${response.statusCode}"), // Pesan error status code, menampilkan status code dari response API
+              backgroundColor: Colors.red,
+            ),
+          );
+          // Navigasi kembali ke OurGoals dengan flag gagal hapus, tetap kembali ke halaman OurGoals meskipun hapus gagal karena status code error
           Navigator.popAndPushNamed(
             context,
             '/ourGoals',
-            arguments: {'deletionSuccess': true},
+            arguments: {
+              'deletionSuccess': false
+            }, // Changed to false to reflect failure
           );
         }
       }
     } catch (e) {
       // Tampilkan SnackBar error exception, jika terjadi exception saat request API, tampilkan SnackBar error
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              "Terjadi kesalahan saat menghapus tabungan: ${e.toString()}"), // Pesan error exception, menampilkan pesan exception yang terjadi
-          backgroundColor: Colors.red,
-        ),
-      );
-      // Navigasi kembali ke OurGoals dengan flag gagal hapus, tetap kembali ke halaman OurGoals meskipun hapus gagal karena exception
       if (mounted) {
+        // ADD MOUNTED CHECK HERE
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                "Terjadi kesalahan saat menghapus tabungan: ${e.toString()}"), // Pesan error exception, menampilkan pesan exception yang terjadi
+            backgroundColor: Colors.red,
+          ),
+        );
+        // Navigasi kembali ke OurGoals dengan flag gagal hapus, tetap kembali ke halaman OurGoals meskipun hapus gagal karena exception
         Navigator.popAndPushNamed(
           context,
           '/ourGoals',
-          arguments: {'deletionSuccess': true},
+          arguments: {
+            'deletionSuccess': false
+          }, // Changed to false to reflect failure
         );
       }
     }
@@ -591,9 +757,12 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
     String? token = await _tokenManager.getToken();
     if (token == null) {
       _hideLoadingOverlay(context);
-      setState(() {
-        _errorMessage = "Token tidak ditemukan";
-      });
+      if (mounted) {
+        // ADD MOUNTED CHECK HERE
+        setState(() {
+          _errorMessage = "Token tidak ditemukan";
+        });
+      }
       return;
     }
 
@@ -617,31 +786,43 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
         final responseData = json.decode(responseBody);
         if (responseData['code'] == 200 && responseData['status'] == 'OK') {
           await fetchData();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nama Tabungan berhasil diubah!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          if (mounted) {
+            // ADD MOUNTED CHECK HERE
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Nama Tabungan berhasil diubah!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
         } else {
-          setState(() {
-            _goalsNameError = responseData['errors'] != null &&
-                    (responseData['errors'] as List).isNotEmpty
-                ? (responseData['errors'] as List)[0].toString()
-                : "Gagal mengubah nama tabungan, silahkan coba lagi!";
-          });
+          if (mounted) {
+            // ADD MOUNTED CHECK HERE
+            setState(() {
+              _goalsNameError = responseData['errors'] != null &&
+                      (responseData['errors'] as List).isNotEmpty
+                  ? (responseData['errors'] as List)[0].toString()
+                  : "Gagal mengubah nama tabungan, silahkan coba lagi!";
+            });
+          }
         }
       } else {
-        setState(() {
-          _errorMessage =
-              "Gagal mengubah nama tabungan. Status code: ${response.statusCode}";
-        });
+        if (mounted) {
+          // ADD MOUNTED CHECK HERE
+          setState(() {
+            _errorMessage =
+                "Gagal mengubah nama tabungan. Status code: ${response.statusCode}";
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        _errorMessage =
-            "Terjadi kesalahan saat mengubah nama tabungan: ${e.toString()}";
-      });
+      if (mounted) {
+        // ADD MOUNTED CHECK HERE
+        setState(() {
+          _errorMessage =
+              "Terjadi kesalahan saat mengubah nama tabungan: ${e.toString()}";
+        });
+      }
     } finally {
       _hideLoadingOverlay(context);
     }
@@ -684,10 +865,14 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                 children: [
                   Align(
                     alignment: Alignment.topRight,
-                    child: IconButton(
-                      icon: Icon(Icons.settings, color: Colors.blue.shade900),
-                      onPressed: _showSettingsModal,
-                    ),
+                    child: _userRole == 'ADMIN' // Conditional rendering here
+                        ? IconButton(
+                            icon: Icon(Icons.settings,
+                                color: Colors.blue.shade900),
+                            onPressed: _showSettingsModal,
+                          )
+                        : const SizedBox
+                            .shrink(), // Or any other widget if you want to show something else when not admin
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -713,7 +898,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                           ? _buildShimmerText(height: 32)
                           : Text(
                               currencyFormat.format(_goalsData[
-                                  'saldoTabungan']), // Static Value Display
+                                  'saldoTabungan']), // Static Value Display - Will be replaced by API later
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
@@ -828,7 +1013,9 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                         ),
                       if (statusTabungan == 'INACTIVE')
                         const SizedBox(height: 16),
-                      if (statusTabungan == 'INACTIVE')
+                      if (statusTabungan == 'INACTIVE' &&
+                          _userRole ==
+                              'ADMIN') // Kondisi button aktivasi hanya untuk ADMIN
                         SizedBox(
                           width: double.infinity,
                           height: 48,
@@ -914,33 +1101,38 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                               ),
                             ),
                             const Spacer(),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.push<void>(
-                                  context,
-                                  MaterialPageRoute<void>(
-                                    builder: (BuildContext context) =>
-                                        GilirTabungan(
-                                      goalsData: _goalsData,
-                                      isActive: widget.isActive,
+                            if (_userRole ==
+                                'ADMIN') // Conditional rendering based on user role
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push<void>(
+                                    context,
+                                    MaterialPageRoute<void>(
+                                      builder: (BuildContext context) =>
+                                          GilirTabungan(
+                                        goalsData: _goalsData,
+                                        isActive: widget.isActive,
+                                      ),
                                     ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.yellow.shade700,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.yellow.shade700,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                              ),
-                              child: Text(
-                                'Gilir Tabungan',
-                                style: TextStyle(
-                                  color: Colors.blue.shade900,
-                                  fontWeight: FontWeight.bold,
+                                child: Text(
+                                  'Gilir Tabungan',
+                                  style: TextStyle(
+                                    color: Colors.blue.shade900,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                            ),
+                              )
+                            else
+                              const SizedBox
+                                  .shrink(), // Or you can show a disabled button if you prefer, e.g., a greyed out button:  ElevatedButton(onPressed: null, child: Text('Gilir Tabungan', style: TextStyle(color: Colors.grey),)),
                           ],
                         ),
                       if (statusTabungan == 'ACTIVE')
@@ -957,6 +1149,9 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                                       _goalsData, // Mengirim data goalsData
                                   isActive:
                                       widget.isActive, // Mengirim data isActive
+                                  targetKontribusi:
+                                      targetKontribusi, // Pass targetKontribusi
+                                  savingGroupId: widget.savingGroupId,
                                 ),
                               ),
                             );
@@ -976,7 +1171,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                                   isLoading
                                       ? _buildShimmerText(height: 18)
                                       : Text(
-                                          '${currencyFormat.format(_goalsData['saldoTabungan'])} / ${currencyFormat.format(targetSaldoTabungan)}', // Static Value Display
+                                          '${currencyFormat.format(_goalsData['saldoTabungan'])} / ${currencyFormat.format(targetSaldoTabungan)}', // Use _goalsData['saldoTabungan']
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 18,
@@ -989,9 +1184,8 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                                       : LinearProgressIndicator(
                                           value: isLoading
                                               ? 0
-                                              : (_goalsData['saldoTabungan'] /
-                                                      targetSaldoTabungan) // Static Value Display
-                                                  .clamp(0.0, 1.0),
+                                              : progressTabungan.clamp(0.0,
+                                                  1.0), // Use progressTabungan
                                           backgroundColor: Colors.grey.shade300,
                                           color: Colors.blue.shade400,
                                         ),
@@ -1159,6 +1353,15 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
             shape: BoxShape.circle,
           ),
         ),
+        if (_userRole ==
+            'ADMIN') // Conditional rendering for settings icon in AppBar
+          IconButton(
+            icon: Icon(Icons.settings, color: Colors.white),
+            onPressed: _showSettingsModal,
+          )
+        else
+          const SizedBox
+              .shrink(), // Or any other widget if you want to show something else when not admin
       ],
     );
   }
@@ -1201,14 +1404,16 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
       children: [
         isLoading
             ? _buildShimmerText(width: 80)
-            : Text(_goalsData['durasiTabungan'] ?? '', // Static Value Display
+            : Text(
+                _goalsData['durasiTabungan'] ??
+                    '', // Static Value Display - Will be replaced by API later
                 style: TextStyle(color: Colors.blue.shade700)),
         isLoading
             ? _buildShimmerText(width: 50)
             : Text(
                 isLoading
                     ? '0%'
-                    : '${((_goalsData['saldoTabungan'] / targetSaldoTabungan) * 100).toStringAsFixed(2)}%', // Static Value Display
+                    : '${(progressTabungan * 100).toStringAsFixed(2)}%', // Use calculated progressTabungan
                 style: TextStyle(color: Colors.blue.shade700),
               ),
       ],

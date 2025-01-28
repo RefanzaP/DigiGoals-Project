@@ -64,7 +64,7 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
   late String tabunganName;
   int jumlahAnggota = 0;
   final TokenManager _tokenManager = TokenManager();
-  String? _loggedInUserRole; // State untuk menyimpan role user yang login
+  String? _loggedInUserRole;
 
   @override
   void initState() {
@@ -79,10 +79,12 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
       _errorMessage = null;
       members = [];
       jumlahAnggota = 0;
-      _loggedInUserRole = null; // Reset role user saat loading baru
+      _loggedInUserRole = null;
     });
 
     String? token = await _tokenManager.getToken();
+    String? userId =
+        await _tokenManager.getUserId(); // Get userId from token manager
     if (token == null) {
       setState(() {
         isLoading = false;
@@ -90,35 +92,46 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
       });
       return;
     }
+    if (userId == null) {
+      setState(() {
+        isLoading = false;
+        _errorMessage = "User ID tidak ditemukan.";
+      });
+      return;
+    }
 
     final String savingGroupId = widget.savingGroupId;
     final membersUrl =
         Uri.parse('$baseUrl/members?savingGroupId=$savingGroupId');
-    final introspectUrl = Uri.parse(
-        '$baseUrl/auth/introspect'); // Endpoint untuk introspect role user
+    final memberRoleUrl = Uri.parse(
+        '$baseUrl/members/$userId?savingGroupId=$savingGroupId'); // Corrected endpoint to get user role in saving group
 
     try {
       final responses = await Future.wait([
         http.get(membersUrl, headers: {'Authorization': 'Bearer $token'}),
-        http.get(introspectUrl, headers: {
+        http.get(memberRoleUrl, headers: {
           'Authorization': 'Bearer $token'
-        }), // Request introspect user
+        }), // Calling memberRoleUrl to get logged-in user's role
       ]);
 
       final membersResponse = responses[0];
-      final introspectResponse = responses[1];
+      final memberRoleResponse = responses[1]; // Response from memberRoleUrl
 
       if (membersResponse.statusCode == 200 &&
-          introspectResponse.statusCode == 200) {
+          memberRoleResponse.statusCode == 200) {
+        // Check memberRoleResponse status
         final responseBody = utf8.decode(membersResponse.bodyBytes);
         final responseData = json.decode(responseBody);
-        final introspectData =
-            json.decode(utf8.decode(introspectResponse.bodyBytes));
+        final memberRoleResponseBody =
+            utf8.decode(memberRoleResponse.bodyBytes); // Decode role response
+        final memberRoleData =
+            json.decode(memberRoleResponseBody); // Decode role response
 
         if (responseData['code'] == 200 &&
             responseData['status'] == 'OK' &&
-            introspectData['code'] == 200 &&
-            introspectData['status'] == 'OK') {
+            memberRoleData['code'] == 200 && // Check role response code
+            memberRoleData['status'] == 'OK') {
+          // Check role response status
           List<dynamic> memberDataList = responseData['data'];
           List<MemberDetail> fetchedMembers = [];
           for (int i = 0; i < memberDataList.length; i++) {
@@ -130,7 +143,7 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
             jumlahAnggota = members.length;
             isLoading = false;
             _loggedInUserRole =
-                introspectData['data']['role']; // Set role user yang login
+                memberRoleData['data']['role']; // Get role from memberRoleData
           });
         } else {
           setState(() {
@@ -138,9 +151,10 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
             _errorMessage = responseData['errors'] != null &&
                     (responseData['errors'] as List).isNotEmpty
                 ? (responseData['errors'] as List)[0].toString()
-                : introspectData['errors'] != null &&
-                        (introspectData['errors'] as List).isNotEmpty
-                    ? (introspectData['errors'] as List)[0].toString()
+                : memberRoleData['errors'] !=
+                            null && // Check role response errors
+                        (memberRoleData['errors'] as List).isNotEmpty
+                    ? (memberRoleData['errors'] as List)[0].toString()
                     : "Gagal mengambil data anggota atau informasi user, silahkan coba lagi.";
           });
         }
@@ -148,7 +162,7 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
         setState(() {
           isLoading = false;
           _errorMessage =
-              "Gagal memuat data anggota. Status code Member: ${membersResponse.statusCode}, Status User: ${introspectResponse.statusCode}";
+              "Gagal memuat data anggota. Status code Member: ${membersResponse.statusCode}, Status User Role: ${memberRoleResponse.statusCode}"; // Updated error message
         });
       }
     } catch (e) {
@@ -226,8 +240,8 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
                                   'Bergabung pada ${DateFormat('dd MMM yyyy').format(member.joinDate)}',
                                   member.avatarColor,
                                   isSmallScreen,
-                                  _loggedInUserRole // Kirim role user yang login ke _buildMemberTile
-                                  );
+                                  _loggedInUserRole,
+                                  member.memberId); // Pass memberId
                             },
                           ),
                   ),
@@ -237,7 +251,6 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
     );
   }
 
-  // AppBar Widget (sama seperti sebelumnya)
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -283,7 +296,6 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
     );
   }
 
-  // Shimmer Loader Widget (sama seperti sebelumnya)
   Widget _buildShimmerLoader({required double height, required double width}) {
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
@@ -299,7 +311,6 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
     );
   }
 
-  // Widget untuk menampilkan tile member dalam list (Diperbarui dengan parameter loggedInUserRole)
   Widget _buildMemberTile(
       BuildContext context,
       String name,
@@ -308,8 +319,8 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
       String subtitle,
       Color color,
       bool isSmallScreen,
-      String? loggedInUserRole // Parameter baru untuk role user yang login
-      ) {
+      String? loggedInUserRole,
+      String memberId) {
     return Card(
       color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -381,14 +392,14 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
                     ],
                   ),
                 ),
-                // Kondisional menampilkan icon delete berdasarkan role user login dan role member
-                if (_loggedInUserRole == 'ADMIN' &&
+                if (loggedInUserRole == 'ADMIN' &&
                     role != 'Pemilik' &&
                     !widget.isActive)
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
-                      _showDeleteConfirmationDialog(name);
+                      _showDeleteConfirmationDialog(
+                          name, memberId); // Pass memberId
                     },
                   )
                 else
@@ -401,15 +412,14 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
     );
   }
 
-  // Fungsi untuk menampilkan dialog konfirmasi hapus anggota (sama seperti sebelumnya)
-  void _showDeleteConfirmationDialog(String name) {
+  void _showDeleteConfirmationDialog(String name, String memberId) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return DeleteConfirmationDialog(
           name: name,
           onConfirm: () {
-            _deleteMember(name);
+            _deleteMember(name, memberId);
             Navigator.pop(context);
           },
         );
@@ -417,8 +427,7 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
     );
   }
 
-  // Fungsi untuk menghapus member dari API (sama seperti sebelumnya, perlu implementasi API Call)
-  Future<void> _deleteMember(String memberName) async {
+  Future<void> _deleteMember(String memberName, String memberId) async {
     setState(() {
       isLoading = true;
     });
@@ -438,39 +447,51 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
     }
 
     final String savingGroupId = widget.savingGroupId;
-    Uri.parse('$baseUrl/members?savingGroupId=$savingGroupId');
-    final memberToDelete =
-        members.firstWhere((member) => member.name == memberName);
-    final deleteMemberUrl =
-        Uri.parse('$baseUrl/members/${memberToDelete.memberId}');
+    final deleteMemberUrl = Uri.parse(
+        '$baseUrl/members/$memberId?savingGroupId=$savingGroupId'); // Corrected delete endpoint
 
     try {
       final response = await http.delete(
         deleteMemberUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
-        setState(() {
-          isLoading = false;
-          members.removeWhere((member) => member.name == memberName);
-          jumlahAnggota = members.length;
-        });
+        final responseData = json.decode(utf8.decode(response.bodyBytes));
+        if (responseData['code'] == 200 && responseData['status'] == 'OK') {
+          setState(() {
+            members.removeWhere((member) =>
+                member.memberId == memberId); // Remove member by memberId
+            jumlahAnggota = members.length;
+          });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Anggota $memberName berhasil dihapus.'),
-          ),
-        );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Anggota $memberName berhasil dihapus.'),
+            ),
+          );
+        } else {
+          setState(() {
+            isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(responseData['errors'] != null &&
+                      (responseData['errors'] as List).isNotEmpty
+                  ? (responseData['errors'] as List)[0].toString()
+                  : "Gagal menghapus anggota, silahkan coba lagi!"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       } else {
         setState(() {
           isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal menghapus anggota $memberName.'),
+            content: Text(
+                "Gagal menghapus anggota. Status code: ${response.statusCode}"),
             backgroundColor: Colors.red,
           ),
         );
@@ -482,15 +503,18 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content:
-              Text('Terjadi kesalahan saat menghapus anggota: ${e.toString()}'),
+              Text("Terjadi kesalahan saat menghapus anggota: ${e.toString()}"),
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 }
 
-// Widget Dialog Konfirmasi Hapus Anggota (sama seperti sebelumnya)
 class DeleteConfirmationDialog extends StatelessWidget {
   final String name;
   final VoidCallback onConfirm;

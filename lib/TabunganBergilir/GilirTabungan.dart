@@ -150,13 +150,13 @@ class _GilirTabunganState extends State<GilirTabungan>
                   height: 48,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              DetailTabunganBergilir(isActive: true),
-                        ),
-                        (Route<dynamic> route) => false,
-                      );
+                      // Navigator.of(context).pushAndRemoveUntil(
+                      //   MaterialPageRoute(
+                      //     builder: (context) =>
+                      //         DetailTabunganBergilir(isActive: true),
+                      //   ),
+                      //   (Route<dynamic> route) => false,
+                      // );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.yellow.shade700,

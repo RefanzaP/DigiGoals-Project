@@ -1,9 +1,12 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
+import 'dart:convert';
 import 'package:digigoals_app/auth/token_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:digigoals_app/Beranda.dart'; // Import Beranda.dart
+import 'package:http/http.dart' as http;
+import 'package:digigoals_app/api/api_config.dart';
 
 class Inbox extends StatefulWidget {
   final String? token; // Tambahkan parameter token disini
@@ -19,30 +22,11 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
   late TabController _tabController;
   static const List<String> _tabs = ['Status Transaksi', 'Pending Transaksi'];
 
-  // Data statis awal untuk pending transaksi
-  final List<Map<String, dynamic>> _pendingTransaksi = [
-    {
-      'goalsName': 'Gudang Garam Jaya 🔥',
-      'message': 'Undangan Anggota',
-      'accountNumber': '0123456789012',
-      'date': '01 November 2024 09:27',
-      'status': 'pending',
-      'inviterName': 'John Doe',
-      'type': 'Tabungan Bergilir',
-    },
-    {
-      'goalsName': 'Liburan ke Bali 🌴',
-      'message': 'Undangan Anggota',
-      'accountNumber': '0123456789012',
-      'date': '02 November 2024 10:27',
-      'status': 'pending',
-      'inviterName': 'Jane Smith',
-      'type': 'Tabungan Bersama',
-    }
-  ];
+  // List untuk pending transaksi dari API
+  List<Map<String, dynamic>> _pendingTransaksi = [];
 
-  // Data statis awal untuk status transaksi
-  final List<Map<String, dynamic>> _statusTransaksi = [];
+  // List untuk status transaksi dari API
+  List<Map<String, dynamic>> _statusTransaksi = [];
 
   bool _isLoading = false;
   bool _isInitialLoading = false;
@@ -71,17 +55,84 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
     setState(() {
       _isInitialLoading = true;
     });
-    // Simulate loading delay
-    await Future.delayed(const Duration(milliseconds: 500));
 
-    // Load data dummy or call API here
-    // For example:
-    // _pendingTransaksi = await fetchDataPendingTransactions();
-    // _statusTransaksi = await fetchDataStatusTransactions();
+    try {
+      final token = widget.token;
+      final userId = await _tokenManager.getUserId();
 
-    setState(() {
-      _isInitialLoading = false;
-    });
+      if (token == null || userId == null) {
+        // Handle token or userId missing, maybe redirect to login
+        setState(() {
+          _isInitialLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sesi tidak valid, mohon login kembali'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/invitations'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type':
+              'application/json; charset=utf-8', // Explicitly set UTF-8
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(utf8
+            .decode(response.bodyBytes)); // Decode response body using UTF-8
+        if (responseData['data'] != null) {
+          List<dynamic> invitations = responseData['data'];
+          _pendingTransaksi = [];
+          _statusTransaksi = [];
+
+          for (var invitation in invitations) {
+            Map<String, dynamic> formattedInvitation = {
+              'id': invitation['id'],
+              'goalsName': invitation['saving_group']['name'],
+              'message': invitation['message'],
+              'date': invitation['invited_at'],
+              'status': invitation['status'],
+              'inviterName': invitation['sender_user']['customer']['name'],
+              'type': invitation['saving_group']['type'],
+              'messageTitle': 'Undangan Anggota', // Static message title
+            };
+
+            if (invitation['status'] == 'PENDING') {
+              _pendingTransaksi.add(formattedInvitation);
+            } else {
+              _statusTransaksi.add(formattedInvitation);
+            }
+          }
+        }
+      } else {
+        // Handle error response
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('Gagal memuat inbox. Error code: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Handle exception
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan saat memuat inbox: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isInitialLoading = false;
+      });
+    }
   }
 
   @override
@@ -99,23 +150,101 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
       _animationController.forward();
     });
 
-    // Simulate a delay for loading effect
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    setState(() {
-      // Update status transaksi yang dipilih
-      transaction['status'] = newStatus;
-
-      // Pindahkan transaksi ke list status transaksi jika diterima atau ditolak
-      if (newStatus == 'accepted') {
-        _statusTransaksi.add(transaction);
-      } else if (newStatus == 'rejected') {
-        _statusTransaksi.add(transaction);
+    try {
+      final token = widget.token;
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Token tidak valid, mohon login kembali'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
       }
-      _pendingTransaksi.remove(transaction); // hapus dari pending
-      _isLoading = false;
-      _animationController.reverse();
-    });
+
+      final invitationId = transaction['id'];
+      final response = await http.patch(
+        Uri.parse('$baseUrl/invitations/$invitationId/status'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type':
+              'application/json; charset=utf-8', // Explicitly set UTF-8
+        },
+        body: json.encode({'status': newStatus.toUpperCase()}),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          // Update status transaksi yang dipilih
+          transaction['status'] = newStatus;
+
+          // Pindahkan transaksi ke list status transaksi jika diterima atau ditolak
+          if (newStatus == 'accepted') {
+            _statusTransaksi.add(transaction);
+          } else if (newStatus == 'rejected') {
+            _statusTransaksi.add(transaction);
+          }
+          _pendingTransaksi.remove(transaction); // hapus dari pending
+        });
+      } else {
+        // Handle error response
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Gagal memperbarui status undangan. Error code: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Handle exception
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('Terjadi kesalahan saat memperbarui status undangan: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+        _animationController.reverse();
+      });
+    }
+  }
+
+  // Function to verify PIN using API
+  Future<bool> _verifyPinApi(String pin) async {
+    final token = widget.token;
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Token tidak valid, mohon login kembali'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return false;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/verify-transaction-pin'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type':
+              'application/json; charset=utf-8', // Explicitly set UTF-8
+        },
+        body: json.encode({'transaction_pin': pin}),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
   }
 
   @override
@@ -197,7 +326,7 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
               child: Container(
                 color: Colors.black.withOpacity(0.5),
                 child: const Center(
-                  child: CircularProgressIndicator(),
+                  child: CircularProgressIndicator(color: Colors.amber),
                 ),
               ),
             )
@@ -210,7 +339,7 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
     if (_isInitialLoading) {
       return Center(
         child: CircularProgressIndicator(
-          color: Colors.blue.shade700,
+          color: Colors.amber,
         ),
       );
     }
@@ -224,10 +353,10 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
               IconData icon = Icons.notifications; // Default icon
               Color iconColor = Colors.blue; // Default icon color
 
-              if (transaction['status'] == 'accepted') {
+              if (transaction['status'].toUpperCase() == 'ACCEPTED') {
                 icon = Icons.check_circle_outline;
                 iconColor = Colors.green;
-              } else if (transaction['status'] == 'rejected') {
+              } else if (transaction['status'].toUpperCase() == 'REJECTED') {
                 icon = Icons.cancel_outlined;
                 iconColor = Colors.red;
               }
@@ -240,6 +369,8 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
                     iconColor: Colors.blue,
                     onTap: () {},
                     trailing: Icon(icon, color: iconColor),
+                    messageTitle:
+                        transaction['messageTitle'], // Pass messageTitle
                   ),
                   const SizedBox(height: 12), // Jarak antar card
                 ],
@@ -252,7 +383,7 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
     if (_isInitialLoading) {
       return Center(
         child: CircularProgressIndicator(
-          color: Colors.blue.shade700,
+          color: Colors.amber,
         ),
       );
     }
@@ -302,26 +433,8 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
                                       color: Colors.blue), // Ikon disini
                                   const SizedBox(height: 8),
                                   Text(
-                                    transaction['inviterName'] ??
-                                        'Tidak Diketahui', // Menampilkan nama pengirim
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                  Text(
-                                    transaction['accountNumber'] ?? '',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'Mengundang Anda untuk bergabung pada Goals\n"${transaction['goalsName']}"\n${transaction['type']}',
+                                    transaction['message'] ??
+                                        '', // Use message from API
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       fontSize: 16,
@@ -403,6 +516,8 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
                     },
                     trailing:
                         const Icon(Icons.notifications, color: Colors.blue),
+                    messageTitle:
+                        transaction['messageTitle'], // Pass messageTitle
                   ),
                   const SizedBox(height: 12), // Jarak antar card
                 ],
@@ -413,9 +528,9 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
 
   // Function to show terms and conditions modal based on the goal type
   void _showTermsAndConditions(Map<String, dynamic> transaction) {
-    if (transaction['type'] == 'Tabungan Bersama') {
+    if (transaction['type'] == 'JOINT_SAVING') {
       _showTermsAndConditionsTabunganBersama(transaction);
-    } else if (transaction['type'] == 'Tabungan Bergilir') {
+    } else if (transaction['type'] == 'ROTATING_SAVING') {
       _showTermsAndConditionsTabunganBergilir(transaction);
     }
   }
@@ -1138,6 +1253,7 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
           onPinSuccess: () {
             _showLoadingDialog(context, transaction, 'accepted');
           },
+          verifyPinApi: _verifyPinApi, // Pass the API verification function
         ),
       ),
     );
@@ -1201,7 +1317,7 @@ class _InboxState extends State<Inbox> with TickerProviderStateMixin {
           icon = Icons.check_circle_outline;
           iconColor = Colors.green;
           resultText =
-              'Selamat! Anda telah menjadi anggota Goals \n"${transaction['goalsName']}"';
+              'Selamat! Anda telah menjadi Anggota Goals \n"${transaction['goalsName']}"';
         } else {
           icon = Icons.cancel_outlined;
           iconColor = Colors.red;
@@ -1306,13 +1422,17 @@ class TransactionCard extends StatelessWidget {
   final Color? iconColor;
   final VoidCallback? onTap;
   final Widget? trailing;
-  const TransactionCard(
-      {super.key,
-      required this.transaction,
-      this.icon,
-      this.iconColor,
-      this.onTap,
-      this.trailing});
+  final String? messageTitle; // Added messageTitle
+
+  const TransactionCard({
+    super.key,
+    required this.transaction,
+    this.icon,
+    this.iconColor,
+    this.onTap,
+    this.trailing,
+    this.messageTitle = 'Undangan Anggota', // Default messageTitle
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1328,7 +1448,7 @@ class TransactionCard extends StatelessWidget {
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               title: Text(
-                transaction['message'] ?? '', // Menampilkan nama pesan
+                messageTitle ?? '', // Menampilkan messageTitle atau default
                 style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -1338,8 +1458,7 @@ class TransactionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    transaction['accountNumber'] ??
-                        '', // Menampilkan nomor rekening
+                    transaction['id'] ?? '',
                     style: const TextStyle(
                         fontSize: 14, overflow: TextOverflow.ellipsis),
                   ),
@@ -1360,8 +1479,15 @@ class TransactionCard extends StatelessWidget {
 class InputPin extends StatefulWidget {
   final VoidCallback onPinSuccess;
   final String? token;
+  final Future<bool> Function(String)
+      verifyPinApi; // Function to call API for PIN verification
 
-  const InputPin({super.key, required this.onPinSuccess, this.token});
+  const InputPin({
+    super.key,
+    required this.onPinSuccess,
+    this.token,
+    required this.verifyPinApi, // Receive the API verification function
+  });
 
   @override
   _InputPinState createState() => _InputPinState();
@@ -1370,6 +1496,7 @@ class InputPin extends StatefulWidget {
 class _InputPinState extends State<InputPin> {
   String _pin = '';
   final int _pinLength = 6;
+  bool _isVerifyingPin = false; // Loading state for PIN verification
 
   void _addPin(String number) {
     setState(() {
@@ -1390,8 +1517,15 @@ class _InputPinState extends State<InputPin> {
 
   void _validatePin() async {
     if (_pin.length == _pinLength) {
-      // Simulasi validasi PIN (ganti dengan logika validasi API Anda)
-      if (_pin == '123456') {
+      setState(() {
+        _isVerifyingPin = true;
+      });
+      final isPinValid =
+          await widget.verifyPinApi(_pin); // Use the passed API function
+      setState(() {
+        _isVerifyingPin = false;
+      });
+      if (isPinValid) {
         widget.onPinSuccess();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1436,127 +1570,143 @@ class _InputPinState extends State<InputPin> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
+        // Wrap body in Stack to show loading indicator
         children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.blue.shade700, Colors.blue.shade400],
+          Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.blue.shade700, Colors.blue.shade400],
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(
+                      height: 36,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                          _pinLength,
+                          (index) => Container(
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 18),
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: index < _pin.length
+                                      ? Colors.amber
+                                      : Colors.grey[300],
+                                ),
+                              )),
+                    ),
+                    const SizedBox(
+                      height: 36,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            child: Column(
-              children: [
-                const SizedBox(
-                  height: 36,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                      _pinLength,
-                      (index) => Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 18),
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: index < _pin.length
-                                  ? Colors.amber
-                                  : Colors.grey[300],
-                            ),
-                          )),
-                ),
-                const SizedBox(
-                  height: 36,
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  ...[
-                    '1',
-                    '2',
-                    '3',
-                    '4',
-                    '5',
-                    '6',
-                    '7',
-                    '8',
-                    '9',
-                    '',
-                    '0',
-                    'backspace',
-                  ].map(
-                    (number) => InkWell(
-                      onTap: () {
-                        if (number == 'backspace') {
-                          _removePin();
-                        } else if (number.isNotEmpty) {
-                          _addPin(number);
-                        }
-                      },
-                      child: Center(
-                        child: number == 'backspace'
-                            ? Row(
-                                // Menggunakan Row untuk mengatur posisi ikon dan button
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Spacer(),
-                                  Column(
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  child: GridView.count(
+                    crossAxisCount: 3,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      ...[
+                        '1',
+                        '2',
+                        '3',
+                        '4',
+                        '5',
+                        '6',
+                        '7',
+                        '8',
+                        '9',
+                        '',
+                        '0',
+                        'backspace',
+                      ].map(
+                        (number) => InkWell(
+                          onTap: () {
+                            if (number == 'backspace') {
+                              _removePin();
+                            } else if (number.isNotEmpty) {
+                              _addPin(number);
+                            }
+                          },
+                          child: Center(
+                            child: number == 'backspace'
+                                ? Row(
+                                    // Menggunakan Row untuk mengatur posisi ikon dan button
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.backspace_rounded,
-                                          color: Colors.amber),
-                                      TextButton(
-                                        onPressed: () {
-                                          // todo: action lupa pin
-                                        },
-                                        child: const Text(
-                                          'Lupa PIN',
-                                          style: TextStyle(
-                                              fontSize: 12, color: Colors.blue),
-                                        ),
+                                      const Spacer(),
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.backspace_rounded,
+                                              color: Colors.amber),
+                                          TextButton(
+                                            onPressed: () {
+                                              // todo: action lupa pin
+                                            },
+                                            child: const Text(
+                                              'Lupa PIN',
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.blue),
+                                            ),
+                                          ),
+                                        ],
                                       ),
+                                      const Spacer()
                                     ],
+                                  )
+                                : Text(
+                                    number,
+                                    style: const TextStyle(
+                                        fontSize: 24, color: Colors.black),
                                   ),
-                                  const Spacer()
-                                ],
-                              )
-                            : Text(
-                                number,
-                                style: const TextStyle(
-                                    fontSize: 24, color: Colors.black),
-                              ),
+                          ),
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text(
+                      'Kembali',
+                      style: TextStyle(color: Colors.blue),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text(
-                  'Kembali',
-                  style: TextStyle(color: Colors.blue),
+          if (_isVerifyingPin) // Show loading indicator when verifying PIN
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

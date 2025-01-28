@@ -31,6 +31,7 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
   String? _goalsNameError;
   String? _errorMessage;
   bool _isSnackBarShown = false;
+  String? currentUserRole; // Added to store current user's role
 
   late String goalsName = '';
   late double saldoTabungan = 0.0;
@@ -151,6 +152,23 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
             List<Member> fetchedMembers = (membersData['data'] as List)
                 .map((item) => Member.fromJson(item))
                 .toList();
+
+            String? currentUserId = await _tokenManager.getUserId();
+            if (currentUserId != null) {
+              Member? currentUserMember = fetchedMembers.firstWhere(
+                (member) => member.userId == currentUserId,
+                orElse: () => Member.empty(),
+              );
+              if (!currentUserMember.isEmpty) {
+                currentUserRole = currentUserMember.role;
+              } else {
+                currentUserRole = null;
+                print("Current user not found in members list.");
+              }
+            } else {
+              currentUserRole = null;
+              print("Could not retrieve user ID from token.");
+            }
 
             setState(() {
               goalsName = savingGroupDetail['name'] ?? 'Nama Goals';
@@ -583,10 +601,15 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                   children: [
                     Align(
                       alignment: Alignment.topRight,
-                      child: IconButton(
-                        icon: Icon(Icons.settings, color: Colors.blue.shade900),
-                        onPressed: _showSettingsModal,
-                      ),
+                      child: currentUserRole ==
+                              'ADMIN' // Conditionally show settings icon
+                          ? IconButton(
+                              icon: Icon(Icons.settings,
+                                  color: Colors.blue.shade900),
+                              onPressed: _showSettingsModal,
+                            )
+                          : SizedBox
+                              .shrink(), // Or any other widget if you want to show something else when not admin
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -767,6 +790,13 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
       ),
       centerTitle: true,
       actions: [
+        currentUserRole ==
+                'ADMIN' // Conditionally show settings icon in AppBar (Alternative)
+            ? IconButton(
+                icon: Icon(Icons.settings, color: Colors.white),
+                onPressed: _showSettingsModal,
+              )
+            : SizedBox.shrink(),
         Container(
           margin: const EdgeInsets.only(right: 16),
           height: 12,
@@ -1061,4 +1091,30 @@ class LoadingOverlay extends StatelessWidget {
       ),
     );
   }
+}
+
+class Member {
+  const Member({
+    required this.userId,
+    required this.name,
+    required this.role,
+  });
+
+  factory Member.fromJson(Map<String, dynamic> json) {
+    return Member(
+      userId: json['user_id']?.toString() ?? '',
+      name: json['user']?['customer']?['name']?.toString() ?? '',
+      role: json['role']?.toString() ?? '',
+    );
+  }
+
+  static Member empty() {
+    return const Member(userId: '', name: '', role: '');
+  }
+
+  bool get isEmpty => userId == '';
+
+  final String userId;
+  final String name;
+  final String role;
 }

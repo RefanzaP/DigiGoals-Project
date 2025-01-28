@@ -74,6 +74,7 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
   }
 
   Future<void> _loadMembers() async {
+    if (!mounted) return; // Add this check at the beginning of async function
     setState(() {
       isLoading = true;
       _errorMessage = null;
@@ -83,76 +84,219 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
     });
 
     String? token = await _tokenManager.getToken();
+    String? userId =
+        await _tokenManager.getUserId(); // Get userId from token manager
     if (token == null) {
-      setState(() {
-        isLoading = false;
-        _errorMessage = "Sesi Anda telah berakhir. Mohon login kembali.";
-      });
+      if (mounted) {
+        // Check if the widget is still mounted
+        setState(() {
+          isLoading = false;
+          _errorMessage = "Sesi Anda telah berakhir. Mohon login kembali.";
+        });
+      }
+      return;
+    }
+    if (userId == null) {
+      if (mounted) {
+        // Check if the widget is still mounted
+        setState(() {
+          isLoading = false;
+          _errorMessage = "User ID tidak ditemukan.";
+        });
+      }
       return;
     }
 
     final String savingGroupId = widget.savingGroupId;
     final membersUrl =
         Uri.parse('$baseUrl/members?savingGroupId=$savingGroupId');
-    final introspectUrl = Uri.parse('$baseUrl/auth/introspect');
+    final memberRoleUrl = Uri.parse(
+        '$baseUrl/members/$userId?savingGroupId=$savingGroupId'); // Corrected endpoint
 
     try {
       final responses = await Future.wait([
         http.get(membersUrl, headers: {'Authorization': 'Bearer $token'}),
-        http.get(introspectUrl, headers: {'Authorization': 'Bearer $token'}),
+        http.get(memberRoleUrl, headers: {
+          'Authorization': 'Bearer $token'
+        }), // Calling memberRoleUrl
       ]);
 
       final membersResponse = responses[0];
-      final introspectResponse = responses[1];
+      final memberRoleResponse = responses[1]; // Response from memberRoleUrl
 
       if (membersResponse.statusCode == 200 &&
-          introspectResponse.statusCode == 200) {
+          memberRoleResponse.statusCode == 200) {
+        // Check memberRoleResponse status
         final responseBody = utf8.decode(membersResponse.bodyBytes);
         final responseData = json.decode(responseBody);
-        final introspectData =
-            json.decode(utf8.decode(introspectResponse.bodyBytes));
+        final memberRoleResponseBody =
+            utf8.decode(memberRoleResponse.bodyBytes); // Decode role response
+        final memberRoleData =
+            json.decode(memberRoleResponseBody); // Decode role response
 
         if (responseData['code'] == 200 &&
             responseData['status'] == 'OK' &&
-            introspectData['code'] == 200 &&
-            introspectData['status'] == 'OK') {
+            memberRoleData['code'] == 200 && // Check role response code
+            memberRoleData['status'] == 'OK') {
+          // Check role response status
           List<dynamic> memberDataList = responseData['data'];
           List<MemberDetail> fetchedMembers = [];
           for (int i = 0; i < memberDataList.length; i++) {
             fetchedMembers.add(MemberDetail.fromJson(memberDataList[i], i));
           }
 
-          setState(() {
-            members = fetchedMembers;
-            jumlahAnggota = members.length;
-            isLoading = false;
-            _loggedInUserRole = introspectData['data']['role'];
-          });
+          if (mounted) {
+            // Check if the widget is still mounted
+            setState(() {
+              members = fetchedMembers;
+              jumlahAnggota = members.length;
+              isLoading = false;
+              _loggedInUserRole = memberRoleData['data']
+                  ['role']; // Get role from memberRoleData
+            });
+          }
         } else {
-          setState(() {
-            isLoading = false;
-            _errorMessage = responseData['errors'] != null &&
-                    (responseData['errors'] as List).isNotEmpty
-                ? (responseData['errors'] as List)[0].toString()
-                : introspectData['errors'] != null &&
-                        (introspectData['errors'] as List).isNotEmpty
-                    ? (introspectData['errors'] as List)[0].toString()
-                    : "Gagal mengambil data anggota atau informasi user, silahkan coba lagi.";
-          });
+          if (mounted) {
+            // Check if the widget is still mounted
+            setState(() {
+              isLoading = false;
+              _errorMessage = responseData['errors'] != null &&
+                      (responseData['errors'] as List).isNotEmpty
+                  ? (responseData['errors'] as List)[0].toString()
+                  : memberRoleData['errors'] !=
+                              null && // Check role response errors
+                          (memberRoleData['errors'] as List).isNotEmpty
+                      ? (memberRoleData['errors'] as List)[0].toString()
+                      : "Gagal mengambil data anggota atau informasi user, silahkan coba lagi.";
+            });
+          }
         }
       } else {
+        if (mounted) {
+          // Check if the widget is still mounted
+          setState(() {
+            isLoading = false;
+            _errorMessage =
+                "Gagal memuat data anggota. Status code Member: ${membersResponse.statusCode}, Status User Role: ${memberRoleResponse.statusCode}"; // Updated error message
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        // Check if the widget is still mounted
         setState(() {
           isLoading = false;
           _errorMessage =
-              "Gagal memuat data anggota. Status code Member: ${membersResponse.statusCode}, Status User: ${introspectResponse.statusCode}";
+              "Terjadi kesalahan saat memuat data anggota: ${e.toString()}";
         });
       }
+    }
+  }
+
+  Future<void> _deleteMember(String memberName, String memberId) async {
+    // Receive memberId
+    if (!mounted) return; // Add this check at the beginning of async function
+    setState(() {
+      isLoading = true;
+    });
+
+    String? token = await _tokenManager.getToken();
+    if (token == null) {
+      if (mounted) {
+        // Check if the widget is still mounted
+        setState(() {
+          isLoading = false;
+        });
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Token tidak ditemukan, mohon login kembali.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final String savingGroupId = widget.savingGroupId;
+    final deleteMemberUrl = Uri.parse(
+        '$baseUrl/members/$memberId?savingGroupId=$savingGroupId'); // Corrected delete endpoint
+
+    try {
+      final response = await http.delete(
+        deleteMemberUrl,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(utf8.decode(response.bodyBytes));
+        if (responseData['code'] == 200 && responseData['status'] == 'OK') {
+          if (mounted) {
+            // Check if the widget is still mounted
+            setState(() {
+              members.removeWhere((member) =>
+                  member.memberId == memberId); // Remove member by memberId
+              jumlahAnggota = members.length;
+            });
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Anggota $memberName berhasil dihapus.'),
+            ),
+          );
+        } else {
+          if (mounted) {
+            // Check if the widget is still mounted
+            setState(() {
+              isLoading = false;
+            });
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(responseData['errors'] != null &&
+                      (responseData['errors'] as List).isNotEmpty
+                  ? (responseData['errors'] as List)[0].toString()
+                  : "Gagal menghapus anggota, silahkan coba lagi!"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          // Check if the widget is still mounted
+          setState(() {
+            isLoading = false;
+          });
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                "Gagal menghapus anggota. Status code: ${response.statusCode}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-        _errorMessage =
-            "Terjadi kesalahan saat memuat data anggota: ${e.toString()}";
-      });
+      if (mounted) {
+        // Check if the widget is still mounted
+        setState(() {
+          isLoading = false;
+        });
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text("Terjadi kesalahan saat menghapus anggota: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        // Check if the widget is still mounted
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -222,7 +366,8 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
                                   'Bergabung pada ${DateFormat('dd MMM yyyy').format(member.joinDate)}',
                                   member.avatarColor,
                                   isSmallScreen,
-                                  _loggedInUserRole);
+                                  _loggedInUserRole,
+                                  member.memberId); // Pass memberId
                             },
                           ),
                   ),
@@ -300,7 +445,9 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
       String subtitle,
       Color color,
       bool isSmallScreen,
-      String? loggedInUserRole) {
+      String? loggedInUserRole,
+      String memberId // Added memberId parameter
+      ) {
     return Card(
       color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -378,7 +525,8 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
-                      _showDeleteConfirmationDialog(name);
+                      _showDeleteConfirmationDialog(
+                          name, memberId); // Pass memberId
                     },
                   )
                 else
@@ -391,52 +539,19 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
     );
   }
 
-  void _showDeleteConfirmationDialog(String name) {
+  void _showDeleteConfirmationDialog(String name, String memberId) {
+    // Receive memberId
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return DeleteConfirmationDialog(
           name: name,
           onConfirm: () {
-            _deleteMember(name);
+            _deleteMember(name, memberId); // Pass memberId to deleteMember
             Navigator.pop(context);
           },
         );
       },
-    );
-  }
-
-  Future<void> _deleteMember(String memberName) async {
-    setState(() {
-      isLoading = true;
-    });
-
-    String? token = await _tokenManager.getToken();
-    if (token == null) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Token tidak ditemukan, mohon login kembali.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() {
-      isLoading = false;
-      members.removeWhere((member) => member.name == memberName);
-      jumlahAnggota = members.length;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Anggota $memberName berhasil dihapus.'),
-      ),
     );
   }
 }

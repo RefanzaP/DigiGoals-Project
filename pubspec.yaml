@@ -46,6 +46,7 @@ dependencies:
   top_modal_sheet: ^2.1.0
   flutter_secure_storage: ^9.2.3
   http: ^1.2.2
+  dart_jsonwebtoken: ^2.16.0
 
 dev_dependencies:
   flutter_test:
