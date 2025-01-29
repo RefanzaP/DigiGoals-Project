@@ -1,7 +1,6 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'dart:convert';
-import 'package:digigoals_app/OurGoals.dart';
 import 'package:digigoals_app/TabunganBersama/DetailKontribusiTabunganBersama.dart';
 import 'package:digigoals_app/TabunganBersama/RincianAnggotaBersama.dart';
 import 'package:digigoals_app/TabunganBersama/TambahUangBersama.dart';
@@ -163,11 +162,9 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                 currentUserRole = currentUserMember.role;
               } else {
                 currentUserRole = null;
-                print("Current user not found in members list.");
               }
             } else {
               currentUserRole = null;
-              print("Could not retrieve user ID from token.");
             }
 
             setState(() {

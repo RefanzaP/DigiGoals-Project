@@ -1112,6 +1112,8 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                                           GilirTabungan(
                                         goalsData: _goalsData,
                                         isActive: widget.isActive,
+                                        savingGroupId: widget
+                                            .savingGroupId, // Pass savingGroupId here
                                       ),
                                     ),
                                   );

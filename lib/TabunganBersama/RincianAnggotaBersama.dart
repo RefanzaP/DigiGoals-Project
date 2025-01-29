@@ -32,7 +32,9 @@ class MemberDetail {
       memberId: user['id'].toString(),
       name: customer['name'] ?? 'N/A',
       accountNumber: json['account']?['account_number']?.toString() ?? 'N/A',
-      role: json['role'] == 'ADMIN' ? 'Pemilik' : 'Anggota',
+      role: json['role'] == 'ADMIN'
+          ? 'Pemilik'
+          : 'Anggota', // Updated Role Mapping
       joinDate: json['join_date'] != null
           ? DateTime.parse(json['join_date'])
           : DateTime.now(),
@@ -151,8 +153,7 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
               members = fetchedMembers;
               jumlahAnggota = members.length;
               isLoading = false;
-              _loggedInUserRole = memberRoleData['data']
-                  ['role']; // Get role from memberRoleData
+              _loggedInUserRole = memberRoleData['data']['role'];
             });
           }
         } else {
@@ -219,12 +220,16 @@ class _RincianAnggotaBersamaState extends State<RincianAnggotaBersama> {
 
     final String savingGroupId = widget.savingGroupId;
     final deleteMemberUrl = Uri.parse(
-        '$baseUrl/members/$memberId?savingGroupId=$savingGroupId'); // Corrected delete endpoint
+        '$baseUrl/members/$memberId/status?savingGroupId=$savingGroupId'); // Corrected delete endpoint
 
     try {
-      final response = await http.delete(
+      final response = await http.patch(
         deleteMemberUrl,
-        headers: {'Authorization': 'Bearer $token'},
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json'
+        },
+        body: jsonEncode({"status": "LEFT"}), // PATCH body
       );
 
       if (response.statusCode == 200) {

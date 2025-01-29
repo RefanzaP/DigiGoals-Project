@@ -3,13 +3,22 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
+import 'package:digigoals_app/api/api_config.dart';
+import 'package:digigoals_app/auth/token_manager.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class GilirTabungan extends StatefulWidget {
   final Map<String, dynamic> goalsData;
+  final String savingGroupId; // Add savingGroupId
   final bool isActive;
 
-  const GilirTabungan(
-      {super.key, required this.goalsData, required this.isActive});
+  const GilirTabungan({
+    super.key,
+    required this.goalsData,
+    required this.isActive,
+    required this.savingGroupId, // Add savingGroupId to constructor
+  });
 
   @override
   _GilirTabunganState createState() => _GilirTabunganState();
@@ -22,6 +31,7 @@ class _GilirTabunganState extends State<GilirTabungan>
   late AnimationController _animationController;
   late List<String> _allMembers;
   String? _winnerName; // Untuk menyimpan nama pemenang
+  final TokenManager _tokenManager = TokenManager();
 
   @override
   void initState() {
@@ -39,24 +49,65 @@ class _GilirTabunganState extends State<GilirTabungan>
     super.dispose();
   }
 
-  void _pickWinner() {
-    if (_allMembers.isNotEmpty) {
-      final random = Random();
-      _winnerName = _allMembers[random.nextInt(_allMembers.length)];
-    } else {
-      _winnerName = "Tidak ada anggota";
+  // Function to fetch winner from API
+  Future<void> _fetchWinnerFromApi(String savingGroupId) async {
+    String? token = await _tokenManager.getToken();
+    if (token == null) {
+      setState(() {
+        _winnerName = "Gagal mendapatkan pemenang (Token tidak valid)";
+      });
+      return;
+    }
+
+    final url =
+        Uri.parse('$baseUrl/rotating-draw-schedule/$savingGroupId/draw');
+
+    try {
+      final response = await http.patch(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = utf8.decode(response.bodyBytes);
+        final responseData = json.decode(responseBody);
+        if (responseData['code'] == 200 && responseData['status'] == 'OK') {
+          final winnerData = responseData['data']['winner_user']['customer'];
+          setState(() {
+            _winnerName = winnerData['name'];
+          });
+        } else {
+          setState(() {
+            _winnerName =
+                "Gagal mendapatkan pemenang dari API: ${responseData['errors'] != null ? responseData['errors'] : 'Unknown error'}";
+          });
+        }
+      } else {
+        setState(() {
+          _winnerName =
+              "Gagal mendapatkan pemenang dari API: Status Code ${response.statusCode}";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _winnerName = "Gagal mendapatkan pemenang: ${e.toString()}";
+      });
     }
   }
 
-  void validateAndProceed() {
+  // Modify validateAndProceed to return Future<void>
+  Future<void> validateAndProceed() async {
     setState(() {
       if (!isChecked) {
         warningMessage =
             'Harap mencentang lingkaran untuk menyetujui ketentuan!';
       } else {
         warningMessage = null;
-        _pickWinner(); // Acak nama pemenang sekali di sini
         _showGiftAnimation();
+        _fetchWinnerFromApi(widget
+            .savingGroupId); // Fetch winner from API, no need to await here to show animation first
       }
     });
   }
@@ -109,71 +160,78 @@ class _GilirTabunganState extends State<GilirTabungan>
   void _showWinnerDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false, // Prevent dismiss on tap outside
       builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: Text(
-                    'DIGI Mobile',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16),
-                Icon(
-                  Icons.emoji_events,
-                  size: 100,
-                  color: Colors.yellow.shade700,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Selamat kepada Anggota ${_winnerName ?? "Tidak ada anggota"} yang beruntung!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                  ),
-                ),
-                SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Navigator.of(context).pushAndRemoveUntil(
-                      //   MaterialPageRoute(
-                      //     builder: (context) =>
-                      //         DetailTabunganBergilir(isActive: true),
-                      //   ),
-                      //   (Route<dynamic> route) => false,
-                      // );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.yellow.shade700,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
+        return WillPopScope(
+          onWillPop: () async => false, // Disable back button
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.topCenter,
                     child: Text(
-                      'OK',
+                      'DIGI Mobile',
                       style: TextStyle(
-                        color: Colors.blue.shade900,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ),
-              ],
+                  SizedBox(height: 16),
+                  Icon(
+                    Icons.emoji_events,
+                    size: 100,
+                    color: Colors.yellow.shade700,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Selamat kepada Anggota ${_winnerName ?? "Tidak dapat menentukan pemenang"} yang beruntung!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => DetailTabunganBergilir(
+                              savingGroupId: widget.savingGroupId,
+                              isActive:
+                                  true, // Assuming isActive should remain true
+                            ),
+                          ),
+                          (Route<dynamic> route) => false,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.yellow.shade700,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'OK',
+                        style: TextStyle(
+                          color: Colors.blue.shade900,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -324,7 +382,10 @@ class _GilirTabunganState extends State<GilirTabungan>
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: validateAndProceed,
+                onPressed: () async {
+                  // Add async here
+                  await validateAndProceed(); // Add await here
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.yellow.shade700,
                   shape: RoundedRectangleBorder(

@@ -29,10 +29,12 @@ class MemberDetail {
     final user = json['user'];
     final customer = user['customer'];
     return MemberDetail(
-      memberId: user['id'].toString(),
+      memberId: json['user_id'].toString(),
       name: customer['name'] ?? 'N/A',
       accountNumber: json['account']?['account_number']?.toString() ?? 'N/A',
-      role: json['role'] == 'ADMIN' ? 'Pemilik' : 'Anggota',
+      role: json['role'] == 'ADMIN'
+          ? 'Pemilik'
+          : 'Anggota', // Directly use role from API
       joinDate: json['join_date'] != null
           ? DateTime.parse(json['join_date'])
           : DateTime.now(),
@@ -83,8 +85,7 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
     });
 
     String? token = await _tokenManager.getToken();
-    String? userId =
-        await _tokenManager.getUserId(); // Get userId from token manager
+    String? userId = await _tokenManager.getUserId();
     if (token == null) {
       setState(() {
         isLoading = false;
@@ -103,35 +104,30 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
     final String savingGroupId = widget.savingGroupId;
     final membersUrl =
         Uri.parse('$baseUrl/members?savingGroupId=$savingGroupId');
-    final memberRoleUrl = Uri.parse(
-        '$baseUrl/members/$userId?savingGroupId=$savingGroupId'); // Corrected endpoint to get user role in saving group
+    final memberRoleUrl =
+        Uri.parse('$baseUrl/members/$userId?savingGroupId=$savingGroupId');
 
     try {
       final responses = await Future.wait([
         http.get(membersUrl, headers: {'Authorization': 'Bearer $token'}),
-        http.get(memberRoleUrl, headers: {
-          'Authorization': 'Bearer $token'
-        }), // Calling memberRoleUrl to get logged-in user's role
+        http.get(memberRoleUrl, headers: {'Authorization': 'Bearer $token'}),
       ]);
 
       final membersResponse = responses[0];
-      final memberRoleResponse = responses[1]; // Response from memberRoleUrl
+      final memberRoleResponse = responses[1];
 
       if (membersResponse.statusCode == 200 &&
           memberRoleResponse.statusCode == 200) {
-        // Check memberRoleResponse status
         final responseBody = utf8.decode(membersResponse.bodyBytes);
         final responseData = json.decode(responseBody);
         final memberRoleResponseBody =
-            utf8.decode(memberRoleResponse.bodyBytes); // Decode role response
-        final memberRoleData =
-            json.decode(memberRoleResponseBody); // Decode role response
+            utf8.decode(memberRoleResponse.bodyBytes);
+        final memberRoleData = json.decode(memberRoleResponseBody);
 
         if (responseData['code'] == 200 &&
             responseData['status'] == 'OK' &&
-            memberRoleData['code'] == 200 && // Check role response code
+            memberRoleData['code'] == 200 &&
             memberRoleData['status'] == 'OK') {
-          // Check role response status
           List<dynamic> memberDataList = responseData['data'];
           List<MemberDetail> fetchedMembers = [];
           for (int i = 0; i < memberDataList.length; i++) {
@@ -142,8 +138,7 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
             members = fetchedMembers;
             jumlahAnggota = members.length;
             isLoading = false;
-            _loggedInUserRole =
-                memberRoleData['data']['role']; // Get role from memberRoleData
+            _loggedInUserRole = memberRoleData['data']['role'];
           });
         } else {
           setState(() {
@@ -151,8 +146,7 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
             _errorMessage = responseData['errors'] != null &&
                     (responseData['errors'] as List).isNotEmpty
                 ? (responseData['errors'] as List)[0].toString()
-                : memberRoleData['errors'] !=
-                            null && // Check role response errors
+                : memberRoleData['errors'] != null &&
                         (memberRoleData['errors'] as List).isNotEmpty
                     ? (memberRoleData['errors'] as List)[0].toString()
                     : "Gagal mengambil data anggota atau informasi user, silahkan coba lagi.";
@@ -162,7 +156,7 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
         setState(() {
           isLoading = false;
           _errorMessage =
-              "Gagal memuat data anggota. Status code Member: ${membersResponse.statusCode}, Status User Role: ${memberRoleResponse.statusCode}"; // Updated error message
+              "Gagal memuat data anggota. Status code Member: ${membersResponse.statusCode}, Status User Role: ${memberRoleResponse.statusCode}";
         });
       }
     } catch (e) {
@@ -241,7 +235,7 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
                                   member.avatarColor,
                                   isSmallScreen,
                                   _loggedInUserRole,
-                                  member.memberId); // Pass memberId
+                                  member.memberId);
                             },
                           ),
                   ),
@@ -393,13 +387,12 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
                   ),
                 ),
                 if (loggedInUserRole == 'ADMIN' &&
-                    role != 'Pemilik' &&
-                    !widget.isActive)
+                    role == 'Anggota' && // Only show delete for 'Anggota' role
+                    !widget.isActive) // tambahan kondisi isActive
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
-                      _showDeleteConfirmationDialog(
-                          name, memberId); // Pass memberId
+                      _showDeleteConfirmationDialog(name, memberId);
                     },
                   )
                 else
@@ -448,20 +441,24 @@ class _RincianAnggotaBergilirState extends State<RincianAnggotaBergilir> {
 
     final String savingGroupId = widget.savingGroupId;
     final deleteMemberUrl = Uri.parse(
-        '$baseUrl/members/$memberId?savingGroupId=$savingGroupId'); // Corrected delete endpoint
+        '$baseUrl/members/$memberId/status?savingGroupId=$savingGroupId'); // PATCH endpoint for status update
 
     try {
-      final response = await http.delete(
+      final response = await http.patch(
+        // Use PATCH instead of DELETE
         deleteMemberUrl,
-        headers: {'Authorization': 'Bearer $token'},
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json', // Specify content type for PATCH
+        },
+        body: json.encode({'status': 'LEFT'}), // Body for PATCH request
       );
 
       if (response.statusCode == 200) {
         final responseData = json.decode(utf8.decode(response.bodyBytes));
         if (responseData['code'] == 200 && responseData['status'] == 'OK') {
           setState(() {
-            members.removeWhere((member) =>
-                member.memberId == memberId); // Remove member by memberId
+            members.removeWhere((member) => member.memberId == memberId);
             jumlahAnggota = members.length;
           });
 
