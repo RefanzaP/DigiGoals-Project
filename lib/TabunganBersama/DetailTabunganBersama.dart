@@ -40,7 +40,9 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
   late int targetSaldoTabungan = 0;
   String? durasiTabungan = '';
   List<Member> members = [];
-  List<Map<String, dynamic>> historiTransaksi = [];
+  List<Map<String, dynamic>> _historiTransaksi = [];
+  List<Map<String, dynamic>> _filteredHistoriTransaksi = [];
+  int _visibleTransactionCount = 3;
   late String memberName;
   final Map<String, dynamic> _goalsData = {};
   late List<Member> _allMembers = [];
@@ -114,6 +116,8 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
     setState(() {
       isLoading = true;
       _errorMessage = null;
+      _visibleTransactionCount =
+          3; // Reset visible transaction count on refresh
     });
 
     String? token = await _tokenManager.getToken();
@@ -199,6 +203,8 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                       'Unknown Member',
                 };
               }).toList();
+              fetchedTransactions.sort((a, b) => b['tanggalTransaksi']
+                  .compareTo(a['tanggalTransaksi'])); // Sort by date descending
             } else {
               // Handle transaction fetch error if needed, for now just keep historiTransaksi empty
               print(
@@ -209,9 +215,12 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
             if (balanceData['code'] == 200 &&
                 balanceData['status'] == 'OK' &&
                 (balanceData['data'] as List).isNotEmpty) {
-              fetchedSaldoTabungan =
-                  (balanceData['data'][0]['balance'] as num?)?.toDouble() ??
-                      0.0;
+              for (var balanceItem in balanceData['data']) {
+                if (balanceItem['saving_group_id'] == widget.savingGroupId) {
+                  fetchedSaldoTabungan +=
+                      (balanceItem['balance'] as num).toDouble();
+                }
+              }
             } else {
               print('Failed to fetch balance: ${balanceData['errors']}');
               // Optionally handle balance fetch error, maybe keep saldoTabungan as 0.0 or show error
@@ -221,8 +230,6 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
               goalsName = savingGroupDetail['name'] ?? 'Nama Goals';
               _goalsNameController.text = goalsName;
               saldoTabungan = fetchedSaldoTabungan; // Use fetched balance
-              progressTabungan =
-                  (savingGroupDetail['progress'] as num?)?.toDouble() ?? 0.0;
               targetSaldoTabungan =
                   savingGroupDetail['detail']['target_amount'] ?? 0;
               durasiTabungan = savingGroupDetail['detail']['duration'] != null
@@ -233,12 +240,19 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                 'goalsName': goalsName,
                 'savingGroupId': widget.savingGroupId,
                 'savingGroupName': goalsName,
-                'savingGroupBalance': saldoTabungan,
+                'savingGroupBalance': saldoTabungan, // Pass saldoTabungan here
                 'savingGroupType': savingGroupType,
               });
               _allMembers = fetchedMembers;
-              historiTransaksi = fetchedTransactions;
+              _historiTransaksi = fetchedTransactions;
+              _filteredHistoriTransaksi =
+                  List.from(_historiTransaksi); // Initialize filtered list
               isLoading = false;
+
+              // Calculate progressTabungan based on saldoTabungan and targetSaldoTabungan
+              progressTabungan = targetSaldoTabungan > 0
+                  ? (saldoTabungan / targetSaldoTabungan)
+                  : 0.0;
             });
           } else {
             setState(() {
@@ -271,6 +285,24 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
         _errorMessage = "Terjadi kesalahan: ${e.toString()}";
       });
     }
+  }
+
+  void _filterTransactions(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredHistoriTransaksi = List.from(_historiTransaksi);
+      } else {
+        _filteredHistoriTransaksi = _historiTransaksi.where((transaction) {
+          final jenisTransaksi =
+              transaction['jenisTransaksi'].toString().toLowerCase();
+          final memberName = transaction['memberName'].toString().toLowerCase();
+          final searchQuery = query.toLowerCase();
+          return jenisTransaksi.contains(searchQuery) ||
+              memberName.contains(searchQuery);
+        }).toList();
+      }
+      _visibleTransactionCount = 3; // Reset visible count after filtering
+    });
   }
 
   void _showSettingsModal() {
@@ -643,6 +675,15 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
     Navigator.of(context, rootNavigator: true).pop();
   }
 
+  void _loadMoreTransactions() {
+    setState(() {
+      _visibleTransactionCount += 3;
+      if (_visibleTransactionCount > _filteredHistoriTransaksi.length) {
+        _visibleTransactionCount = _filteredHistoriTransaksi.length;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -798,6 +839,17 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                         _buildTransactionSearchField(),
                         const SizedBox(height: 16),
                         _buildTransactionHistoryList(),
+                        if (_filteredHistoriTransaksi.length >
+                            _visibleTransactionCount)
+                          Center(
+                            child: TextButton(
+                              onPressed: _loadMoreTransactions,
+                              child: const Text(
+                                'Lihat Lainnya',
+                                style: TextStyle(color: Colors.amber),
+                              ),
+                            ),
+                          ),
                         const SizedBox(height: 16),
                         _buildTambahUangButton(),
                         const SizedBox(height: 16),
@@ -872,7 +924,7 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
               goalsData: {
                 'savingGroupId': widget.savingGroupId,
                 'goalsName': goalsName,
-                'saldoTabungan': saldoTabungan,
+                'saldoTabungan': saldoTabungan, // Pass saldoTabungan here
                 'progressTabungan': progressTabungan,
                 'targetTabungan': targetSaldoTabungan,
                 'members': _allMembers,
@@ -965,7 +1017,9 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
         Text(durasiTabungan ?? '',
             style: TextStyle(color: Colors.blue.shade700)),
         Text(
-          isLoading ? '0%' : '${(progressTabungan * 100).toStringAsFixed(2)}%',
+          isLoading
+              ? '0%'
+              : '${(progressTabungan * 100).toStringAsFixed(1)}%', // Modified here to 1 decimal place
           style: TextStyle(color: Colors.blue.shade700),
         ),
       ],
@@ -985,13 +1039,16 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
           borderSide: BorderSide.none,
         ),
       ),
+      onChanged: _filterTransactions,
     );
   }
 
   Widget _buildTransactionHistoryList() {
+    final displayedTransactions =
+        _filteredHistoriTransaksi.take(_visibleTransactionCount).toList();
     return isLoading
         ? _buildShimmerTransactionHistory()
-        : historiTransaksi.isEmpty
+        : displayedTransactions.isEmpty
             ? const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: Text(
@@ -1006,9 +1063,9 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
             : ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: historiTransaksi.length,
+                itemCount: displayedTransactions.length,
                 itemBuilder: (context, index) {
-                  final transaction = historiTransaksi[index];
+                  final transaction = displayedTransactions[index];
                   Color? transactionColor;
                   if (transaction['jenisTransaksi'] == 'Setoran') {
                     transactionColor = Colors.green;
@@ -1017,7 +1074,7 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                   }
                   return ListTile(
                     title: Text(
-                      '${transaction['jenisTransaksi']} - ${transaction['memberName']}',
+                      '${transaction['jenisTransaksi']}\n${transaction['memberName']}',
                       style: TextStyle(color: transactionColor),
                     ),
                     subtitle: Text(

@@ -13,7 +13,7 @@ class MemberKontribusiDetail {
   final String name;
   final String accountNumber;
   final String role;
-  final double lockedBalance;
+  double memberBalance;
   final Color avatarColor;
 
   MemberKontribusiDetail({
@@ -21,12 +21,13 @@ class MemberKontribusiDetail {
     required this.name,
     required this.accountNumber,
     required this.role,
-    required this.lockedBalance,
+    required this.memberBalance, // Renamed from lockedBalance
     required this.avatarColor,
   });
 
   factory MemberKontribusiDetail.fromJson(
-      Map<String, dynamic> json, int index) {
+      Map<String, dynamic> json, int index, double memberBalance) {
+    // Added memberBalance parameter
     final user = json['user'];
     final customer = user['customer'];
     final account = json['account'];
@@ -35,8 +36,7 @@ class MemberKontribusiDetail {
       name: customer['name'] ?? 'N/A',
       accountNumber: account?['account_number']?.toString() ?? 'N/A',
       role: json['role'] == 'ADMIN' ? 'Pemilik' : 'Anggota',
-      lockedBalance:
-          (account?['total_locked_balance'] as num?)?.toDouble() ?? 0.0,
+      memberBalance: memberBalance, // Use the passed memberBalance
       avatarColor: Colors.primaries[index % Colors.primaries.length],
     );
   }
@@ -61,7 +61,8 @@ class _DetailKontribusiTabunganBersamaState
   List<MemberKontribusiDetail> filteredData = [];
   String selectedFilter = 'None';
   late double targetTotal;
-  double saldoTabungan = 0.0;
+  double saldoTabungan =
+      0.0; // saldoTabungan will be taken from widget.goalsData
   double progressTabungan = 0.0;
   bool isLoading = true;
   late String goalsName;
@@ -77,6 +78,11 @@ class _DetailKontribusiTabunganBersamaState
   void _initializeGoalsData() {
     goalsName = widget.goalsData['goalsName'];
     targetTotal = (widget.goalsData['targetTabungan'] as num).toDouble();
+    saldoTabungan = (widget.goalsData['saldoTabungan'] as num)
+        .toDouble(); // Get saldoTabungan from goalsData
+    progressTabungan = targetTotal > 0
+        ? saldoTabungan / targetTotal
+        : 0.0; // Recalculate progressTabungan based on saldoTabungan
   }
 
   Future<void> _fetchDataFromApi() async {
@@ -104,21 +110,58 @@ class _DetailKontribusiTabunganBersamaState
         if (responseData['code'] == 200 && responseData['status'] == 'OK') {
           List<dynamic> memberDataList = responseData['data'];
           List<MemberKontribusiDetail> fetchedMembers = [];
-          double totalLockedBalanceAllMembers = 0;
 
+          List<Future<MemberKontribusiDetail>> memberFutures = [];
           for (int i = 0; i < memberDataList.length; i++) {
-            final memberDetail =
-                MemberKontribusiDetail.fromJson(memberDataList[i], i);
-            fetchedMembers.add(memberDetail);
-            totalLockedBalanceAllMembers += memberDetail.lockedBalance;
+            final memberJson = memberDataList[i];
+            final memberId = memberJson['user']['id'].toString();
+            final balanceUrl = Uri.parse(
+                '$baseUrl/transactions/balance?savingGroupId=$savingGroupId&userId=$memberId');
+            memberFutures.add(http.get(balanceUrl, headers: {
+              'Authorization': 'Bearer $token'
+            }).then((balanceResponse) {
+              if (balanceResponse.statusCode == 200) {
+                final balanceResponseBody =
+                    utf8.decode(balanceResponse.bodyBytes);
+                final balanceResponseData = json.decode(balanceResponseBody);
+                double memberBalance = 0.0;
+                if (balanceResponseData['code'] == 200 &&
+                    balanceResponseData['status'] == 'OK' &&
+                    balanceResponseData['data'] != null) {
+                  // Check if data is not null
+                  if (balanceResponseData['data'] is List) {
+                    // If data is a list (handle if API returns list)
+                    if (balanceResponseData['data'].isNotEmpty) {
+                      // Assuming the first item in the list is the relevant balance (if list is returned)
+                      memberBalance =
+                          (balanceResponseData['data'][0]['balance'] as num?)
+                                  ?.toDouble() ??
+                              0.0;
+                    }
+                  } else if (balanceResponseData['data'] is Map) {
+                    // If data is a map (handle if API returns single object)
+                    memberBalance =
+                        (balanceResponseData['data']['balance'] as num?)
+                                ?.toDouble() ??
+                            0.0;
+                  }
+                }
+                return MemberKontribusiDetail.fromJson(
+                    memberJson, i, memberBalance);
+              } else {
+                // In case of error, still create MemberKontribusiDetail with default balance 0.0
+                print(
+                    "Error fetching balance for memberId: $memberId, status code: ${balanceResponse.statusCode}"); // Log error
+                return MemberKontribusiDetail.fromJson(memberJson, i, 0.0);
+              }
+            }));
           }
+
+          fetchedMembers = await Future.wait(memberFutures);
 
           setState(() {
             anggotaData = fetchedMembers;
             filteredData = List.from(anggotaData);
-            saldoTabungan = totalLockedBalanceAllMembers;
-            progressTabungan =
-                targetTotal > 0 ? saldoTabungan / targetTotal : 0.0;
             isLoading = false;
           });
         } else {
@@ -146,12 +189,12 @@ class _DetailKontribusiTabunganBersamaState
       selectedFilter = filter;
       switch (filter) {
         case 'Kontribusi Tertinggi':
-          filteredData
-              .sort((a, b) => b.lockedBalance.compareTo(a.lockedBalance));
+          filteredData.sort((a, b) =>
+              b.memberBalance.compareTo(a.memberBalance)); // Use memberBalance
           break;
         case 'Kontribusi Terendah':
-          filteredData
-              .sort((a, b) => a.lockedBalance.compareTo(b.lockedBalance));
+          filteredData.sort((a, b) =>
+              a.memberBalance.compareTo(b.memberBalance)); // Use memberBalance
           break;
         case 'Nama A-Z':
           filteredData.sort((a, b) => a.name.compareTo(b.name));
@@ -391,8 +434,15 @@ class _DetailKontribusiTabunganBersamaState
               itemCount: filteredData.length,
               itemBuilder: (context, index) {
                 final anggota = filteredData[index];
-                double progress =
-                    anggota.lockedBalance / (targetTotal / anggotaData.length);
+                // Calculate progress based on memberBalance and saldoTabungan
+                double progress = saldoTabungan == 0
+                    ? 0
+                    : anggota.memberBalance / saldoTabungan;
+                progress = progress > 1.0
+                    ? 1.0
+                    : progress < 0
+                        ? 0
+                        : progress; // Ensure progress is between 0 and 1
                 return _buildMemberCard(anggota, progress);
               },
             ),
@@ -526,7 +576,7 @@ class _DetailKontribusiTabunganBersamaState
             ),
             const SizedBox(height: 12),
             Text(
-              _formatCurrency(anggota.lockedBalance),
+              _formatCurrency(anggota.memberBalance), // Use memberBalance
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
@@ -565,7 +615,7 @@ class _DetailKontribusiTabunganBersamaState
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('${(progress * 100).toStringAsFixed(1)}% Terpenuhi',
+                Text('${(progress * 100).toStringAsFixed(1)}% Berkontribusi',
                     style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),

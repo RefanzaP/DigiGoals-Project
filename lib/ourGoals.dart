@@ -79,17 +79,11 @@ class _OurGoalsState extends State<OurGoals> {
   List<SavingGroup> _goals = [];
   final TokenManager _tokenManager = TokenManager();
   bool _isSnackBarShown = false;
-  String? _userId;
 
   @override
   void initState() {
     super.initState();
-    _loadUserId();
     _fetchGoals();
-  }
-
-  Future<void> _loadUserId() async {
-    _userId = await _tokenManager.getUserId();
   }
 
   @override
@@ -174,7 +168,7 @@ class _OurGoalsState extends State<OurGoals> {
           for (var group in savingGroups) {
             List<Member> members = await _fetchMembers(group.id, token);
             double balance = await _fetchGoalsBalance(
-                group.id, token, _userId); // Fetch balance here
+                group.id, token); // Fetch balance here, removed userId
             group.members = members;
             group.goalsBalance = balance; // Assign fetched balance
             fetchedGoals.add(group);
@@ -206,8 +200,8 @@ class _OurGoalsState extends State<OurGoals> {
     }
   }
 
-  Future<double> _fetchGoalsBalance(
-      String savingGroupId, String token, String? userId) async {
+  Future<double> _fetchGoalsBalance(String savingGroupId, String token) async {
+    // Removed userId parameter
     final balanceUrl =
         Uri.parse('$baseUrl/transactions/balance?savingGroupId=$savingGroupId');
     final headers = {'Authorization': 'Bearer $token'};
@@ -223,15 +217,14 @@ class _OurGoalsState extends State<OurGoals> {
           double totalBalance = 0;
           if (balanceData['data'] is List) {
             for (var balanceItem in balanceData['data']) {
-              if (balanceItem['saving_group_id'] == savingGroupId &&
-                  balanceItem['user_id'] == userId) {
-                // Filter by savingGroupId and userId
+              if (balanceItem['saving_group_id'] == savingGroupId) {
+                //Keep savingGroupId filter only
                 totalBalance += (balanceItem['balance'] as num).toDouble();
               }
             }
           }
           print(
-              'Calculated balance for savingGroupId: $savingGroupId, userId: $userId: $totalBalance'); // Log calculated balance
+              'Calculated balance for savingGroupId: $savingGroupId: $totalBalance'); // Log calculated balance
           return totalBalance;
         } else {
           print(
