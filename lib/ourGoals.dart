@@ -211,8 +211,7 @@ class _OurGoalsState extends State<OurGoals> {
       if (response.statusCode == 200) {
         final responseBody = utf8.decode(response.bodyBytes);
         final balanceData = json.decode(responseBody);
-        print(
-            'Balance API Response for savingGroupId: $savingGroupId: $balanceData'); // Log API response
+        // Log API response
         if (balanceData['code'] == 200 && balanceData['status'] == 'OK') {
           double totalBalance = 0;
           if (balanceData['data'] is List) {
@@ -223,21 +222,18 @@ class _OurGoalsState extends State<OurGoals> {
               }
             }
           }
-          print(
-              'Calculated balance for savingGroupId: $savingGroupId: $totalBalance'); // Log calculated balance
+          // Log calculated balance
           return totalBalance;
         } else {
-          print(
-              'Balance API Error: ${balanceData['message']}'); // Log API error
+          // Log API error
           return 0.0;
         }
       } else {
-        print(
-            'HTTP Error fetching balance: Status Code ${response.statusCode}'); // Log HTTP error
+        // Log HTTP error
         return 0.0;
       }
     } catch (e) {
-      print('Exception fetching balance: ${e.toString()}'); // Log exceptions
+      // Log exceptions
       return 0.0;
     }
   }

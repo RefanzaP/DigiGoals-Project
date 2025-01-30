@@ -1,59 +1,50 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:digigoals_app/api/api_config.dart';
 import 'package:digigoals_app/auth/token_manager.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
-
-class Account {
-  final String namaRekening;
-  final String nomorRekening;
-  Account({
-    required this.namaRekening,
-    required this.nomorRekening,
-  });
-}
+import 'package:http/http.dart' as http;
 
 class MemberDetailTargetBergilir {
   final String memberId;
   final String name;
   final String accountNumber;
   final String role;
-  final double lockedBalance;
+  double memberBalance;
   final Color avatarColor;
-  final String status;
+  String status;
 
   MemberDetailTargetBergilir({
     required this.memberId,
     required this.name,
     required this.accountNumber,
     required this.role,
-    required this.lockedBalance,
+    required this.memberBalance,
     required this.avatarColor,
     required this.status,
   });
 
   factory MemberDetailTargetBergilir.fromJson(
-      Map<String, dynamic> json, int index, double contributionAmount) {
+    Map<String, dynamic> json,
+    int index,
+    double contributionAmount,
+    double targetPerMember,
+  ) {
     final user = json['user'];
     final customer = user['customer'];
     final account = json['account'];
-    final lockedBalance =
-        (account?['total_locked_balance'] as num?)?.toDouble() ?? 0.0;
-    final targetPerMember = contributionAmount;
-    final isPaidOff = lockedBalance >= targetPerMember;
 
     return MemberDetailTargetBergilir(
       memberId: user['id'].toString(),
       name: customer['name'] ?? 'N/A',
       accountNumber: account?['account_number']?.toString() ?? 'N/A',
       role: json['role'] == 'ADMIN' ? 'Pemilik' : 'Anggota',
-      lockedBalance: lockedBalance,
+      memberBalance: 0.0,
       avatarColor: Colors.primaries[index % Colors.primaries.length],
-      status: isPaidOff ? 'Lunas' : 'Belum Lunas',
+      status: 'Belum Lunas',
     );
   }
 }
@@ -62,14 +53,18 @@ class DetailTargetTabunganBergilir extends StatefulWidget {
   final Map<String, dynamic> goalsData;
   final bool isActive;
   final double targetKontribusi;
-  final String savingGroupId; // Add savingGroupId as a parameter
+  final String savingGroupId;
+  final double targetSaldoTabungan;
+  final double saldoTabungan;
 
   const DetailTargetTabunganBergilir({
     super.key,
     required this.goalsData,
     required this.isActive,
     required this.targetKontribusi,
-    required this.savingGroupId, // Make savingGroupId required
+    required this.savingGroupId,
+    required this.targetSaldoTabungan,
+    required this.saldoTabungan,
   });
 
   @override
@@ -82,17 +77,12 @@ class _DetailTargetTabunganBergilirState
   List<MemberDetailTargetBergilir> anggotaData = [];
   List<MemberDetailTargetBergilir> filteredData = [];
   String selectedFilter = 'None';
-  late double targetTotal;
-  late double saldoTabungan;
   bool isLoading = true;
   late String goalsName;
-  late String statusTabungan;
   late double progressTabungan;
-  late String durasiTabungan;
-  late List<String> members;
-  late List<Map<String, dynamic>> historiTransaksi;
-  late String memberName;
   late double targetKontribusi;
+  late double targetSaldoTabungan;
+  late double saldoTabungan;
   final TokenManager _tokenManager = TokenManager();
 
   @override
@@ -104,17 +94,10 @@ class _DetailTargetTabunganBergilirState
 
   void _initializeData() {
     goalsName = widget.goalsData['goalsName'];
-    saldoTabungan = widget.goalsData['saldoTabungan'];
-    statusTabungan = widget.isActive ? 'Aktif' : 'Tidak Aktif';
-    progressTabungan = widget.goalsData['progressTabungan'];
-    targetTotal = widget.goalsData['targetTabungan'];
-    durasiTabungan = widget.goalsData['durasiTabungan'];
-    members = List<String>.from(widget.goalsData['members']);
-    historiTransaksi =
-        List<Map<String, dynamic>>.from(widget.goalsData['transactions']);
-    memberName = widget.goalsData['members'].first;
-    targetKontribusi =
-        widget.targetKontribusi; // Initialize targetKontribusi from widget
+    targetKontribusi = widget.targetKontribusi;
+    targetSaldoTabungan = widget.targetSaldoTabungan;
+    saldoTabungan = widget.saldoTabungan;
+    progressTabungan = saldoTabungan / targetSaldoTabungan;
   }
 
   Future<void> _fetchDataFromApi() async {
@@ -126,8 +109,7 @@ class _DetailTargetTabunganBergilirState
       return;
     }
 
-    final String savingGroupId =
-        widget.savingGroupId; // Use widget.savingGroupId directly
+    final String savingGroupId = widget.savingGroupId;
     final membersUrl =
         Uri.parse('$baseUrl/members?savingGroupId=$savingGroupId');
 
@@ -146,9 +128,20 @@ class _DetailTargetTabunganBergilirState
 
           for (int i = 0; i < memberDataList.length; i++) {
             final memberDetail = MemberDetailTargetBergilir.fromJson(
-                memberDataList[i], i, targetKontribusi);
+              memberDataList[i],
+              i,
+              targetKontribusi,
+              targetKontribusi,
+            );
             fetchedMembers.add(memberDetail);
           }
+
+          await Future.wait(fetchedMembers.map((member) => _fetchMemberBalance(
+                member,
+                savingGroupId,
+                token,
+                targetKontribusi,
+              )));
 
           setState(() {
             anggotaData = fetchedMembers;
@@ -163,6 +156,50 @@ class _DetailTargetTabunganBergilirState
       }
     } catch (e) {
       setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _fetchMemberBalance(
+    MemberDetailTargetBergilir member,
+    String savingGroupId,
+    String? token,
+    double targetKontribusi,
+  ) async {
+    final memberId = member.memberId;
+    final balanceUrl = Uri.parse(
+        '$baseUrl/transactions/balance?savingGroupId=$savingGroupId&userId=$memberId');
+
+    try {
+      final balanceResponse = await http.get(
+        balanceUrl,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (balanceResponse.statusCode == 200) {
+        final balanceResponseBody = utf8.decode(balanceResponse.bodyBytes);
+        final balanceResponseData = json.decode(balanceResponseBody);
+        if (balanceResponseData['code'] == 200 &&
+            balanceResponseData['status'] == 'OK' &&
+            balanceResponseData['data'] != null) {
+          // Check if data is not null
+          // Modified balance assignment logic here
+          member.memberBalance =
+              (balanceResponseData['data']['balance'] as num?)?.toDouble() ??
+                  0.0;
+          member.status = member.memberBalance >= targetKontribusi
+              ? 'Lunas'
+              : 'Belum Lunas';
+        } else {
+          member.memberBalance = 0.0; // Default balance if API error or no data
+          member.status = 'Belum Lunas'; // Default status
+        }
+      } else {
+        member.memberBalance = 0.0; // Default balance on HTTP error
+        member.status = 'Belum Lunas'; // Default status
+      }
+    } catch (e) {
+      member.memberBalance = 0.0; // Default balance on exception
+      member.status = 'Belum Lunas'; // Default status
     }
   }
 
@@ -181,11 +218,11 @@ class _DetailTargetTabunganBergilirState
       switch (filter) {
         case 'Kontribusi Tertinggi':
           filteredData
-              .sort((a, b) => b.lockedBalance.compareTo(a.lockedBalance));
+              .sort((a, b) => b.memberBalance.compareTo(a.memberBalance));
           break;
         case 'Kontribusi Terendah':
           filteredData
-              .sort((a, b) => a.lockedBalance.compareTo(b.lockedBalance));
+              .sort((a, b) => a.memberBalance.compareTo(b.memberBalance));
           break;
         case 'Nama A-Z':
           filteredData.sort((a, b) => a.name.compareTo(b.name));
@@ -215,12 +252,6 @@ class _DetailTargetTabunganBergilirState
   @override
   Widget build(BuildContext context) {
     double overallProgress = progressTabungan;
-    double totalTargetKeseluruhan = targetKontribusi * anggotaData.length;
-    double totalSaldoKeseluruhan =
-        anggotaData.fold(0, (sum, member) => sum + member.lockedBalance);
-    overallProgress = totalTargetKeseluruhan > 0
-        ? totalSaldoKeseluruhan / totalTargetKeseluruhan
-        : 0.0;
 
     return Scaffold(
       appBar: _buildAppBar(context),
@@ -228,8 +259,7 @@ class _DetailTargetTabunganBergilirState
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            _buildProgressCard(
-                overallProgress, totalTargetKeseluruhan, totalSaldoKeseluruhan),
+            _buildProgressCard(overallProgress),
             const SizedBox(height: 16),
             _buildSearchAndFilter(),
             const SizedBox(height: 16),
@@ -244,11 +274,11 @@ class _DetailTargetTabunganBergilirState
     return AppBar(
       backgroundColor: Colors.transparent,
       flexibleSpace: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.blue.shade700, Colors.blue.shade400],
+            colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
           ),
         ),
       ),
@@ -256,12 +286,12 @@ class _DetailTargetTabunganBergilirState
       toolbarHeight: 84,
       titleSpacing: 16,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: Colors.white),
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () {
           Navigator.of(context).pop();
         },
       ),
-      title: Text(
+      title: const Text(
         'Detail Target Tabungan',
         style: TextStyle(
           color: Colors.white,
@@ -274,8 +304,7 @@ class _DetailTargetTabunganBergilirState
     );
   }
 
-  Widget _buildProgressCard(double overallProgress,
-      double totalTargetKeseluruhan, double totalSaldoKeseluruhan) {
+  Widget _buildProgressCard(double overallProgress) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -285,7 +314,7 @@ class _DetailTargetTabunganBergilirState
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
             blurRadius: 8,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -294,9 +323,8 @@ class _DetailTargetTabunganBergilirState
         children: [
           _buildProgressCardHeader(),
           const SizedBox(height: 14),
-          _buildProgressCardBalance(
-              totalSaldoKeseluruhan, totalTargetKeseluruhan),
-          const SizedBox(height: 14),
+          _buildProgressCardBalance(),
+          const SizedBox(height: 8),
           _buildProgressCardProgressBar(overallProgress),
           const SizedBox(height: 8),
           _buildProgressCardSummary(overallProgress),
@@ -311,13 +339,13 @@ class _DetailTargetTabunganBergilirState
       children: [
         Row(
           children: [
-            Icon(
+            const Icon(
               Icons.track_changes,
               color: Colors.blue,
               size: 24,
             ),
             const SizedBox(width: 8),
-            Text(
+            const Text(
               'Progress Tabungan',
               style: TextStyle(
                 fontSize: 16,
@@ -326,7 +354,7 @@ class _DetailTargetTabunganBergilirState
             ),
           ],
         ),
-        Tooltip(
+        const Tooltip(
           message: 'Total progress dari semua anggota',
           child: Icon(
             Icons.info_outline,
@@ -337,12 +365,11 @@ class _DetailTargetTabunganBergilirState
     );
   }
 
-  Widget _buildProgressCardBalance(
-      double totalSaldoKeseluruhan, double totalTargetKeseluruhan) {
+  Widget _buildProgressCardBalance() {
     return isLoading
         ? _buildShimmerText(height: 18)
         : Text(
-            '${_formatCurrency(totalSaldoKeseluruhan)} / ${_formatCurrency(totalTargetKeseluruhan)}',
+            '${_formatCurrency(saldoTabungan)} / ${_formatCurrency(targetSaldoTabungan)}',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 18,
@@ -363,17 +390,12 @@ class _DetailTargetTabunganBergilirState
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          '${(overallProgress * 100).toStringAsFixed(1)}% Terpenuhi',
-          style: TextStyle(fontSize: 12),
-        ),
+        Text('${(overallProgress * 100).toStringAsFixed(1)}% Terpenuhi',
+            style: const TextStyle(fontSize: 12)),
         Text(
           overallProgress < 1.0 ? 'Terus Menabung' : 'Target Tercapai!',
           style: TextStyle(
-            fontSize: 12,
-            color: Colors.blue.shade900,
-            fontWeight: FontWeight.bold,
-          ),
+              color: Colors.blue.shade900, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -388,7 +410,7 @@ class _DetailTargetTabunganBergilirState
             Expanded(
               child: TextFormField(
                 decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search),
                   fillColor: Colors.blue.shade50,
                   filled: true,
                   hintText: 'Cari Anggota',
@@ -403,7 +425,7 @@ class _DetailTargetTabunganBergilirState
             const SizedBox(width: 8),
             PopupMenuButton<String>(
               onSelected: _applyFilter,
-              icon: Icon(Icons.filter_list_rounded, color: Colors.blue),
+              icon: const Icon(Icons.filter_list_rounded, color: Colors.blue),
               itemBuilder: (context) => [
                 const PopupMenuItem(value: 'None', child: Text('None')),
                 const PopupMenuItem(value: 'Nama A-Z', child: Text('Nama A-Z')),
@@ -452,7 +474,7 @@ class _DetailTargetTabunganBergilirState
               itemCount: filteredData.length,
               itemBuilder: (context, index) {
                 final anggota = filteredData[index];
-                double progress = anggota.lockedBalance / targetKontribusi;
+                double progress = anggota.memberBalance / targetKontribusi;
                 return _buildMemberCard(anggota, progress);
               },
             ),
@@ -598,7 +620,7 @@ class _DetailTargetTabunganBergilirState
             ),
             const SizedBox(height: 12),
             Text(
-              '${_formatCurrency(anggota.lockedBalance)} / ${_formatCurrency(targetKontribusi)}',
+              '${_formatCurrency(anggota.memberBalance)} / ${_formatCurrency(targetKontribusi)}',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,

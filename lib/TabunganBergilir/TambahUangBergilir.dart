@@ -370,7 +370,7 @@ class _PilihSumberDanaBergilirState extends State<PilihSumberDanaBergilir> {
                   radius: 24,
                   backgroundColor: Colors.white,
                   child: Icon(
-                    Icons.celebration,
+                    Icons.groups,
                     color: Colors.blue.shade700,
                     size: 28,
                   ),
@@ -708,7 +708,7 @@ class _KonfirmasiTambahUangBergilirState
       } else {
         setState(() {
           isLoadingAccount = false;
-          accountTypeGoalsName = 'Tabungan Bersama'; // Default value on error
+          accountTypeGoalsName = 'Tabungan Bergilir'; // Default value on error
         });
       }
     } catch (e) {
@@ -962,10 +962,10 @@ class DetailTambahUangBergilir extends StatelessWidget {
   // Determine accountTypeGoals based on savingGroupType
   String getDisplayAccountTypeGoals(Map<String, dynamic> goalsData) {
     final savingGroupType = goalsData['savingGroupType'];
-    if (savingGroupType == 'ROTATING_SAVING') {
+    if (savingGroupType == 'JOINT_SAVING') {
       return 'Tabungan Bergilir';
-    } else if (savingGroupType == 'JOINT_SAVING') {
-      return 'Tabungan Bersama';
+    } else if (savingGroupType == 'ROTATING_SAVING') {
+      return 'Tabungan Bergilir';
     } else {
       return 'Jenis Tabungan Tidak Diketahui'; // Default case
     }
@@ -1406,9 +1406,21 @@ class _InputPinBergilirState extends State<InputPinBergilir> {
       return;
     }
 
+    // Print all the data being used for transaction
+
     try {
       const String transactionEndpoint = "/transactions";
       final String apiUrl = baseUrl + transactionEndpoint;
+
+      final Map<String, dynamic> requestBody = {
+        "user_id": userId,
+        "saving_group_id": widget.goalsData['savingGroupId'],
+        "amount": int.parse(widget.nominalTambahUang
+            .replaceAll(RegExp(r'[^0-9]'), '')), // Parse nominal to integer
+        "transaction_type": "CREDIT"
+      };
+
+      // Print request body
 
       final response = await http.post(
         Uri.parse(apiUrl),
@@ -1416,18 +1428,15 @@ class _InputPinBergilirState extends State<InputPinBergilir> {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          "user_id": userId,
-          "saving_group_id": widget.goalsData['savingGroupId'],
-          "amount": int.parse(widget.nominalTambahUang
-              .replaceAll(RegExp(r'[^0-9]'), '')), // Parse nominal to integer
-          "transaction_type": "CREDIT"
-        }),
+        body: jsonEncode(requestBody),
       );
 
       setState(() {
         _isVerifyingPin = false; // Stop loading after transaction attempt
       });
+
+      // Print status code
+      // Print response body
 
       if (response.statusCode == 201) {
         final Map<String, dynamic> responseData = json.decode(response.body);

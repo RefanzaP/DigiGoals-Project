@@ -2,7 +2,6 @@
 
 import 'dart:convert';
 import 'package:digigoals_app/TabunganBergilir/AktivasiTabunganBergilir.dart';
-import 'package:digigoals_app/TabunganBergilir/DetailTargetTabunganBergilir.dart';
 import 'package:digigoals_app/TabunganBergilir/GilirTabungan.dart';
 import 'package:digigoals_app/TabunganBergilir/RincianAnggotaBergilir.dart';
 import 'package:digigoals_app/TabunganBergilir/TambahUangBergilir.dart';
@@ -12,51 +11,12 @@ import 'package:digigoals_app/OurGoals.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:digigoals_app/api/api_config.dart'; // Import api_config.dart
-import 'package:digigoals_app/auth/token_manager.dart'; // Import TokenManager
-import 'package:http/http.dart' as http; // Import http package
+import 'package:digigoals_app/api/api_config.dart';
+import 'package:digigoals_app/auth/token_manager.dart';
+import 'package:http/http.dart' as http;
 
-class MemberDetailTargetBergilir {
-  final String memberId;
-  final String name;
-  final String accountNumber;
-  final String role; // Keep role as String
-  final double lockedBalance;
-  final Color avatarColor;
-  final String status;
-
-  MemberDetailTargetBergilir({
-    required this.memberId,
-    required this.name,
-    required this.accountNumber,
-    required this.role,
-    required this.lockedBalance,
-    required this.avatarColor,
-    required this.status,
-  });
-
-  factory MemberDetailTargetBergilir.fromJson(
-      Map<String, dynamic> json, int index, double contributionAmount) {
-    final user = json['user'];
-    final customer = user['customer'];
-    final account = json['account'];
-    final lockedBalance =
-        (account?['total_locked_balance'] as num?)?.toDouble() ?? 0.0;
-    final targetPerMember = contributionAmount;
-    final isPaidOff = lockedBalance >= targetPerMember;
-    final role = json['role']; // Extract role directly from json
-
-    return MemberDetailTargetBergilir(
-      memberId: user['id'].toString(),
-      name: customer['name'] ?? 'N/A',
-      accountNumber: account?['account_number']?.toString() ?? 'N/A',
-      role: role, // Use extracted role
-      lockedBalance: lockedBalance,
-      avatarColor: Colors.primaries[index % Colors.primaries.length],
-      status: isPaidOff ? 'Lunas' : 'Belum Lunas',
-    );
-  }
-}
+// Import the new DetailTargetTabunganBergilir page (assuming it's in this location)
+import 'package:digigoals_app/TabunganBergilir/DetailTargetTabunganBergilir.dart';
 
 class DetailTabunganBergilir extends StatefulWidget {
   final String savingGroupId; // Add savingGroupId parameter
@@ -82,19 +42,22 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
       false; // State to prevent SnackBar from showing repeatedly
   String? _userRole; // To store the current user's role
   String? savingGroupType; // Added to store saving group type
+  String?
+      durasiTabunganDisplay; // Added to store formatted duration for display
+  int jumlahKontribusi = 0; // Added to store contribution_amount
 
   late String goalsName = ''; // Initialize with empty string
   late String statusTabungan = 'INACTIVE'; // Initialize with default value
   double progressTabungan = 0.0;
   double saldoTabungan = 0.0;
   late int targetSaldoTabungan = 0; // Initialize with 0
-  late int durasiTabungan = 0; // Initialize with 0
+  late int durasiTabungan = 0; // Initialize with 0, now stores days
   List<String> members = [];
-  List<Map<String, dynamic>> historiTransaksi = []; // Keep static
+  List<Map<String, dynamic>> _historiTransaksi = []; // Keep static
+  List<Map<String, dynamic>> _filteredHistoriTransaksi = [];
+  int _visibleTransactionCount = 3;
   late String memberName;
-  Map<String, dynamic> _goalsData = {};
-  late double targetKontribusi =
-      0.0; // New variable to store contribution_amount
+  final Map<String, dynamic> _goalsData = {};
 
   late List<String> _allMembers = []; // Initialize as empty list
   final TokenManager _tokenManager = TokenManager(); // Token Manager Instance
@@ -112,7 +75,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
   @override
   void initState() {
     super.initState();
-    fetchData();
+    fetchSavingGroupDetails();
   }
 
   @override
@@ -155,24 +118,18 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
     }
   }
 
-  Future<void> fetchData() async {
+  Future<void> fetchSavingGroupDetails() async {
     setState(() {
       isLoading = true;
       _errorMessage = null; // Reset error message
+      _visibleTransactionCount =
+          3; // Reset visible transaction count on refresh
     });
 
     await _fetchSavingGroupDetails();
     await _fetchMembers();
-    List<MemberDetailTargetBergilir> memberData =
-        await _fetchMemberDataForProgressCard(); // Fetch member data
-
-    double totalTargetKeseluruhan = targetKontribusi * memberData.length;
-    double totalSaldoKeseluruhan =
-        memberData.fold(0, (sum, member) => sum + member.lockedBalance);
-    progressTabungan = totalTargetKeseluruhan > 0
-        ? totalSaldoKeseluruhan / totalTargetKeseluruhan
-        : 0.0;
-    saldoTabungan = totalSaldoKeseluruhan;
+    await _fetchTransactions(); // Fetch transactions
+    await _fetchBalance(); // Fetch balance
 
     if (mounted) {
       // ADD MOUNTED CHECK HERE
@@ -182,9 +139,153 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
             saldoTabungan; // Use calculated saldoTabungan
         _goalsData['progressTabungan'] =
             progressTabungan; // Use calculated progressTabungan
+        _goalsData['jumlahKontribusi'] =
+            jumlahKontribusi; // Add jumlahKontribusi to _goalsData
         isLoading = false;
       });
     }
+  }
+
+  Future<void> _fetchBalance() async {
+    String? token = await _tokenManager.getToken();
+    if (token == null) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = "Token tidak ditemukan";
+        });
+      }
+      return;
+    }
+
+    final balanceUrl = Uri.parse(
+        '$baseUrl/transactions/balance?savingGroupId=${widget.savingGroupId}'); // URL for balance
+    final headers = {'Authorization': 'Bearer $token'};
+
+    try {
+      final balanceResponse = await http.get(balanceUrl, headers: headers);
+
+      if (balanceResponse.statusCode == 200) {
+        final balanceData = json
+            .decode(utf8.decode(balanceResponse.bodyBytes)); // Data for balance
+
+        double fetchedSaldoTabungan = 0.0;
+        if (balanceData['code'] == 200 &&
+            balanceData['status'] == 'OK' &&
+            (balanceData['data'] as List).isNotEmpty) {
+          for (var balanceItem in balanceData['data']) {
+            if (balanceItem['saving_group_id'] == widget.savingGroupId) {
+              fetchedSaldoTabungan +=
+                  (balanceItem['balance'] as num).toDouble();
+            }
+          }
+        }
+        if (mounted) {
+          setState(() {
+            saldoTabungan = fetchedSaldoTabungan;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _errorMessage =
+                "Gagal mengambil saldo tabungan. Status code: ${balanceResponse.statusCode}";
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage =
+              "Terjadi kesalahan saat mengambil saldo tabungan: ${e.toString()}";
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchTransactions() async {
+    String? token = await _tokenManager.getToken();
+    if (token == null) {
+      return;
+    }
+
+    final transactionsUrl = Uri.parse(
+        '$baseUrl/transactions?savingGroupId=${widget.savingGroupId}');
+    final headers = {'Authorization': 'Bearer $token'};
+
+    try {
+      final transactionsResponse =
+          await http.get(transactionsUrl, headers: headers);
+
+      if (transactionsResponse.statusCode == 200) {
+        final transactionsData =
+            json.decode(utf8.decode(transactionsResponse.bodyBytes));
+
+        List<Map<String, dynamic>> fetchedTransactions = [];
+        if (transactionsData['code'] == 200 &&
+            transactionsData['status'] == 'OK') {
+          fetchedTransactions = (transactionsData['data'] as List).map((item) {
+            String transactionType =
+                item['transaction_type'] == 'CREDIT' ? 'Setoran' : 'Penarikan';
+            return {
+              'jenisTransaksi': transactionType,
+              'tanggalTransaksi': DateTime.parse(item['completed_at']),
+              'jumlahTransaksi': (item['amount'] as num).toDouble(),
+              'memberName': item['goals_member']['user']['customer']['name'] ??
+                  'Unknown Member',
+            };
+          }).toList();
+          fetchedTransactions.sort(
+              (a, b) => b['tanggalTransaksi'].compareTo(a['tanggalTransaksi']));
+        }
+        if (mounted) {
+          setState(() {
+            _historiTransaksi = fetchedTransactions;
+            _filteredHistoriTransaksi = List.from(_historiTransaksi);
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _errorMessage =
+                "Gagal mengambil riwayat transaksi. Status code: ${transactionsResponse.statusCode}";
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage =
+              "Terjadi kesalahan saat mengambil riwayat transaksi: ${e.toString()}";
+        });
+      }
+    }
+  }
+
+  void _filterTransactions(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredHistoriTransaksi = List.from(_historiTransaksi);
+      } else {
+        _filteredHistoriTransaksi = _historiTransaksi.where((transaction) {
+          final jenisTransaksi =
+              transaction['jenisTransaksi'].toString().toLowerCase();
+          final memberName = transaction['memberName'].toString().toLowerCase();
+          final searchQuery = query.toLowerCase();
+          return jenisTransaksi.contains(searchQuery) ||
+              memberName.contains(searchQuery);
+        }).toList();
+      }
+      _visibleTransactionCount = 3; // Reset visible count after filtering
+    });
+  }
+
+  void _loadMoreTransactions() {
+    setState(() {
+      _visibleTransactionCount += 3;
+      if (_visibleTransactionCount > _filteredHistoriTransaksi.length) {
+        _visibleTransactionCount = _filteredHistoriTransaksi.length;
+      }
+    });
   }
 
   // Function to fetch saving group details from API
@@ -215,42 +316,45 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
             utf8.decode(response.bodyBytes); // Decode response body using UTF-8
         final responseData = json.decode(responseBody);
         if (responseData['code'] == 200 && responseData['status'] == 'OK') {
-          final data = responseData['data'];
+          final savingGroupDetail = responseData['data'];
           if (mounted) {
             // ADD MOUNTED CHECK HERE
             setState(() {
-              _goalsData = data;
-              goalsName = data['name'];
+              goalsName = savingGroupDetail['name'];
               _goalsNameController.text = goalsName;
-              statusTabungan = data['status'];
-              targetSaldoTabungan = data['detail']['target_amount'] ?? 0;
-              durasiTabungan = data['detail']['duration'] ?? 0;
-              targetKontribusi =
-                  (data['detail']['contribution_amount'] as num?)?.toDouble() ??
-                      0.0; // Get contribution_amount
-              savingGroupType =
-                  data['type']?.toString(); // Get saving group type
-              // Static data initialization - keep for now as per instructions, adjust with API data when available
+              statusTabungan = savingGroupDetail['status'];
+              targetSaldoTabungan =
+                  savingGroupDetail['detail']['target_amount'] ?? 0;
+              durasiTabungan = (savingGroupDetail['detail']['duration'] ??
+                  0); // Store duration in days
+              durasiTabunganDisplay = savingGroupDetail['detail']['duration'] !=
+                      null
+                  ? '${(savingGroupDetail['detail']['duration'] / 30).floor()} Bulan'
+                  : 'Durasi Tidak Ditentukan';
+
+              savingGroupType = savingGroupDetail['type']
+                  ?.toString(); // Get saving group type
+              jumlahKontribusi = savingGroupDetail['detail']
+                      ['contribution_amount'] ??
+                  0; // Get contribution_amount
+
+              _goalsData.addAll({
+                'goalsName': goalsName,
+                'savingGroupId': widget
+                    .savingGroupId, // savingGroupId dimasukkan ke goalsData di sini
+                'savingGroupName': goalsName,
+                'savingGroupBalance': saldoTabungan, // Pass saldoTabungan here
+                'savingGroupType': savingGroupType,
+                'durasiTabungan':
+                    durasiTabunganDisplay, // Pass formatted duration here
+                'jumlahKontribusi':
+                    jumlahKontribusi, // Pass jumlahKontribusi here
+                'targetTabungan':
+                    targetSaldoTabungan.toDouble(), // Pass targetTabungan here
+              });
               _goalsData['goalsName'] = goalsName;
               _goalsData['targetTabungan'] = targetSaldoTabungan.toDouble();
-              _goalsData['durasiTabungan'] = '$durasiTabungan Bulan';
-              _goalsData['transactions'] = [
-                // Static Value - Will be replaced by API later
-                {
-                  'jenisTransaksi': 'Setoran',
-                  'tanggalTransaksi': DateTime(2024, 12, 10),
-                  'jumlahTransaksi': 500000.00
-                },
-                {
-                  'jenisTransaksi': 'Penarikan',
-                  'tanggalTransaksi': DateTime(2024, 12, 12),
-                  'jumlahTransaksi': 300000.00,
-                },
-              ];
-              historiTransaksi = List<Map<String, dynamic>>.from(_goalsData[
-                  'transactions']); // Static Value - Will be replaced by API later
-              _goalsData['savingGroupType'] =
-                  savingGroupType; // Include saving group type in _goalsData
+              // _goalsData['durasiTabungan'] = durasiTabungan; // No longer needed, using durasiTabunganDisplay
             });
           }
         } else {
@@ -360,47 +464,6 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
               "Terjadi kesalahan saat memuat anggota: ${e.toString()}";
         });
       }
-    }
-  }
-
-  Future<List<MemberDetailTargetBergilir>>
-      _fetchMemberDataForProgressCard() async {
-    String? token = await _tokenManager.getToken();
-    if (token == null) {
-      return []; // Return empty list if token is null
-    }
-
-    final String savingGroupId = widget.savingGroupId;
-    final membersUrl =
-        Uri.parse('$baseUrl/members?savingGroupId=$savingGroupId');
-
-    try {
-      final response = await http.get(
-        membersUrl,
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      if (response.statusCode == 200) {
-        final responseBody = utf8.decode(response.bodyBytes);
-        final responseData = json.decode(responseBody);
-        if (responseData['code'] == 200 && responseData['status'] == 'OK') {
-          List<dynamic> memberDataList = responseData['data'];
-          List<MemberDetailTargetBergilir> fetchedMembers = [];
-
-          for (int i = 0; i < memberDataList.length; i++) {
-            final memberDetail = MemberDetailTargetBergilir.fromJson(
-                memberDataList[i], i, targetKontribusi);
-            fetchedMembers.add(memberDetail);
-          }
-          return fetchedMembers;
-        } else {
-          return []; // Return empty list on API error
-        }
-      } else {
-        return []; // Return empty list on HTTP error
-      }
-    } catch (e) {
-      return []; // Return empty list on exception
     }
   }
 
@@ -790,7 +853,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
             utf8.decode(response.bodyBytes); // Decode response body using UTF-8
         final responseData = json.decode(responseBody);
         if (responseData['code'] == 200 && responseData['status'] == 'OK') {
-          await fetchData();
+          await fetchSavingGroupDetails();
           if (mounted) {
             // ADD MOUNTED CHECK HERE
             ScaffoldMessenger.of(context).showSnackBar(
@@ -902,8 +965,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                       isLoading
                           ? _buildShimmerText(height: 32)
                           : Text(
-                              currencyFormat.format(_goalsData[
-                                  'saldoTabungan']), // Static Value Display - Will be replaced by API later
+                              currencyFormat.format(saldoTabungan),
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
@@ -986,18 +1048,23 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                                     ? _buildShimmerCircleAvatars()
                                     : [
                                         ..._allMembers.take(2).map(
-                                              (member) => CircleAvatar(
-                                                radius: 20,
-                                                backgroundColor: Colors
-                                                    .primaries[_allMembers
-                                                        .indexOf(member) %
-                                                    Colors.primaries.length],
-                                                child: Text(
-                                                  member.isNotEmpty
-                                                      ? member[0].toUpperCase()
-                                                      : 'U',
-                                                  style: const TextStyle(
-                                                      color: Colors.white),
+                                              (member) => Padding(
+                                                padding: const EdgeInsets.only(
+                                                    right: 8.0),
+                                                child: CircleAvatar(
+                                                  radius: 20,
+                                                  backgroundColor: Colors
+                                                      .primaries[_allMembers
+                                                          .indexOf(member) %
+                                                      Colors.primaries.length],
+                                                  child: Text(
+                                                    member.isNotEmpty
+                                                        ? member[0]
+                                                            .toUpperCase()
+                                                        : 'U',
+                                                    style: const TextStyle(
+                                                        color: Colors.white),
+                                                  ),
                                                 ),
                                               ),
                                             ),
@@ -1077,18 +1144,23 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                                     ? _buildShimmerCircleAvatars()
                                     : [
                                         ..._allMembers.take(2).map(
-                                              (member) => CircleAvatar(
-                                                radius: 20,
-                                                backgroundColor: Colors
-                                                    .primaries[_allMembers
-                                                        .indexOf(member) %
-                                                    Colors.primaries.length],
-                                                child: Text(
-                                                  member.isNotEmpty
-                                                      ? member[0].toUpperCase()
-                                                      : 'U',
-                                                  style: const TextStyle(
-                                                      color: Colors.white),
+                                              (member) => Padding(
+                                                padding: const EdgeInsets.only(
+                                                    right: 8.0),
+                                                child: CircleAvatar(
+                                                  radius: 20,
+                                                  backgroundColor: Colors
+                                                      .primaries[_allMembers
+                                                          .indexOf(member) %
+                                                      Colors.primaries.length],
+                                                  child: Text(
+                                                    member.isNotEmpty
+                                                        ? member[0]
+                                                            .toUpperCase()
+                                                        : 'U',
+                                                    style: const TextStyle(
+                                                        color: Colors.white),
+                                                  ),
                                                 ),
                                               ),
                                             ),
@@ -1145,24 +1217,28 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                       if (statusTabungan == 'ACTIVE')
                         const SizedBox(height: 12),
                       if (statusTabungan == 'ACTIVE')
+                        // Wrap Card with InkWell for click action
                         InkWell(
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (BuildContext context) =>
+                                builder: (context) =>
                                     DetailTargetTabunganBergilir(
-                                  goalsData:
-                                      _goalsData, // Mengirim data goalsData
-                                  isActive:
-                                      widget.isActive, // Mengirim data isActive
-                                  targetKontribusi:
-                                      targetKontribusi, // Pass targetKontribusi
                                   savingGroupId: widget.savingGroupId,
+                                  goalsData: _goalsData,
+                                  isActive: widget.isActive,
+                                  targetKontribusi: jumlahKontribusi.toDouble(),
+                                  targetSaldoTabungan: targetSaldoTabungan
+                                      .toDouble(), // Pass targetSaldoTabungan
+                                  saldoTabungan:
+                                      saldoTabungan, // Pass saldoTabungan
                                 ),
                               ),
                             );
                           },
+                          borderRadius: BorderRadius.circular(
+                              12), // Match card borderRadius for InkWell
                           child: Card(
                             margin: const EdgeInsets.only(bottom: 16),
                             shape: RoundedRectangleBorder(
@@ -1178,7 +1254,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                                   isLoading
                                       ? _buildShimmerText(height: 18)
                                       : Text(
-                                          '${currencyFormat.format(_goalsData['saldoTabungan'])} / ${currencyFormat.format(targetSaldoTabungan)}', // Use _goalsData['saldoTabungan']
+                                          '${currencyFormat.format(saldoTabungan)} / ${currencyFormat.format(targetSaldoTabungan)}', // Use _goalsData['saldoTabungan']
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 18,
@@ -1216,38 +1292,22 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                             borderSide: BorderSide.none,
                           ),
                         ),
+                        onChanged: _filterTransactions,
                       ),
                       const SizedBox(height: 16),
-                      isLoading
-                          ? _buildShimmerTransactionHistory()
-                          : historiTransaksi.isEmpty
-                              ? Padding(
-                                  padding: const EdgeInsets.only(top: 24.0),
-                                  child: Text(
-                                    'Belum ada transaksi',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                )
-                              : ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: historiTransaksi.length,
-                                  itemBuilder: (context, index) {
-                                    final transaction = historiTransaksi[index];
-                                    return ListTile(
-                                      title:
-                                          Text(transaction['jenisTransaksi']),
-                                      subtitle: Text(dateFormat.format(
-                                          transaction['tanggalTransaksi'])),
-                                      trailing: Text(currencyFormat.format(
-                                          transaction['jumlahTransaksi'])),
-                                    );
-                                  },
-                                ),
+                      _buildTransactionHistoryList(),
+                      if (_filteredHistoriTransaksi.length >
+                          _visibleTransactionCount)
+                        Center(
+                          child: TextButton(
+                            onPressed: _loadMoreTransactions,
+                            child: const Text(
+                              'Lihat Lainnya',
+                              style: TextStyle(color: Colors.amber),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
                       if (statusTabungan == 'ACTIVE')
                         SizedBox(
                           width: double.infinity,
@@ -1316,6 +1376,53 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
     );
   }
 
+  Widget _buildTransactionHistoryList() {
+    final displayedTransactions =
+        _filteredHistoriTransaksi.take(_visibleTransactionCount).toList();
+    return isLoading
+        ? _buildShimmerTransactionHistory()
+        : displayedTransactions.isEmpty
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'Belum ada transaksi',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            : ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: displayedTransactions.length,
+                itemBuilder: (context, index) {
+                  final transaction = displayedTransactions[index];
+                  Color? transactionColor;
+                  if (transaction['jenisTransaksi'] == 'Setoran') {
+                    transactionColor = Colors.green;
+                  } else if (transaction['jenisTransaksi'] == 'Penarikan') {
+                    transactionColor = Colors.red;
+                  }
+                  return ListTile(
+                    title: Text(
+                      '${transaction['jenisTransaksi']}\n${transaction['memberName']}',
+                      style: TextStyle(color: transactionColor),
+                    ),
+                    subtitle: Text(
+                      dateFormat.format(transaction['tanggalTransaksi']),
+                      style: TextStyle(color: transactionColor),
+                    ),
+                    trailing: Text(
+                      currencyFormat.format(transaction['jumlahTransaksi']),
+                      style: TextStyle(color: transactionColor),
+                    ),
+                  );
+                },
+              );
+  }
+
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -1360,15 +1467,6 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
             shape: BoxShape.circle,
           ),
         ),
-        if (_userRole ==
-            'ADMIN') // Conditional rendering for settings icon in AppBar
-          IconButton(
-            icon: Icon(Icons.settings, color: Colors.white),
-            onPressed: _showSettingsModal,
-          )
-        else
-          const SizedBox
-              .shrink(), // Or any other widget if you want to show something else when not admin
       ],
     );
   }
@@ -1412,15 +1510,14 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
         isLoading
             ? _buildShimmerText(width: 80)
             : Text(
-                _goalsData['durasiTabungan'] ??
-                    '', // Static Value Display - Will be replaced by API later
+                durasiTabunganDisplay ?? '', // Use durasiTabunganDisplay here
                 style: TextStyle(color: Colors.blue.shade700)),
         isLoading
             ? _buildShimmerText(width: 50)
             : Text(
                 isLoading
                     ? '0%'
-                    : '${(progressTabungan * 100).toStringAsFixed(2)}%', // Use calculated progressTabungan
+                    : '${(progressTabungan * 100).toStringAsFixed(1)}%', // Menggunakan 1 desimal
                 style: TextStyle(color: Colors.blue.shade700),
               ),
       ],

@@ -21,7 +21,7 @@ class MemberKontribusiDetail {
     required this.name,
     required this.accountNumber,
     required this.role,
-    required this.memberBalance, // Renamed from lockedBalance
+    required this.memberBalance,
     required this.avatarColor,
   });
 
@@ -150,8 +150,7 @@ class _DetailKontribusiTabunganBersamaState
                     memberJson, i, memberBalance);
               } else {
                 // In case of error, still create MemberKontribusiDetail with default balance 0.0
-                print(
-                    "Error fetching balance for memberId: $memberId, status code: ${balanceResponse.statusCode}"); // Log error
+                // Log error
                 return MemberKontribusiDetail.fromJson(memberJson, i, 0.0);
               }
             }));

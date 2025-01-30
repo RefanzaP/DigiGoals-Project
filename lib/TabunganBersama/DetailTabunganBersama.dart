@@ -207,8 +207,6 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                   .compareTo(a['tanggalTransaksi'])); // Sort by date descending
             } else {
               // Handle transaction fetch error if needed, for now just keep historiTransaksi empty
-              print(
-                  'Failed to fetch transactions: ${transactionsData['errors']}');
             }
 
             double fetchedSaldoTabungan = 0.0;
@@ -222,7 +220,6 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                 }
               }
             } else {
-              print('Failed to fetch balance: ${balanceData['errors']}');
               // Optionally handle balance fetch error, maybe keep saldoTabungan as 0.0 or show error
             }
 
@@ -1017,9 +1014,7 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
         Text(durasiTabungan ?? '',
             style: TextStyle(color: Colors.blue.shade700)),
         Text(
-          isLoading
-              ? '0%'
-              : '${(progressTabungan * 100).toStringAsFixed(1)}%', // Modified here to 1 decimal place
+          isLoading ? '0%' : '${(progressTabungan * 100).toStringAsFixed(1)}%',
           style: TextStyle(color: Colors.blue.shade700),
         ),
       ],

@@ -789,9 +789,7 @@ class AccountCard extends StatelessWidget {
                         child: const Icon(Icons.arrow_forward_ios,
                             size: 20, color: Colors.white),
                       ),
-                      onPressed: () {
-                        // TODO: Navigate to account list atau detail akun
-                      },
+                      onPressed: () {},
                     ),
                   ),
                 ],

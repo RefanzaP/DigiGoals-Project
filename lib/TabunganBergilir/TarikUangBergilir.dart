@@ -1,16 +1,16 @@
-// ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api, deprecated_member_use
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
-import 'package:digigoals_app/Beranda.dart';
 import 'package:digigoals_app/auth/token_manager.dart';
 import 'package:digigoals_app/api/api_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart' show NumberFormat, DateFormat;
+import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class TarikUangBergilir extends StatefulWidget {
   final Map<String, dynamic> goalsData;
+
   const TarikUangBergilir({super.key, required this.goalsData});
 
   @override
@@ -34,13 +34,14 @@ abstract class _TarikUangBergilirStateBase extends State<TarikUangBergilir> {
   bool isDateEnabled = false;
   bool isSpecificDateEnabled = false;
 
-  late String namaGoals; // Nama goals dari widget.goalsData
+  // Inisialisasi data di depan
+  late String goalsName;
   final String tanggalTransaksiDefault = 'Sekarang';
 
   @override
   void initState() {
     super.initState();
-    namaGoals = widget.goalsData['goalsName'] ?? 'Nama Goals Tidak Tersedia';
+    goalsName = widget.goalsData['goalsName'];
     _nominalTarikUangController = TextEditingController();
     _waktuTransaksiController =
         TextEditingController(text: tanggalTransaksiDefault);
@@ -82,10 +83,10 @@ abstract class _TarikUangBergilirStateBase extends State<TarikUangBergilir> {
         toolbarHeight: 84,
         titleSpacing: 16,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Tarik Uang',
           style: TextStyle(
             color: Colors.white,
@@ -96,10 +97,10 @@ abstract class _TarikUangBergilirStateBase extends State<TarikUangBergilir> {
         centerTitle: true,
         actions: [
           Container(
-            margin: EdgeInsets.only(right: 16),
+            margin: const EdgeInsets.only(right: 16),
             height: 12,
             width: 12,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.green,
               shape: BoxShape.circle,
             ),
@@ -150,9 +151,9 @@ abstract class _TarikUangBergilirStateBase extends State<TarikUangBergilir> {
                     if (value == null || value.isEmpty) {
                       return 'Nominal Tarik Uang tidak boleh kosong';
                     }
-                    final nominal =
+                    final nominalTarikUang =
                         int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
-                    if (nominal == null || nominal < 10000) {
+                    if (nominalTarikUang == null || nominalTarikUang < 10000) {
                       return 'Nominal minimal adalah Rp 10.000';
                     }
                     return null;
@@ -175,7 +176,7 @@ abstract class _TarikUangBergilirStateBase extends State<TarikUangBergilir> {
                     fillColor: Colors.blue.shade50,
                     filled: true,
                     hintText: 'Sekarang',
-                    suffixIcon: Icon(Icons.edit_calendar),
+                    suffixIcon: const Icon(Icons.edit_calendar),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none,
@@ -199,9 +200,9 @@ abstract class _TarikUangBergilirStateBase extends State<TarikUangBergilir> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => PilihSumberDanaTarikBergilir(
+                    builder: (context) => PilihSumberDanaBergilir(
                       nominalTarikUang: _nominalTarikUangController.text,
-                      namaGoals: namaGoals,
+                      goalsName: goalsName,
                       goalsData: widget.goalsData,
                     ),
                   ),
@@ -228,25 +229,24 @@ abstract class _TarikUangBergilirStateBase extends State<TarikUangBergilir> {
   }
 }
 
-class PilihSumberDanaTarikBergilir extends StatefulWidget {
+class PilihSumberDanaBergilir extends StatefulWidget {
   final String nominalTarikUang;
-  final String namaGoals;
+  final String goalsName;
   final Map<String, dynamic> goalsData;
 
-  const PilihSumberDanaTarikBergilir({
+  const PilihSumberDanaBergilir({
     super.key,
     required this.nominalTarikUang,
-    required this.namaGoals,
+    required this.goalsName,
     required this.goalsData,
   });
 
   @override
-  _PilihSumberDanaTarikBergilirState createState() =>
-      _PilihSumberDanaTarikBergilirState();
+  _PilihSumberDanaBergilirState createState() =>
+      _PilihSumberDanaBergilirState();
 }
 
-class _PilihSumberDanaTarikBergilirState
-    extends State<PilihSumberDanaTarikBergilir> {
+class _PilihSumberDanaBergilirState extends State<PilihSumberDanaBergilir> {
   List<Map<String, dynamic>> sumberDanaList = [];
   ValueNotifier<int> selectedIndex = ValueNotifier<int>(0);
   bool isLoading = true;
@@ -336,10 +336,10 @@ class _PilihSumberDanaTarikBergilirState
       appBar: AppBar(
         backgroundColor: Colors.blue.shade700,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Tarik Uang',
           style: TextStyle(
             color: Colors.white,
@@ -369,7 +369,7 @@ class _PilihSumberDanaTarikBergilirState
                   radius: 24,
                   backgroundColor: Colors.white,
                   child: Icon(
-                    Icons.savings,
+                    Icons.groups,
                     color: Colors.blue.shade700,
                     size: 28,
                   ),
@@ -390,7 +390,7 @@ class _PilihSumberDanaTarikBergilirState
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Nama Goals: ${widget.namaGoals}',
+                        'Nama Goals: ${widget.goalsName}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -606,7 +606,7 @@ class _PilihSumberDanaTarikBergilirState
                               accountBalance: _formatCurrency(
                                   sumberDanaList[selectedIndex.value]
                                       ['accountBalance']!),
-                              namaGoals: widget.namaGoals,
+                              goalsName: widget.goalsName,
                               goalsData: widget.goalsData,
                               userName:
                                   userName!, // Pass userName, now it's ensured not to be null
@@ -637,7 +637,7 @@ class KonfirmasiTarikUangBergilir extends StatefulWidget {
   final String accountType;
   final String accountNumber;
   final String accountBalance;
-  final String namaGoals;
+  final String goalsName;
   final Map<String, dynamic> goalsData;
   final String userName;
   final int accountId;
@@ -648,7 +648,7 @@ class KonfirmasiTarikUangBergilir extends StatefulWidget {
     required this.accountType,
     required this.accountNumber,
     required this.accountBalance,
-    required this.namaGoals,
+    required this.goalsName,
     required this.goalsData,
     required this.userName,
     required this.accountId,
@@ -725,10 +725,10 @@ class _KonfirmasiTarikUangBergilirState
       appBar: AppBar(
         backgroundColor: Colors.blue.shade700,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Tarik Uang',
           style: TextStyle(
             color: Colors.white,
@@ -757,7 +757,7 @@ class _KonfirmasiTarikUangBergilirState
                   radius: 24,
                   backgroundColor: Colors.white,
                   child: Icon(
-                    Icons.savings,
+                    Icons.groups,
                     color: Colors.blue.shade700,
                     size: 28,
                   ),
@@ -778,7 +778,7 @@ class _KonfirmasiTarikUangBergilirState
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Nama Goals: ${widget.namaGoals}',
+                        'Nama Goals: ${widget.goalsName}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -907,7 +907,7 @@ class _KonfirmasiTarikUangBergilirState
                         accountType: widget.accountType,
                         accountNumber: widget.accountNumber,
                         accountBalance: widget.accountBalance,
-                        namaGoals: widget.namaGoals,
+                        goalsName: widget.goalsName,
                         goalsData: widget.goalsData,
                         accountTypeGoals: accountTypeGoalsName ??
                             'Tabungan Bergilir', // Use fetched account type or default
@@ -937,7 +937,7 @@ class DetailTarikUangBergilir extends StatelessWidget {
   final String accountType;
   final String accountNumber;
   final String accountBalance;
-  final String namaGoals;
+  final String goalsName;
   final Map<String, dynamic> goalsData;
   final String accountTypeGoals; // Get from API now
   final String userName; // Get from API now
@@ -952,7 +952,7 @@ class DetailTarikUangBergilir extends StatelessWidget {
     required this.accountType,
     required this.accountNumber,
     required this.accountBalance,
-    required this.namaGoals,
+    required this.goalsName,
     required this.goalsData,
     required this.accountTypeGoals,
     required this.userName,
@@ -961,10 +961,10 @@ class DetailTarikUangBergilir extends StatelessWidget {
   // Determine accountTypeGoals based on savingGroupType
   String getDisplayAccountTypeGoals(Map<String, dynamic> goalsData) {
     final savingGroupType = goalsData['savingGroupType'];
-    if (savingGroupType == 'ROTATING_SAVING') {
+    if (savingGroupType == 'JOINT_SAVING') {
       return 'Tabungan Bergilir';
-    } else if (savingGroupType == 'JOINT_SAVING') {
-      return 'Tabungan Bersama';
+    } else if (savingGroupType == 'ROTATING_SAVING') {
+      return 'Tabungan Bergilir';
     } else {
       return 'Jenis Tabungan Tidak Diketahui'; // Default case
     }
@@ -990,10 +990,10 @@ class DetailTarikUangBergilir extends StatelessWidget {
         toolbarHeight: 84,
         titleSpacing: 16,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Tarik Uang',
           style: TextStyle(
             color: Colors.white,
@@ -1004,10 +1004,10 @@ class DetailTarikUangBergilir extends StatelessWidget {
         centerTitle: true,
         actions: [
           Container(
-            margin: EdgeInsets.only(right: 16),
+            margin: const EdgeInsets.only(right: 16),
             height: 12,
             width: 12,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.green,
               shape: BoxShape.circle,
             ),
@@ -1055,7 +1055,7 @@ class DetailTarikUangBergilir extends StatelessWidget {
                       Expanded(
                         // Wrap Text with Expanded
                         child: Text(
-                          namaGoals,
+                          goalsName,
                           style: const TextStyle(
                             fontSize: 13,
                           ),
@@ -1233,12 +1233,12 @@ class DetailTarikUangBergilir extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => InputPinTarikBergilir(
+                builder: (context) => InputPinBergilir(
                   nominalTarikUang: nominalTarikUang,
                   accountType: accountType,
                   accountNumber: accountNumber,
                   accountBalance: accountBalance,
-                  namaGoals: namaGoals,
+                  goalsName: goalsName,
                   accountTypeGoals:
                       displayAccountTypeGoals, // Pass dynamic account type
                   goalsData: goalsData,
@@ -1277,30 +1277,30 @@ class DetailTarikUangBergilir extends StatelessWidget {
   }
 }
 
-class InputPinTarikBergilir extends StatefulWidget {
+class InputPinBergilir extends StatefulWidget {
   final String nominalTarikUang;
   final String accountType;
   final String accountNumber;
   final String accountBalance;
-  final String namaGoals;
+  final String goalsName;
   final String accountTypeGoals;
   final Map<String, dynamic> goalsData;
 
-  const InputPinTarikBergilir(
+  const InputPinBergilir(
       {super.key,
       required this.nominalTarikUang,
       required this.accountType,
       required this.accountTypeGoals,
       required this.accountNumber,
       required this.accountBalance,
-      required this.namaGoals,
+      required this.goalsName,
       required this.goalsData});
 
   @override
-  _InputPinTarikBergilirState createState() => _InputPinTarikBergilirState();
+  _InputPinBergilirState createState() => _InputPinBergilirState();
 }
 
-class _InputPinTarikBergilirState extends State<InputPinTarikBergilir> {
+class _InputPinBergilirState extends State<InputPinBergilir> {
   String _pin = '';
   final int _pinLength = 6;
   final TokenManager _tokenManager = TokenManager();
@@ -1405,9 +1405,21 @@ class _InputPinTarikBergilirState extends State<InputPinTarikBergilir> {
       return;
     }
 
+    // Print all the data being used for transaction
+
     try {
       const String transactionEndpoint = "/transactions";
       final String apiUrl = baseUrl + transactionEndpoint;
+
+      final Map<String, dynamic> requestBody = {
+        "user_id": userId,
+        "saving_group_id": widget.goalsData['savingGroupId'],
+        "amount": int.parse(widget.nominalTarikUang
+            .replaceAll(RegExp(r'[^0-9]'), '')), // Parse nominal to integer
+        "transaction_type": "DEBIT"
+      };
+
+      // Print request body
 
       final response = await http.post(
         Uri.parse(apiUrl),
@@ -1415,18 +1427,15 @@ class _InputPinTarikBergilirState extends State<InputPinTarikBergilir> {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          "user_id": userId,
-          "saving_group_id": widget.goalsData['savingGroupId'],
-          "amount": int.parse(widget.nominalTarikUang
-              .replaceAll(RegExp(r'[^0-9]'), '')), // Parse nominal to integer
-          "transaction_type": "DEBIT" // Changed to DEBIT for withdrawal
-        }),
+        body: jsonEncode(requestBody),
       );
 
       setState(() {
         _isVerifyingPin = false; // Stop loading after transaction attempt
       });
+
+      // Print status code
+      // Print response body
 
       if (response.statusCode == 201) {
         final Map<String, dynamic> responseData = json.decode(response.body);
@@ -1439,7 +1448,7 @@ class _InputPinTarikBergilirState extends State<InputPinTarikBergilir> {
                 nominalTarikUang: widget.nominalTarikUang,
                 accountType: widget.accountType,
                 accountNumber: widget.accountNumber,
-                namaGoals: widget.namaGoals,
+                goalsName: widget.goalsName,
                 tanggalTransaksi:
                     DateFormat('d MMMM yyyy').format(DateTime.now()),
                 accountBalance: widget.accountBalance,
@@ -1650,7 +1659,7 @@ class BerhasilTarikUangBergilir extends StatelessWidget {
   final String accountType;
   final String accountTypeGoals;
   final String accountNumber;
-  final String namaGoals;
+  final String goalsName;
   final String tanggalTransaksi;
   final String accountBalance;
   final Map<String, dynamic> goalsData;
@@ -1661,7 +1670,7 @@ class BerhasilTarikUangBergilir extends StatelessWidget {
     required this.nominalTarikUang,
     required this.accountType,
     required this.accountNumber,
-    required this.namaGoals,
+    required this.goalsName,
     required this.tanggalTransaksi,
     required this.accountBalance,
     required this.accountTypeGoals,
@@ -1787,7 +1796,7 @@ class BerhasilTarikUangBergilir extends StatelessWidget {
                           Expanded(
                             // Add Expanded to the inner Text as well
                             child: Text(
-                              namaGoals,
+                              goalsName,
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey.shade800,
@@ -1947,13 +1956,8 @@ class BerhasilTarikUangBergilir extends StatelessWidget {
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            Navigator.pushReplacement<void, void>(
-                              context,
-                              MaterialPageRoute<void>(
-                                builder: (BuildContext context) =>
-                                    const Beranda(),
-                              ),
-                            );
+                            Navigator.pushReplacementNamed(
+                                context, '/beranda'); // Navigate to Beranda
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.yellow.shade700,
