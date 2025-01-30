@@ -1,7 +1,6 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'dart:math';
 import 'package:digigoals_app/TabunganBergilir/DetailTabunganBergilir.dart';
 import 'package:digigoals_app/api/api_config.dart';
 import 'package:digigoals_app/auth/token_manager.dart';
@@ -29,14 +28,12 @@ class _GilirTabunganState extends State<GilirTabungan>
   bool isChecked = false;
   String? warningMessage;
   late AnimationController _animationController;
-  late List<String> _allMembers;
   String? _winnerName; // Untuk menyimpan nama pemenang
   final TokenManager _tokenManager = TokenManager();
 
   @override
   void initState() {
     super.initState();
-    _allMembers = List<String>.from(widget.goalsData['members'] ?? []);
     _animationController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 500),
@@ -81,7 +78,7 @@ class _GilirTabunganState extends State<GilirTabungan>
         } else {
           setState(() {
             _winnerName =
-                "Gagal mendapatkan pemenang dari API: ${responseData['errors'] != null ? responseData['errors'] : 'Unknown error'}";
+                "Gagal mendapatkan pemenang dari API: ${responseData['errors'] ?? 'Unknown error'}";
           });
         }
       } else {

@@ -19,7 +19,7 @@ class SavingGroup {
   final DateTime createdAt;
   final int duration;
   final int targetAmount;
-  double contributionAmount;
+  double goalsBalance;
   List<Member> members;
 
   SavingGroup({
@@ -30,7 +30,7 @@ class SavingGroup {
     required this.createdAt,
     required this.duration,
     required this.targetAmount,
-    this.contributionAmount = 0.0,
+    this.goalsBalance = 0.0,
     this.members = const [],
   });
 
@@ -79,11 +79,17 @@ class _OurGoalsState extends State<OurGoals> {
   List<SavingGroup> _goals = [];
   final TokenManager _tokenManager = TokenManager();
   bool _isSnackBarShown = false;
+  String? _userId;
 
   @override
   void initState() {
     super.initState();
+    _loadUserId();
     _fetchGoals();
+  }
+
+  Future<void> _loadUserId() async {
+    _userId = await _tokenManager.getUserId();
   }
 
   @override
@@ -167,8 +173,10 @@ class _OurGoalsState extends State<OurGoals> {
 
           for (var group in savingGroups) {
             List<Member> members = await _fetchMembers(group.id, token);
+            double balance = await _fetchGoalsBalance(
+                group.id, token, _userId); // Fetch balance here
             group.members = members;
-            group.contributionAmount = 0.0;
+            group.goalsBalance = balance; // Assign fetched balance
             fetchedGoals.add(group);
           }
         }
@@ -195,6 +203,49 @@ class _OurGoalsState extends State<OurGoals> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<double> _fetchGoalsBalance(
+      String savingGroupId, String token, String? userId) async {
+    final balanceUrl =
+        Uri.parse('$baseUrl/transactions/balance?savingGroupId=$savingGroupId');
+    final headers = {'Authorization': 'Bearer $token'};
+
+    try {
+      final response = await http.get(balanceUrl, headers: headers);
+      if (response.statusCode == 200) {
+        final responseBody = utf8.decode(response.bodyBytes);
+        final balanceData = json.decode(responseBody);
+        print(
+            'Balance API Response for savingGroupId: $savingGroupId: $balanceData'); // Log API response
+        if (balanceData['code'] == 200 && balanceData['status'] == 'OK') {
+          double totalBalance = 0;
+          if (balanceData['data'] is List) {
+            for (var balanceItem in balanceData['data']) {
+              if (balanceItem['saving_group_id'] == savingGroupId &&
+                  balanceItem['user_id'] == userId) {
+                // Filter by savingGroupId and userId
+                totalBalance += (balanceItem['balance'] as num).toDouble();
+              }
+            }
+          }
+          print(
+              'Calculated balance for savingGroupId: $savingGroupId, userId: $userId: $totalBalance'); // Log calculated balance
+          return totalBalance;
+        } else {
+          print(
+              'Balance API Error: ${balanceData['message']}'); // Log API error
+          return 0.0;
+        }
+      } else {
+        print(
+            'HTTP Error fetching balance: Status Code ${response.statusCode}'); // Log HTTP error
+        return 0.0;
+      }
+    } catch (e) {
+      print('Exception fetching balance: ${e.toString()}'); // Log exceptions
+      return 0.0;
     }
   }
 
@@ -508,7 +559,9 @@ class GoalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currencyFormat = NumberFormat.currency(
-        locale: 'id_ID', symbol: 'IDR ', decimalDigits: 2);
+        locale: 'id_ID',
+        symbol: 'IDR ',
+        decimalDigits: 0); // Changed decimalDigits to 0
     final formattedTarget = currencyFormat.format(goal.targetAmount);
     List<Widget> memberAvatars = [];
     int maxAvatars = 2;
@@ -565,9 +618,12 @@ class GoalCard extends StatelessWidget {
               const SizedBox(height: 5),
               _buildGoalNameText(goal),
               const SizedBox(height: 14),
-              _buildGoalProgressText(formattedTarget),
+              _buildGoalProgressText(
+                  formattedTarget,
+                  currencyFormat
+                      .format(goal.goalsBalance)), // Pass goalsBalance here
               const SizedBox(height: 8),
-              _buildProgressBar(),
+              _buildProgressBar(goal), // Pass goal to progressBar
               const SizedBox(height: 8),
               _buildGoalSummaryRow(goal),
             ],
@@ -622,15 +678,19 @@ class GoalCard extends StatelessWidget {
     );
   }
 
-  Widget _buildGoalProgressText(String formattedTarget) {
+  Widget _buildGoalProgressText(
+      String formattedTarget, String formattedBalance) {
     return Text(
-      '0 / $formattedTarget',
+      '$formattedBalance / $formattedTarget', // Display formattedBalance
       style: TextStyle(
           fontWeight: FontWeight.w600, fontSize: 12, color: Colors.grey[800]),
     );
   }
 
-  Widget _buildProgressBar() {
+  Widget _buildProgressBar(SavingGroup goal) {
+    double progressFactor = goal.targetAmount == 0
+        ? 0
+        : goal.goalsBalance / goal.targetAmount; // Prevent division by zero
     return Stack(
       children: [
         Container(
@@ -641,7 +701,10 @@ class GoalCard extends StatelessWidget {
           ),
         ),
         FractionallySizedBox(
-          widthFactor: 0.5,
+          widthFactor: progressFactor.isNaN || progressFactor.isNegative
+              ? 0
+              : progressFactor.clamp(0.0,
+                  1.0), // Handle NaN and negative values, clamp between 0 and 1
           child: Container(
             height: 8,
             decoration: BoxDecoration(
@@ -658,16 +721,17 @@ class GoalCard extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildProgressPercentageText(),
+        _buildProgressPercentageText(goal), // Pass goal to percentage text
         _buildRemainingDaysText(goal),
       ],
     );
   }
 
-  Widget _buildProgressPercentageText() {
-    return const Text(
-      '50%',
-      style: TextStyle(
+  Widget _buildProgressPercentageText(SavingGroup goal) {
+    double percentage = (goal.goalsBalance / goal.targetAmount) * 100;
+    return Text(
+      '${percentage.isNaN ? 0 : percentage.toStringAsFixed(0)}%', // Handle NaN case and format to 0 decimal places
+      style: const TextStyle(
           fontWeight: FontWeight.w600, fontSize: 12, color: Colors.black),
     );
   }

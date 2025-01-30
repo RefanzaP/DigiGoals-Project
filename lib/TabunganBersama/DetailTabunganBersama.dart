@@ -30,7 +30,8 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
   String? _goalsNameError;
   String? _errorMessage;
   bool _isSnackBarShown = false;
-  String? currentUserRole; // Added to store current user's role
+  String? currentUserRole;
+  String? savingGroupType;
 
   late String goalsName = '';
   late double saldoTabungan = 0.0;
@@ -129,21 +130,35 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
           Uri.parse('$baseUrl/saving-groups/${widget.savingGroupId}');
       final membersUrl =
           Uri.parse('$baseUrl/members?savingGroupId=${widget.savingGroupId}');
+      final transactionsUrl = Uri.parse(
+          '$baseUrl/transactions?savingGroupId=${widget.savingGroupId}');
+      final balanceUrl = Uri.parse(
+          '$baseUrl/transactions/balance?savingGroupId=${widget.savingGroupId}'); // URL for balance
 
       final headers = {'Authorization': 'Bearer $token'};
 
       final responses = await Future.wait([
         http.get(savingGroupUrl, headers: headers),
         http.get(membersUrl, headers: headers),
+        http.get(transactionsUrl, headers: headers),
+        http.get(balanceUrl, headers: headers), // Fetch balance
       ]);
 
       final groupResponse = responses[0];
       final membersResponse = responses[1];
+      final transactionsResponse = responses[2];
+      final balanceResponse = responses[3]; // Response for balance
 
       if (groupResponse.statusCode == 200 &&
-          membersResponse.statusCode == 200) {
+          membersResponse.statusCode == 200 &&
+          transactionsResponse.statusCode == 200 &&
+          balanceResponse.statusCode == 200) {
         final groupData = json.decode(utf8.decode(groupResponse.bodyBytes));
         final membersData = json.decode(utf8.decode(membersResponse.bodyBytes));
+        final transactionsData =
+            json.decode(utf8.decode(transactionsResponse.bodyBytes));
+        final balanceData = json
+            .decode(utf8.decode(balanceResponse.bodyBytes)); // Data for balance
 
         if (groupData['code'] == 200 && groupData['status'] == 'OK') {
           final savingGroupDetail = groupData['data'];
@@ -167,11 +182,45 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
               currentUserRole = null;
             }
 
+            List<Map<String, dynamic>> fetchedTransactions = [];
+            if (transactionsData['code'] == 200 &&
+                transactionsData['status'] == 'OK') {
+              fetchedTransactions =
+                  (transactionsData['data'] as List).map((item) {
+                String transactionType = item['transaction_type'] == 'CREDIT'
+                    ? 'Setoran'
+                    : 'Penarikan';
+                return {
+                  'jenisTransaksi': transactionType,
+                  'tanggalTransaksi': DateTime.parse(item['completed_at']),
+                  'jumlahTransaksi': (item['amount'] as num).toDouble(),
+                  'memberName': item['goals_member']['user']['customer']
+                          ['name'] ??
+                      'Unknown Member',
+                };
+              }).toList();
+            } else {
+              // Handle transaction fetch error if needed, for now just keep historiTransaksi empty
+              print(
+                  'Failed to fetch transactions: ${transactionsData['errors']}');
+            }
+
+            double fetchedSaldoTabungan = 0.0;
+            if (balanceData['code'] == 200 &&
+                balanceData['status'] == 'OK' &&
+                (balanceData['data'] as List).isNotEmpty) {
+              fetchedSaldoTabungan =
+                  (balanceData['data'][0]['balance'] as num?)?.toDouble() ??
+                      0.0;
+            } else {
+              print('Failed to fetch balance: ${balanceData['errors']}');
+              // Optionally handle balance fetch error, maybe keep saldoTabungan as 0.0 or show error
+            }
+
             setState(() {
               goalsName = savingGroupDetail['name'] ?? 'Nama Goals';
               _goalsNameController.text = goalsName;
-              saldoTabungan =
-                  (savingGroupDetail['balance'] as num?)?.toDouble() ?? 0.0;
+              saldoTabungan = fetchedSaldoTabungan; // Use fetched balance
               progressTabungan =
                   (savingGroupDetail['progress'] as num?)?.toDouble() ?? 0.0;
               targetSaldoTabungan =
@@ -179,7 +228,16 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
               durasiTabungan = savingGroupDetail['detail']['duration'] != null
                   ? '${(savingGroupDetail['detail']['duration'] / 30).floor()} Bulan'
                   : 'Durasi Tidak Ditentukan';
+              savingGroupType = savingGroupDetail['type']?.toString();
+              _goalsData.addAll({
+                'goalsName': goalsName,
+                'savingGroupId': widget.savingGroupId,
+                'savingGroupName': goalsName,
+                'savingGroupBalance': saldoTabungan,
+                'savingGroupType': savingGroupType,
+              });
               _allMembers = fetchedMembers;
+              historiTransaksi = fetchedTransactions;
               isLoading = false;
             });
           } else {
@@ -204,7 +262,7 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
         setState(() {
           isLoading = false;
           _errorMessage =
-              "Gagal mengambil data. Status Group: ${groupResponse.statusCode}, Status Members: ${membersResponse.statusCode}";
+              "Gagal mengambil data. Status Group: ${groupResponse.statusCode}, Status Members: ${membersResponse.statusCode}, Status Transactions: ${transactionsResponse.statusCode}, Status Balance: ${balanceResponse.statusCode}";
         });
       }
     } catch (e) {
@@ -598,15 +656,13 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                   children: [
                     Align(
                       alignment: Alignment.topRight,
-                      child: currentUserRole ==
-                              'ADMIN' // Conditionally show settings icon
+                      child: currentUserRole == 'ADMIN'
                           ? IconButton(
                               icon: Icon(Icons.settings,
                                   color: Colors.blue.shade900),
                               onPressed: _showSettingsModal,
                             )
-                          : SizedBox
-                              .shrink(), // Or any other widget if you want to show something else when not admin
+                          : const SizedBox.shrink(),
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -787,13 +843,12 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
       ),
       centerTitle: true,
       actions: [
-        currentUserRole ==
-                'ADMIN' // Conditionally show settings icon in AppBar (Alternative)
+        currentUserRole == 'ADMIN'
             ? IconButton(
-                icon: Icon(Icons.settings, color: Colors.white),
+                icon: const Icon(Icons.settings, color: Colors.white),
                 onPressed: _showSettingsModal,
               )
-            : SizedBox.shrink(),
+            : const SizedBox.shrink(),
         Container(
           margin: const EdgeInsets.only(right: 16),
           height: 12,
@@ -954,12 +1009,25 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                 itemCount: historiTransaksi.length,
                 itemBuilder: (context, index) {
                   final transaction = historiTransaksi[index];
+                  Color? transactionColor;
+                  if (transaction['jenisTransaksi'] == 'Setoran') {
+                    transactionColor = Colors.green;
+                  } else if (transaction['jenisTransaksi'] == 'Penarikan') {
+                    transactionColor = Colors.red;
+                  }
                   return ListTile(
-                    title: Text(transaction['jenisTransaksi']),
+                    title: Text(
+                      '${transaction['jenisTransaksi']} - ${transaction['memberName']}',
+                      style: TextStyle(color: transactionColor),
+                    ),
                     subtitle: Text(
-                        dateFormat.format(transaction['tanggalTransaksi'])),
+                      dateFormat.format(transaction['tanggalTransaksi']),
+                      style: TextStyle(color: transactionColor),
+                    ),
                     trailing: Text(
-                        currencyFormat.format(transaction['jumlahTransaksi'])),
+                      currencyFormat.format(transaction['jumlahTransaksi']),
+                      style: TextStyle(color: transactionColor),
+                    ),
                   );
                 },
               );

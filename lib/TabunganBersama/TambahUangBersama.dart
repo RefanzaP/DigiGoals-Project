@@ -1,11 +1,10 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
-import 'package:digigoals_app/TabunganBersama/DetailTabunganBersama.dart';
 import 'package:digigoals_app/auth/token_manager.dart';
+import 'package:digigoals_app/api/api_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart' show NumberFormat;
-import 'dart:math';
+import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -18,9 +17,16 @@ class TambahUangBersama extends StatefulWidget {
   _TambahUangBersamaState createState() => _TambahUangBersamaState();
 }
 
-class _TambahUangBersamaState extends State<TambahUangBersama> {
+class _TambahUangBersamaState extends _TambahUangBersamaStateBase {
+  @override
+  Widget build(BuildContext context) {
+    return buildTambahUangBersamaPage(context);
+  }
+}
+
+abstract class _TambahUangBersamaStateBase extends State<TambahUangBersama> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nominalController;
+  late TextEditingController _nominalTambahUangController;
   late TextEditingController _waktuTransaksiController;
 
   bool isTodayEnabled = true;
@@ -29,21 +35,21 @@ class _TambahUangBersamaState extends State<TambahUangBersama> {
   bool isSpecificDateEnabled = false;
 
   // Inisialisasi data di depan
-  late String namaGoals;
+  late String goalsName;
   final String tanggalTransaksiDefault = 'Sekarang';
 
   @override
   void initState() {
     super.initState();
-    namaGoals = widget.goalsData['goalsName'];
-    _nominalController = TextEditingController();
+    goalsName = widget.goalsData['goalsName'];
+    _nominalTambahUangController = TextEditingController();
     _waktuTransaksiController =
         TextEditingController(text: tanggalTransaksiDefault);
   }
 
   @override
   void dispose() {
-    _nominalController.dispose();
+    _nominalTambahUangController.dispose();
     _waktuTransaksiController.dispose();
     super.dispose();
   }
@@ -60,8 +66,7 @@ class _TambahUangBersamaState extends State<TambahUangBersama> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget buildTambahUangBersamaPage(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -78,10 +83,10 @@ class _TambahUangBersamaState extends State<TambahUangBersama> {
         toolbarHeight: 84,
         titleSpacing: 16,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Tambah Uang',
           style: TextStyle(
             color: Colors.white,
@@ -92,10 +97,10 @@ class _TambahUangBersamaState extends State<TambahUangBersama> {
         centerTitle: true,
         actions: [
           Container(
-            margin: EdgeInsets.only(right: 16),
+            margin: const EdgeInsets.only(right: 16),
             height: 12,
             width: 12,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.green,
               shape: BoxShape.circle,
             ),
@@ -119,9 +124,9 @@ class _TambahUangBersamaState extends State<TambahUangBersama> {
                     color: Colors.blue.shade900,
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 TextFormField(
-                  controller: _nominalController,
+                  controller: _nominalTambahUangController,
                   decoration: InputDecoration(
                     fillColor: Colors.blue.shade50,
                     filled: true,
@@ -146,15 +151,16 @@ class _TambahUangBersamaState extends State<TambahUangBersama> {
                     if (value == null || value.isEmpty) {
                       return 'Nominal Tambah Uang tidak boleh kosong';
                     }
-                    final nominal =
+                    final nominalTambahUang =
                         int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
-                    if (nominal == null || nominal < 10000) {
+                    if (nominalTambahUang == null ||
+                        nominalTambahUang < 10000) {
                       return 'Nominal minimal adalah Rp 10.000';
                     }
                     return null;
                   },
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 // Waktu Transaksi
                 Text(
                   "Waktu Transaksi",
@@ -164,14 +170,14 @@ class _TambahUangBersamaState extends State<TambahUangBersama> {
                     color: Colors.blue.shade900,
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _waktuTransaksiController,
                   decoration: InputDecoration(
                     fillColor: Colors.blue.shade50,
                     filled: true,
                     hintText: 'Sekarang',
-                    suffixIcon: Icon(Icons.edit_calendar),
+                    suffixIcon: const Icon(Icons.edit_calendar),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none,
@@ -196,10 +202,8 @@ class _TambahUangBersamaState extends State<TambahUangBersama> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => PilihSumberDanaBersama(
-                      nominal: _nominalController.text,
-                      sumberDana: 'Tabungan Tandamata',
-                      saldo: 'IDR 234.567.890,00',
-                      namaGoals: namaGoals,
+                      nominalTambahUang: _nominalTambahUangController.text,
+                      goalsName: goalsName,
                       goalsData: widget.goalsData,
                     ),
                   ),
@@ -226,53 +230,116 @@ class _TambahUangBersamaState extends State<TambahUangBersama> {
   }
 }
 
-class PilihSumberDanaBersama extends StatelessWidget {
-  final String nominal;
-  final String sumberDana;
-  final String saldo;
-  final String namaGoals;
+class PilihSumberDanaBersama extends StatefulWidget {
+  final String nominalTambahUang;
+  final String goalsName;
   final Map<String, dynamic> goalsData;
 
-  PilihSumberDanaBersama({
+  const PilihSumberDanaBersama({
     super.key,
-    required this.nominal,
-    required this.sumberDana,
-    required this.saldo,
-    required this.namaGoals,
+    required this.nominalTambahUang,
+    required this.goalsName,
     required this.goalsData,
   });
 
-  // Inisialisasi data sumber dana di depan
-  final List<Map<String, String>> sumberDanaList = [
-    {
-      'jenis': 'Tabungan Tandamata',
-      'rekening': '0123456789012',
-      'saldo': 'IDR 234.567.890,00'
-    },
-    {
-      'jenis': 'Tabungan Tandamata Gold',
-      'rekening': '0987654321098',
-      'saldo': 'IDR 100.000.000,00'
-    },
-    {
-      'jenis': 'Tabungan Tandamata',
-      'rekening': '1122334455667',
-      'saldo': 'IDR 50.000.000,00'
-    },
-  ];
+  @override
+  _PilihSumberDanaBersamaState createState() => _PilihSumberDanaBersamaState();
+}
+
+class _PilihSumberDanaBersamaState extends State<PilihSumberDanaBersama> {
+  List<Map<String, dynamic>> sumberDanaList = [];
+  ValueNotifier<int> selectedIndex = ValueNotifier<int>(0);
+  bool isLoading = true;
+  String? errorMessage;
+  final TokenManager _tokenManager = TokenManager();
+  String? userName; // Initially nullable
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAccounts();
+  }
+
+  Future<void> _fetchAccounts() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+    String? token = await _tokenManager.getToken();
+    if (token == null) {
+      setState(() {
+        isLoading = false;
+        errorMessage = "Token tidak ditemukan";
+      });
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/profile'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        // Print the responseData to inspect the structure and types
+        if (responseData['code'] == 200 && responseData['status'] == 'OK') {
+          List<Map<String, dynamic>> fetchedAccounts = [];
+          for (var account in responseData['data']['accounts']) {
+            fetchedAccounts.add({
+              'accountType': account['account_type'],
+              'accountNumber': account['account_number'],
+              'accountBalance': account['total_available_balance'],
+              'accountId': int.tryParse(account['id'].toString()) ??
+                  0, // Convert 'id' to int, default to 0 if parsing fails
+            });
+          }
+          setState(() {
+            sumberDanaList = fetchedAccounts;
+            userName = responseData['data']['customer']['name'] ??
+                'User Name Unavailable'; // Get username from customer data, with default value
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+            errorMessage = responseData['errors'] != null &&
+                    (responseData['errors'] as List).isNotEmpty
+                ? (responseData['errors'] as List)[0].toString()
+                : "Gagal mengambil data accountNumber, silahkan coba lagi!";
+          });
+        }
+      } else {
+        setState(() {
+          isLoading = false;
+          errorMessage =
+              "Gagal mengambil data accountNumber. Status code: ${response.statusCode}";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMessage = "Terjadi kesalahan: ${e.toString()}";
+      });
+    }
+  }
+
+  String _formatCurrency(num value) {
+    final formatter =
+        NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 2);
+    return formatter.format(value);
+  }
 
   @override
   Widget build(BuildContext context) {
-    ValueNotifier<int> selectedIndex = ValueNotifier<int>(0);
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue.shade700,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Tambah Uang',
           style: TextStyle(
             color: Colors.white,
@@ -287,7 +354,7 @@ class PilihSumberDanaBersama extends StatelessWidget {
         children: [
           // Header Goals
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -307,24 +374,24 @@ class PilihSumberDanaBersama extends StatelessWidget {
                     size: 28,
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Nominal: $nominal',
-                        style: TextStyle(
+                        'Nominal: ${widget.nominalTambahUang}',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Nama Goals: $namaGoals',
-                        style: TextStyle(
+                        'Nama Goals: ${widget.goalsName}',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
                         ),
@@ -338,8 +405,8 @@ class PilihSumberDanaBersama extends StatelessWidget {
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  icon: Icon(Icons.edit, color: Colors.white, size: 16),
-                  label: Text(
+                  icon: const Icon(Icons.edit, color: Colors.white, size: 16),
+                  label: const Text(
                     'Ubah',
                     style: TextStyle(
                       color: Colors.white,
@@ -347,8 +414,9 @@ class PilihSumberDanaBersama extends StatelessWidget {
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    side: BorderSide(color: Colors.white),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    side: const BorderSide(color: Colors.white),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -357,7 +425,7 @@ class PilihSumberDanaBersama extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
@@ -368,197 +436,286 @@ class PilihSumberDanaBersama extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: 8),
-          ValueListenableBuilder<int>(
-            valueListenable: selectedIndex,
-            builder: (context, value, _) {
-              return Expanded(
-                child: ListView.builder(
-                  itemCount: sumberDanaList.length,
-                  itemBuilder: (context, index) {
-                    final sumber = sumberDanaList[index];
-                    return GestureDetector(
-                      onTap: () => selectedIndex.value = index,
-                      child: Container(
-                        margin:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        padding: EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: value == index
-                              ? Colors.yellow.shade700
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
+          const SizedBox(height: 8),
+          if (isLoading)
+            const Expanded(
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (errorMessage != null)
+            Expanded(
+              child: Center(
+                child: Text(errorMessage!),
+              ),
+            )
+          else
+            ValueListenableBuilder<int>(
+              valueListenable: selectedIndex,
+              builder: (context, value, _) {
+                return Expanded(
+                  child: ListView.builder(
+                    itemCount: sumberDanaList.length,
+                    itemBuilder: (context, index) {
+                      final sumber = sumberDanaList[index];
+                      return GestureDetector(
+                        onTap: () => selectedIndex.value = index,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
                             color: value == index
-                                ? Colors.blue.shade700
-                                : Colors.grey.shade300,
-                          ),
-                          boxShadow: value == index
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.blue.shade100,
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ]
-                              : [],
-                        ),
-                        child: Row(
-                          children: [
-                            Image.asset(
-                              'assets/images/bankbjb-logo.png',
-                              width: 100,
-                              height: 100,
-                            ),
-                            SizedBox(width: 20),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  sumber['jenis']!,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: value == index
-                                        ? Colors.blue.shade700
-                                        : Colors.blue.shade700,
-                                  ),
-                                ),
-                                Text(
-                                  sumber['rekening']!,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: value == index
-                                        ? Colors.blue.shade700
-                                        : Colors.blue.shade700,
-                                  ),
-                                ),
-                                Text(
-                                  sumber['saldo']!,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: value == index
-                                        ? Colors.blue.shade700
-                                        : Colors.yellow.shade700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Spacer(),
-                            Icon(
-                              value == index
-                                  ? Icons.check_circle
-                                  : Icons.circle_outlined,
+                                ? Colors.yellow.shade700
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
                               color: value == index
                                   ? Colors.blue.shade700
-                                  : Colors.grey.shade400,
+                                  : Colors.grey.shade300,
                             ),
-                          ],
+                            boxShadow: value == index
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.blue.shade100,
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : [],
+                          ),
+                          child: Row(
+                            children: [
+                              Image.asset(
+                                'assets/images/bankbjb-logo.png',
+                                width: 100,
+                                height: 100,
+                              ),
+                              const SizedBox(width: 20),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    sumber['accountType']!,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: value == index
+                                          ? Colors.blue.shade700
+                                          : Colors.blue.shade700,
+                                    ),
+                                  ),
+                                  Text(
+                                    sumber['accountNumber']!,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: value == index
+                                          ? Colors.blue.shade700
+                                          : Colors.blue.shade700,
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatCurrency(sumber['accountBalance']!),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: value == index
+                                          ? Colors.blue.shade700
+                                          : Colors.yellow.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Spacer(),
+                              Icon(
+                                value == index
+                                    ? Icons.check_circle
+                                    : Icons.circle_outlined,
+                                color: value == index
+                                    ? Colors.blue.shade700
+                                    : Colors.grey.shade400,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
-          ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              offset: Offset(0, -1),
-              blurRadius: 2,
-            ),
-          ],
-        ),
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total Tambah',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
+      bottomNavigationBar: isLoading
+          ? const SizedBox.shrink()
+          : Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    offset: Offset(0, -1),
+                    blurRadius: 2,
                   ),
-                ),
-                Text(
-                  nominal,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade700,
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total Tambah',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      Text(
+                        widget.nominalTambahUang,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.yellow.shade700,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                onPressed: () {
-                  final selectedSumberDana =
-                      sumberDanaList[selectedIndex.value];
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => KonfirmasiTambahUangBersama(
-                        nominal: nominal,
-                        jenis: selectedSumberDana['jenis']!,
-                        rekening: selectedSumberDana['rekening']!,
-                        saldo: selectedSumberDana['saldo']!,
-                        namaGoals: namaGoals,
-                        goalsData: goalsData,
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.yellow.shade700,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () {
+                        final selectedSumberDana =
+                            sumberDanaList[selectedIndex.value];
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => KonfirmasiTambahUangBersama(
+                              nominalTambahUang: widget.nominalTambahUang,
+                              accountType: selectedSumberDana['accountType']!,
+                              accountNumber:
+                                  selectedSumberDana['accountNumber']!,
+                              accountBalance: _formatCurrency(
+                                  sumberDanaList[selectedIndex.value]
+                                      ['accountBalance']!),
+                              goalsName: widget.goalsName,
+                              goalsData: widget.goalsData,
+                              userName:
+                                  userName!, // Pass userName, now it's ensured not to be null
+                              accountId: selectedSumberDana['accountId']
+                                  as int, // Pass accountId as int
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        'Selanjutnya',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade900,
+                        ),
                       ),
                     ),
-                  );
-                },
-                child: Text(
-                  'Selanjutnya',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade900,
                   ),
-                ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
 
-class KonfirmasiTambahUangBersama extends StatelessWidget {
-  final String nominal;
-  final String jenis;
-  final String rekening;
-  final String saldo;
-  final String namaGoals;
+class KonfirmasiTambahUangBersama extends StatefulWidget {
+  final String nominalTambahUang;
+  final String accountType;
+  final String accountNumber;
+  final String accountBalance;
+  final String goalsName;
   final Map<String, dynamic> goalsData;
+  final String userName;
+  final int accountId;
 
   const KonfirmasiTambahUangBersama({
     super.key,
-    required this.nominal,
-    required this.jenis,
-    required this.rekening,
-    required this.saldo,
-    required this.namaGoals,
+    required this.nominalTambahUang,
+    required this.accountType,
+    required this.accountNumber,
+    required this.accountBalance,
+    required this.goalsName,
     required this.goalsData,
+    required this.userName,
+    required this.accountId,
   });
+
+  @override
+  _KonfirmasiTambahUangBersamaState createState() =>
+      _KonfirmasiTambahUangBersamaState();
+}
+
+class _KonfirmasiTambahUangBersamaState
+    extends State<KonfirmasiTambahUangBersama> {
+  String? accountTypeGoalsName;
+  bool isLoadingAccount = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAccountTypeGoals();
+  }
+
+  Future<void> _fetchAccountTypeGoals() async {
+    setState(() {
+      isLoadingAccount = true;
+    });
+    String? token = await TokenManager().getToken();
+    if (token == null) {
+      setState(() {
+        isLoadingAccount = false;
+        accountTypeGoalsName = ''; // Default value if token is not available
+      });
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/accounts/${widget.accountId}'), // Use accountId
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['code'] == 200 && responseData['status'] == 'OK') {
+          setState(() {
+            accountTypeGoalsName =
+                responseData['data']['type']; // Get account type name
+            isLoadingAccount = false;
+          });
+        } else {
+          setState(() {
+            isLoadingAccount = false;
+            accountTypeGoalsName = 'Tabungan Bersama'; // Default value on error
+          });
+        }
+      } else {
+        setState(() {
+          isLoadingAccount = false;
+          accountTypeGoalsName = 'Tabungan Bersama'; // Default value on error
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoadingAccount = false;
+        accountTypeGoalsName = 'Tabungan Bersama'; // Default value on exception
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -566,10 +723,10 @@ class KonfirmasiTambahUangBersama extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.blue.shade700,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Tambah Uang',
           style: TextStyle(
             color: Colors.white,
@@ -583,7 +740,7 @@ class KonfirmasiTambahUangBersama extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -603,24 +760,24 @@ class KonfirmasiTambahUangBersama extends StatelessWidget {
                     size: 28,
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Nominal $nominal',
-                        style: TextStyle(
+                        'Nominal ${widget.nominalTambahUang}',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Nama Goals: $namaGoals',
-                        style: TextStyle(
+                        'Nama Goals: ${widget.goalsName}',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
                         ),
@@ -635,8 +792,8 @@ class KonfirmasiTambahUangBersama extends StatelessWidget {
                     Navigator.pop(context);
                     Navigator.pop(context);
                   },
-                  icon: Icon(Icons.edit, color: Colors.white, size: 16),
-                  label: Text(
+                  icon: const Icon(Icons.edit, color: Colors.white, size: 16),
+                  label: const Text(
                     'Ubah',
                     style: TextStyle(
                       color: Colors.white,
@@ -644,8 +801,9 @@ class KonfirmasiTambahUangBersama extends StatelessWidget {
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    side: BorderSide(color: Colors.white),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    side: const BorderSide(color: Colors.white),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -661,26 +819,26 @@ class KonfirmasiTambahUangBersama extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '$jenis - $rekening - $saldo',
+                    '${widget.accountType} - ${widget.accountNumber} - ${widget.accountBalance}',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
                       color: Colors.blue.shade900,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Container(
                     width: double.infinity,
                     height: 40,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Color(0xFF4F6D85)),
+                      border: Border.all(color: const Color(0xFF4F6D85)),
                     ),
                     alignment: Alignment.centerLeft,
-                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Text(
-                      nominal,
-                      style: TextStyle(
+                      widget.nominalTambahUang,
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
                         color: Colors.black,
@@ -694,7 +852,7 @@ class KonfirmasiTambahUangBersama extends StatelessWidget {
         ],
       ),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
           boxShadow: [
             BoxShadow(
@@ -704,7 +862,7 @@ class KonfirmasiTambahUangBersama extends StatelessWidget {
             ),
           ],
         ),
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -719,7 +877,7 @@ class KonfirmasiTambahUangBersama extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  nominal,
+                  widget.nominalTambahUang,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -728,7 +886,7 @@ class KonfirmasiTambahUangBersama extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -743,12 +901,15 @@ class KonfirmasiTambahUangBersama extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) => DetailTambahUangBersama(
-                        nominal: nominal,
-                        jenis: jenis,
-                        rekening: rekening,
-                        saldo: saldo,
-                        namaGoals: namaGoals,
-                        goalsData: goalsData,
+                        nominalTambahUang: widget.nominalTambahUang,
+                        accountType: widget.accountType,
+                        accountNumber: widget.accountNumber,
+                        accountBalance: widget.accountBalance,
+                        goalsName: widget.goalsName,
+                        goalsData: widget.goalsData,
+                        accountTypeGoals: accountTypeGoalsName ??
+                            'Tabungan Bersama', // Use fetched account type or default
+                        userName: widget.userName, // Pass userName
                       ),
                     ),
                   );
@@ -770,30 +931,47 @@ class KonfirmasiTambahUangBersama extends StatelessWidget {
 }
 
 class DetailTambahUangBersama extends StatelessWidget {
-  final String nominal;
-  final String jenis;
-  final String rekening;
-  final String saldo;
-  final String namaGoals;
+  final String nominalTambahUang;
+  final String accountType;
+  final String accountNumber;
+  final String accountBalance;
+  final String goalsName;
   final Map<String, dynamic> goalsData;
+  final String accountTypeGoals; // Get from API now
+  final String userName; // Get from API now
 
-  // Inisialisasi data di depan
-  final String jenisGoals = 'Tabungan Bersama';
-  final String namaPengguna = 'ABI';
-  final String tanggalTransaksi = '1 November 2024';
+  // Inisialisasi data di depan (No longer used for dummy data)
+  final String tanggalTransaksi =
+      DateFormat('d MMMM yyyy').format(DateTime.now()); // Get current date
 
-  const DetailTambahUangBersama({
+  DetailTambahUangBersama({
     super.key,
-    required this.nominal,
-    required this.jenis,
-    required this.rekening,
-    required this.saldo,
-    required this.namaGoals,
+    required this.nominalTambahUang,
+    required this.accountType,
+    required this.accountNumber,
+    required this.accountBalance,
+    required this.goalsName,
     required this.goalsData,
+    required this.accountTypeGoals,
+    required this.userName,
   });
+
+  // Determine accountTypeGoals based on savingGroupType
+  String getDisplayAccountTypeGoals(Map<String, dynamic> goalsData) {
+    final savingGroupType = goalsData['savingGroupType'];
+    if (savingGroupType == 'JOINT_SAVING') {
+      return 'Tabungan Bersama';
+    } else if (savingGroupType == 'ROTATING_SAVING') {
+      return 'Tabungan Bergilir';
+    } else {
+      return 'Jenis Tabungan Tidak Diketahui'; // Default case
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final displayAccountTypeGoals = getDisplayAccountTypeGoals(goalsData);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -810,10 +988,10 @@ class DetailTambahUangBersama extends StatelessWidget {
         toolbarHeight: 84,
         titleSpacing: 16,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Tambah Uang',
           style: TextStyle(
             color: Colors.white,
@@ -824,10 +1002,10 @@ class DetailTambahUangBersama extends StatelessWidget {
         centerTitle: true,
         actions: [
           Container(
-            margin: EdgeInsets.only(right: 16),
+            margin: const EdgeInsets.only(right: 16),
             height: 12,
             width: 12,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.green,
               shape: BoxShape.circle,
             ),
@@ -841,76 +1019,83 @@ class DetailTambahUangBersama extends StatelessWidget {
           children: [
             // Header Informasi
             Container(
-              padding: EdgeInsets.all(10),
+              padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         'Jenis Goals',
                         style: TextStyle(
                           fontSize: 13,
                         ),
                       ),
                       Text(
-                        jenisGoals,
-                        style: TextStyle(
+                        displayAccountTypeGoals, // Use dynamically determined account type
+                        style: const TextStyle(
                           fontSize: 13,
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         'Nama Goals',
                         style: TextStyle(
                           fontSize: 13,
                         ),
                       ),
-                      Text(
-                        namaGoals,
-                        style: TextStyle(
-                          fontSize: 13,
+                      Expanded(
+                        // Wrap Text with Expanded
+                        child: Text(
+                          goalsName,
+                          style: const TextStyle(
+                            fontSize: 13,
+                          ),
+                          overflow:
+                              TextOverflow.ellipsis, // Add overflow ellipsis
+                          maxLines: 1, // Limit to one line
+                          textAlign: TextAlign.end, // Align text to the end
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         'Nama',
                         style: TextStyle(
                           fontSize: 13,
                         ),
                       ),
                       Text(
-                        namaPengguna,
-                        style: TextStyle(
+                        userName, // Use userName passed from previous screen
+                        style: const TextStyle(
                           fontSize: 13,
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         'Nominal Tambah Uang',
                         style: TextStyle(
                           fontSize: 13,
                         ),
                       ),
                       Text(
-                        nominal,
-                        style: TextStyle(
+                        nominalTambahUang,
+                        style: const TextStyle(
                           fontSize: 13,
                         ),
                       ),
@@ -925,7 +1110,7 @@ class DetailTambahUangBersama extends StatelessWidget {
                 color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(8),
               ),
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -937,15 +1122,15 @@ class DetailTambahUangBersama extends StatelessWidget {
                       color: Colors.blue.shade900,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    '$jenis - $rekening',
+                    'Tabungan $accountType - $accountNumber',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.blue.shade900,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -957,24 +1142,24 @@ class DetailTambahUangBersama extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        nominal,
-                        style: TextStyle(
+                        nominalTambahUang,
+                        style: const TextStyle(
                           fontSize: 13,
                           color: Colors.black,
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 8,
                   ),
-                  Divider()
+                  const Divider()
                 ],
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Container(
-                padding: EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -987,15 +1172,15 @@ class DetailTambahUangBersama extends StatelessWidget {
                       ),
                     ),
                     // SizedBox(height: 8),
-                    Text(
+                    const Text(
                       'Anda memilih transaksi segera',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.red,
                       ),
                     ),
-                    SizedBox(height: 8),
-                    Text(
+                    const SizedBox(height: 8),
+                    const Text(
                       'Tanggal',
                       style: TextStyle(
                         fontSize: 13,
@@ -1004,17 +1189,17 @@ class DetailTambahUangBersama extends StatelessWidget {
                     ),
                     Text(
                       tanggalTransaksi,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 13,
                         color: Colors.black,
                       ),
                     ),
                   ],
                 )),
-            SizedBox(height: 8),
-            Divider(),
+            const SizedBox(height: 8),
+            const Divider(),
             Container(
-              padding: EdgeInsets.all(10),
+              padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1026,7 +1211,7 @@ class DetailTambahUangBersama extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    nominal,
+                    nominalTambahUang,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -1047,12 +1232,13 @@ class DetailTambahUangBersama extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (context) => InputPinBersama(
-                  nominal: nominal,
-                  jenis: jenis,
-                  rekening: rekening,
-                  saldo: saldo,
-                  namaGoals: namaGoals,
-                  jenisGoals: jenisGoals,
+                  nominalTambahUang: nominalTambahUang,
+                  accountType: accountType,
+                  accountNumber: accountNumber,
+                  accountBalance: accountBalance,
+                  goalsName: goalsName,
+                  accountTypeGoals:
+                      displayAccountTypeGoals, // Pass dynamic account type
                   goalsData: goalsData,
                 ),
               ),
@@ -1073,9 +1259,9 @@ class DetailTambahUangBersama extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Spacer(),
+              const Spacer(),
               Text(
-                nominal,
+                nominalTambahUang,
                 style: TextStyle(
                   color: Colors.blue.shade900,
                   fontWeight: FontWeight.bold,
@@ -1090,22 +1276,22 @@ class DetailTambahUangBersama extends StatelessWidget {
 }
 
 class InputPinBersama extends StatefulWidget {
-  final String nominal;
-  final String jenis;
-  final String rekening;
-  final String saldo;
-  final String namaGoals;
-  final String jenisGoals;
+  final String nominalTambahUang;
+  final String accountType;
+  final String accountNumber;
+  final String accountBalance;
+  final String goalsName;
+  final String accountTypeGoals;
   final Map<String, dynamic> goalsData;
 
   const InputPinBersama(
       {super.key,
-      required this.nominal,
-      required this.jenis,
-      required this.jenisGoals,
-      required this.rekening,
-      required this.saldo,
-      required this.namaGoals,
+      required this.nominalTambahUang,
+      required this.accountType,
+      required this.accountTypeGoals,
+      required this.accountNumber,
+      required this.accountBalance,
+      required this.goalsName,
       required this.goalsData});
 
   @override
@@ -1116,6 +1302,7 @@ class _InputPinBersamaState extends State<InputPinBersama> {
   String _pin = '';
   final int _pinLength = 6;
   final TokenManager _tokenManager = TokenManager();
+  bool _isVerifyingPin = false;
 
   void _addPin(String number) {
     setState(() {
@@ -1136,15 +1323,20 @@ class _InputPinBersamaState extends State<InputPinBersama> {
 
   Future<void> _validatePin() async {
     if (_pin.length == _pinLength) {
+      setState(() {
+        _isVerifyingPin = true;
+      });
       final String? token = await _tokenManager.getToken();
       if (token == null) {
         _showErrorSnackbar("Token tidak ditemukan, silakan login ulang");
+        setState(() {
+          _isVerifyingPin = false;
+        });
         return;
       }
 
       try {
-        const String baseUrl = "https://user-service-ourgoals.koyeb.app";
-        const String pinEndpoint = "/api/v1/auth/verify-transaction-pin";
+        const String pinEndpoint = "/auth/verify-transaction-pin";
         final String apiUrl = baseUrl + pinEndpoint;
 
         final response = await http.post(
@@ -1158,32 +1350,16 @@ class _InputPinBersamaState extends State<InputPinBersama> {
           }),
         );
 
-        // Log response untuk debugging
-
         if (response.statusCode == 200) {
           final Map<String, dynamic> responseData = json.decode(response.body);
           if (responseData['code'] == 200 && responseData['status'] == 'OK') {
             if (responseData['data']['is_valid'] == true) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => BerhasilTambahUangBersama(
-                    nominal: widget.nominal,
-                    jenis: widget.jenis,
-                    rekening: widget.rekening,
-                    namaGoals: widget.namaGoals,
-                    tanggalTransaksi:
-                        '1 November 2024', // ganti dengan tanggal dinamis
-                    saldo: widget.saldo,
-                    jenisGoals: widget.jenisGoals,
-                    goalsData: widget.goalsData,
-                  ),
-                ),
-              );
+              _createTransaction(); // Call create transaction after PIN is valid
             } else {
               _showErrorSnackbar("Pin yang Anda masukkan salah");
               setState(() {
                 _pin = '';
+                _isVerifyingPin = false;
               });
             }
           } else {
@@ -1193,22 +1369,98 @@ class _InputPinBersamaState extends State<InputPinBersama> {
                 : "Terjadi kesalahan saat validasi PIN. Silahkan coba lagi!");
             setState(() {
               _pin = '';
+              _isVerifyingPin = false;
             });
           }
         } else {
           _showErrorSnackbar(
-              "Terjadi kesalahan saat verifikasi PIN, kode status : ${response.statusCode}. Silakan coba lagi!");
+              "Terjadi kesalahan saat verifikasi PIN, kode status : ${response.statusCode}. Silahkan coba lagi!");
           setState(() {
             _pin = '';
+            _isVerifyingPin = false;
           });
         }
       } catch (e) {
         _showErrorSnackbar(
-            "Terjadi kesalahan saat verifikasi PIN, pesan: ${e.toString()}. Silakan coba lagi!");
+            "Terjadi kesalahan saat verifikasi PIN, pesan: ${e.toString()}. Silahkan coba lagi!");
         setState(() {
           _pin = '';
+          _isVerifyingPin = false;
         });
       }
+    }
+  }
+
+  Future<void> _createTransaction() async {
+    final String? token = await _tokenManager.getToken();
+    final String? userId = await _tokenManager.getUserId();
+    if (token == null || userId == null) {
+      _showErrorSnackbar(
+          "Token atau User ID tidak ditemukan, silakan login ulang");
+      setState(() {
+        _isVerifyingPin = false;
+      });
+      return;
+    }
+
+    try {
+      const String transactionEndpoint = "/transactions";
+      final String apiUrl = baseUrl + transactionEndpoint;
+
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          "user_id": userId,
+          "saving_group_id": widget.goalsData['savingGroupId'],
+          "amount": int.parse(widget.nominalTambahUang
+              .replaceAll(RegExp(r'[^0-9]'), '')), // Parse nominal to integer
+          "transaction_type": "CREDIT"
+        }),
+      );
+
+      setState(() {
+        _isVerifyingPin = false; // Stop loading after transaction attempt
+      });
+
+      if (response.statusCode == 201) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        if (responseData['code'] == 201 &&
+            responseData['status'] == 'Created') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BerhasilTambahUangBersama(
+                nominalTambahUang: widget.nominalTambahUang,
+                accountType: widget.accountType,
+                accountNumber: widget.accountNumber,
+                goalsName: widget.goalsName,
+                tanggalTransaksi:
+                    DateFormat('d MMMM yyyy').format(DateTime.now()),
+                accountBalance: widget.accountBalance,
+                accountTypeGoals: widget.accountTypeGoals,
+                goalsData: widget.goalsData,
+                transactionNumber: responseData['data']
+                    ['transaction_number'], // Pass transaction number
+              ),
+            ),
+          );
+        } else {
+          _showErrorSnackbar(responseData['errors'] != null &&
+                  (responseData['errors'] as List).isNotEmpty
+              ? (responseData['errors'] as List)[0].toString()
+              : "Gagal membuat transaksi, silahkan coba lagi!");
+        }
+      } else {
+        _showErrorSnackbar(
+            "Gagal membuat transaksi, kode status : ${response.statusCode}. Silahkan coba lagi!");
+      }
+    } catch (e) {
+      _showErrorSnackbar(
+          "Terjadi kesalahan saat membuat transaksi, pesan: ${e.toString()}. Silahkan coba lagi!");
     }
   }
 
@@ -1229,7 +1481,7 @@ class _InputPinBersamaState extends State<InputPinBersama> {
         toolbarHeight: 84,
         titleSpacing: 16,
         automaticallyImplyLeading: false,
-        title: Text(
+        title: const Text(
           'Input M-PIN Mobile Banking',
           style: TextStyle(
             color: Colors.white,
@@ -1240,137 +1492,151 @@ class _InputPinBersamaState extends State<InputPinBersama> {
         centerTitle: true,
         actions: [
           Container(
-            margin: EdgeInsets.only(right: 16),
+            margin: const EdgeInsets.only(right: 16),
             height: 12,
             width: 12,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.green,
               shape: BoxShape.circle,
             ),
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.blue.shade700, Colors.blue.shade400],
+          Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.blue.shade700, Colors.blue.shade400],
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(
+                      height: 36,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                          _pinLength,
+                          (index) => Container(
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 18),
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: index < _pin.length
+                                      ? Colors.amber
+                                      : Colors.grey[300],
+                                ),
+                              )),
+                    ),
+                    const SizedBox(
+                      height: 36,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 36,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                      _pinLength,
-                      (index) => Container(
-                            margin: EdgeInsets.symmetric(horizontal: 18),
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: index < _pin.length
-                                  ? Colors.amber
-                                  : Colors.grey[300],
-                            ),
-                          )),
-                ),
-                SizedBox(
-                  height: 36,
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.all(16),
-              child: GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                children: [
-                  ...[
-                    '1',
-                    '2',
-                    '3',
-                    '4',
-                    '5',
-                    '6',
-                    '7',
-                    '8',
-                    '9',
-                    '',
-                    '0',
-                    'backspace',
-                  ].map(
-                    (number) => InkWell(
-                      onTap: () {
-                        if (number == 'backspace') {
-                          _removePin();
-                        } else if (number.isNotEmpty) {
-                          _addPin(number);
-                        }
-                      },
-                      child: Center(
-                        child: number == 'backspace'
-                            ? Row(
-                                // Menggunakan Row untuk mengatur posisi ikon dan button
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Spacer(), // Spacer untuk mendorong ikon ke tengah
-                                  Column(
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  child: GridView.count(
+                    crossAxisCount: 3,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      ...[
+                        '1',
+                        '2',
+                        '3',
+                        '4',
+                        '5',
+                        '6',
+                        '7',
+                        '8',
+                        '9',
+                        '',
+                        '0',
+                        'backspace',
+                      ].map(
+                        (number) => InkWell(
+                          onTap: () {
+                            if (number == 'backspace') {
+                              _removePin();
+                            } else if (number.isNotEmpty) {
+                              _addPin(number);
+                            }
+                          },
+                          child: Center(
+                            child: number == 'backspace'
+                                ? Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.backspace_rounded,
-                                          color: Colors.amber),
-                                      TextButton(
-                                        onPressed: () {
-                                          // todo: action lupa pin
-                                        },
-                                        child: Text(
-                                          'Lupa PIN',
-                                          style: TextStyle(
-                                              fontSize: 12, color: Colors.blue),
-                                        ),
+                                      const Spacer(),
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.backspace_rounded,
+                                              color: Colors.amber),
+                                          TextButton(
+                                            onPressed: () {
+                                              // todo: action lupa pin
+                                            },
+                                            child: const Text(
+                                              'Lupa PIN',
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.blue),
+                                            ),
+                                          ),
+                                        ],
                                       ),
+                                      const Spacer()
                                     ],
+                                  )
+                                : Text(
+                                    number,
+                                    style: const TextStyle(
+                                        fontSize: 24, color: Colors.black),
                                   ),
-                                  Spacer() // Spacer agar ikon dan text tetap di tengah
-                                ],
-                              )
-                            : Text(
-                                number,
-                                style: TextStyle(
-                                    fontSize: 24, color: Colors.black),
-                              ),
+                          ),
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text(
+                      'Kembali',
+                      style: TextStyle(color: Colors.blue),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text(
-                  'Kembali',
-                  style: TextStyle(color: Colors.blue),
+          if (_isVerifyingPin)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -1378,43 +1644,31 @@ class _InputPinBersamaState extends State<InputPinBersama> {
 }
 
 class BerhasilTambahUangBersama extends StatelessWidget {
-  final String nominal;
-  final String jenis;
-  final String jenisGoals;
-  final String rekening;
-  final String namaGoals;
+  final String nominalTambahUang;
+  final String accountType;
+  final String accountTypeGoals;
+  final String accountNumber;
+  final String goalsName;
   final String tanggalTransaksi;
-  final String saldo;
+  final String accountBalance;
   final Map<String, dynamic> goalsData;
+  final String? transactionNumber; // Add transactionNumber parameter
 
   const BerhasilTambahUangBersama({
     super.key,
-    required this.nominal,
-    required this.jenis,
-    required this.rekening,
-    required this.namaGoals,
+    required this.nominalTambahUang,
+    required this.accountType,
+    required this.accountNumber,
+    required this.goalsName,
     required this.tanggalTransaksi,
-    required this.saldo,
-    required this.jenisGoals,
+    required this.accountBalance,
+    required this.accountTypeGoals,
     required this.goalsData,
+    this.transactionNumber, // Initialize transactionNumber
   });
-
-  String _generateRandomRef() {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    Random rnd = Random();
-    return String.fromCharCodes(Iterable.generate(
-        16, (_) => chars.codeUnitAt(rnd.nextInt(chars.length))));
-  }
-
-  String _generateRandomRRN() {
-    Random random = Random();
-    return random.nextInt(999999).toString().padLeft(6, '0');
-  }
 
   @override
   Widget build(BuildContext context) {
-    final String randomRef = _generateRandomRef();
-    final String randomRRN = _generateRandomRRN();
     return Scaffold(
       backgroundColor: Colors.blue,
       body: Center(
@@ -1433,13 +1687,13 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.check_circle,
                       color: Colors.green,
                       size: 28,
                     ),
-                    SizedBox(width: 8),
-                    Text(
+                    const SizedBox(width: 8),
+                    const Text(
                       'SUKSES',
                       style: TextStyle(
                         fontSize: 20,
@@ -1449,12 +1703,13 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '1 November 2024 09:15',
+                      DateFormat('d MMMM yyyy HH:mm')
+                          .format(DateTime.now()), // Current date and time
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey.shade800,
@@ -1472,13 +1727,14 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Expanded(
                       child: Text(
-                        randomRef,
+                        transactionNumber ??
+                            '-', // Display transactionNumber or placeholder
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey.shade800,
@@ -1487,31 +1743,11 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Divider(
                   color: Colors.grey.shade300,
                 ),
-                SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'RRN',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade800,
-                      ),
-                    ),
-                    Text(
-                      randomRRN,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade800,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8),
+                const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -1523,7 +1759,7 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      jenisGoals,
+                      accountTypeGoals,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey.shade800,
@@ -1531,7 +1767,7 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -1542,20 +1778,30 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                         color: Colors.grey.shade800,
                       ),
                     ),
-                    Row(
-                      children: [
-                        Text(
-                          namaGoals,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade800,
+                    Expanded(
+                      // Wrap Text with Expanded
+                      child: Row(
+                        children: [
+                          Expanded(
+                            // Add Expanded to the inner Text as well
+                            child: Text(
+                              goalsName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade800,
+                              ),
+                              overflow: TextOverflow
+                                  .ellipsis, // Add overflow ellipsis here too
+                              maxLines: 1, // Limit to one line
+                              textAlign: TextAlign.end, // Align text to the end
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -1567,7 +1813,7 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      nominal,
+                      nominalTambahUang,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey.shade800,
@@ -1575,7 +1821,7 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(12.0),
                   decoration: BoxDecoration(
@@ -1591,20 +1837,20 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                             color: Colors.blue.shade700),
                       ),
-                      SizedBox(
+                      const SizedBox(
                         height: 8,
                       ),
                       Row(
                         children: [
                           Expanded(
                             child: Text(
-                              '$jenis - $rekening',
+                              '$accountType - $accountNumber',
                               style: TextStyle(
                                   fontSize: 13, color: Colors.blue.shade700),
                             ),
                           ),
                           Text(
-                            saldo,
+                            accountBalance,
                             style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -1615,7 +1861,7 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                     ],
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Text(
                   'Tanggal Transaksi',
                   style: TextStyle(
@@ -1623,22 +1869,22 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       color: Colors.grey.shade800),
                 ),
-                SizedBox(height: 4),
-                Text(
+                const SizedBox(height: 4),
+                const Text(
                   'Anda memilih transfer segera untuk transaksi ini',
                   style: TextStyle(fontSize: 13, color: Colors.red),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
                   'Tanggal',
                   style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   tanggalTransaksi,
                   style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -1650,7 +1896,7 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                           color: Colors.grey.shade800),
                     ),
                     Text(
-                      nominal,
+                      nominalTambahUang,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -1658,7 +1904,7 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(
+                const SizedBox(
                   height: 36,
                 ),
                 Column(
@@ -1672,7 +1918,7 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: Text(
+                      child: const Text(
                         'Bagikan',
                         style: TextStyle(color: Colors.white),
                       ),
@@ -1689,23 +1935,18 @@ class BerhasilTambahUangBersama extends StatelessWidget {
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8)),
                           ),
-                          child: Text(
+                          child: const Text(
                             'Simpan Favorit',
                             style: TextStyle(color: Colors.blue),
                           ),
                         ),
-                        SizedBox(
+                        const SizedBox(
                           width: 10,
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            // Navigator.pushReplacement<void, void>(
-                            //   context,
-                            //   MaterialPageRoute<void>(
-                            //     builder: (BuildContext context) =>
-                            //         DetailTabunganBersama(),
-                            //   ),
-                            // );
+                            Navigator.pushReplacementNamed(
+                                context, '/beranda'); // Navigate to Beranda
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.yellow.shade700,

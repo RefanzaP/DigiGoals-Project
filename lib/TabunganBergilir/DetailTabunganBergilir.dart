@@ -81,6 +81,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
   bool _isSnackBarShown =
       false; // State to prevent SnackBar from showing repeatedly
   String? _userRole; // To store the current user's role
+  String? savingGroupType; // Added to store saving group type
 
   late String goalsName = ''; // Initialize with empty string
   late String statusTabungan = 'INACTIVE'; // Initialize with default value
@@ -227,6 +228,8 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
               targetKontribusi =
                   (data['detail']['contribution_amount'] as num?)?.toDouble() ??
                       0.0; // Get contribution_amount
+              savingGroupType =
+                  data['type']?.toString(); // Get saving group type
               // Static data initialization - keep for now as per instructions, adjust with API data when available
               _goalsData['goalsName'] = goalsName;
               _goalsData['targetTabungan'] = targetSaldoTabungan.toDouble();
@@ -246,6 +249,8 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
               ];
               historiTransaksi = List<Map<String, dynamic>>.from(_goalsData[
                   'transactions']); // Static Value - Will be replaced by API later
+              _goalsData['savingGroupType'] =
+                  savingGroupType; // Include saving group type in _goalsData
             });
           }
         } else {
@@ -1249,11 +1254,11 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                           height: 48,
                           child: ElevatedButton(
                             onPressed: () {
-                              Navigator.push<void>(
+                              Navigator.push(
                                 context,
-                                MaterialPageRoute<void>(
-                                  builder: (BuildContext context) =>
-                                      const TambahUangBergilir(),
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      TambahUangBergilir(goalsData: _goalsData),
                                 ),
                               );
                             },
@@ -1280,11 +1285,11 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                           height: 48,
                           child: OutlinedButton(
                             onPressed: () {
-                              Navigator.push<void>(
+                              Navigator.push(
                                 context,
-                                MaterialPageRoute<void>(
-                                  builder: (BuildContext context) =>
-                                      const TarikUangBergilir(),
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      TarikUangBergilir(goalsData: _goalsData),
                                 ),
                               );
                             },
