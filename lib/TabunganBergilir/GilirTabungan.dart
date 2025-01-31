@@ -67,29 +67,68 @@ class _GilirTabunganState extends State<GilirTabungan>
         },
       );
 
+      debugPrint('API Response Status Code: ${response.statusCode}');
+      debugPrint('API Response Body: ${response.body}');
+
       if (response.statusCode == 200) {
         final responseBody = utf8.decode(response.bodyBytes);
         final responseData = json.decode(responseBody);
         if (responseData['code'] == 200 && responseData['status'] == 'OK') {
-          final winnerData = responseData['data']['winner_user']['customer'];
-          setState(() {
-            _winnerName = winnerData['name'];
-          });
+          final winnerUserData = responseData['data']['winner_user'];
+          if (winnerUserData != null &&
+              winnerUserData is Map<String, dynamic>) {
+            final customerData = winnerUserData['customer'];
+            if (customerData != null && customerData is Map<String, dynamic>) {
+              setState(() {
+                _winnerName = customerData['name'];
+                debugPrint('Winner Name set to: $_winnerName');
+              });
+            } else {
+              setState(() {
+                _winnerName = "Gagal mendapatkan data customer pemenang";
+                debugPrint('Error: Gagal mendapatkan data customer pemenang');
+              });
+            }
+          } else {
+            setState(() {
+              _winnerName = "Gagal mendapatkan data winner user";
+              debugPrint('Error: Gagal mendapatkan data winner user');
+            });
+          }
         } else {
           setState(() {
             _winnerName =
                 "Gagal mendapatkan pemenang dari API: ${responseData['errors'] ?? 'Unknown error'}";
+            debugPrint(
+                'Error: Gagal mendapatkan pemenang dari API: ${responseData['errors'] ?? 'Unknown error'}');
+          });
+        }
+      } else if (response.statusCode == 500) {
+        final responseBody = utf8.decode(response.bodyBytes);
+        final responseData = json.decode(responseBody);
+        if (responseData['errors'] == 'no eligible members') {
+          setState(() {
+            _winnerName =
+                "Tidak ada anggota yang memenuhi syarat untuk undian.";
+          });
+        } else {
+          setState(() {
+            _winnerName =
+                "Gagal mendapatkan pemenang dari API: Status Code ${response.statusCode}, Errors: ${responseData['errors'] ?? 'Unknown error'}";
           });
         }
       } else {
         setState(() {
           _winnerName =
               "Gagal mendapatkan pemenang dari API: Status Code ${response.statusCode}";
+          debugPrint(
+              'Error: Gagal mendapatkan pemenang dari API: Status Code ${response.statusCode}');
         });
       }
     } catch (e) {
       setState(() {
         _winnerName = "Gagal mendapatkan pemenang: ${e.toString()}";
+        debugPrint('Error: Gagal mendapatkan pemenang: ${e.toString()}');
       });
     }
   }
@@ -103,8 +142,12 @@ class _GilirTabunganState extends State<GilirTabungan>
       } else {
         warningMessage = null;
         _showGiftAnimation();
-        _fetchWinnerFromApi(widget
-            .savingGroupId); // Fetch winner from API, no need to await here to show animation first
+        _fetchWinnerFromApi(widget.savingGroupId).then((_) {
+          Future.delayed(Duration(seconds: 3), () {
+            Navigator.of(context).pop();
+            _showWinnerDialog();
+          });
+        });
       }
     });
   }
@@ -147,20 +190,32 @@ class _GilirTabunganState extends State<GilirTabungan>
         );
       },
     );
-
-    Future.delayed(Duration(seconds: 3), () {
-      Navigator.of(context).pop();
-      _showWinnerDialog();
-    });
   }
 
   void _showWinnerDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false, // Prevent dismiss on tap outside
+      barrierDismissible: false,
       builder: (BuildContext context) {
+        String dialogText;
+        IconData dialogIcon = Icons.emoji_events; // Default icon
+
+        if (_winnerName ==
+            "Tidak ada anggota yang memenuhi syarat untuk undian.") {
+          dialogText =
+              "Maaf, semua anggota telah mendapatkan giliran. Tidak ada pemenang untuk saat ini.";
+          dialogIcon = Icons.sentiment_dissatisfied;
+        } else if (_winnerName != null &&
+            !_winnerName!.startsWith("Gagal mendapatkan pemenang")) {
+          dialogText = 'Selamat kepada Anggota $_winnerName yang beruntung!';
+          dialogIcon = Icons.emoji_events;
+        } else {
+          dialogText = 'Pemenang belum dapat ditentukan. ${_winnerName ?? ""}';
+          dialogIcon = Icons.error_outline; // Or a different error icon
+        }
+
         return WillPopScope(
-          onWillPop: () async => false, // Disable back button
+          onWillPop: () async => false,
           child: Dialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -183,12 +238,13 @@ class _GilirTabunganState extends State<GilirTabungan>
                   ),
                   SizedBox(height: 16),
                   Icon(
-                    Icons.emoji_events,
+                    dialogIcon,
                     size: 100,
                     color: Colors.yellow.shade700,
                   ),
                   SizedBox(height: 16),
-                  Text('Selamat kepada Anggota ${_winnerName ?? "Pemenang belum dapat ditentukan"} yang beruntung!',
+                  Text(
+                    dialogText,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
@@ -204,8 +260,7 @@ class _GilirTabunganState extends State<GilirTabungan>
                           MaterialPageRoute(
                             builder: (context) => DetailTabunganBergilir(
                               savingGroupId: widget.savingGroupId,
-                              isActive:
-                                  true, // Assuming isActive should remain true
+                              isActive: true,
                             ),
                           ),
                           (Route<dynamic> route) => false,
@@ -379,8 +434,7 @@ class _GilirTabunganState extends State<GilirTabungan>
               height: 48,
               child: ElevatedButton(
                 onPressed: () async {
-                  // Add async here
-                  await validateAndProceed(); // Add await here
+                  await validateAndProceed();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.yellow.shade700,
