@@ -6,6 +6,7 @@ import 'package:digigoals_app/TabunganBersama/RincianAnggotaBersama.dart';
 import 'package:digigoals_app/TabunganBersama/TambahUangBersama.dart';
 import 'package:digigoals_app/TabunganBersama/TarikUangBersama.dart';
 import 'package:digigoals_app/TabunganBersama/UndangAnggotaBersama.dart';
+import 'package:digigoals_app/OurGoals.dart';
 import 'package:digigoals_app/api/api_config.dart';
 import 'package:digigoals_app/auth/token_manager.dart';
 import 'package:flutter/material.dart';
@@ -167,9 +168,13 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
         if (groupData['code'] == 200 && groupData['status'] == 'OK') {
           final savingGroupDetail = groupData['data'];
           if (membersData['code'] == 200 && membersData['status'] == 'OK') {
-            List<Member> fetchedMembers = (membersData['data'] as List)
-                .map((item) => Member.fromJson(item))
-                .toList();
+            List<Member> fetchedMembers = [];
+            if (membersData['data'] != null) {
+              // Null check for membersData['data']
+              fetchedMembers = (membersData['data'] as List)
+                  .map((item) => Member.fromJson(item))
+                  .toList();
+            }
 
             String? currentUserId = await _tokenManager.getUserId();
             if (currentUserId != null) {
@@ -189,22 +194,26 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
             List<Map<String, dynamic>> fetchedTransactions = [];
             if (transactionsData['code'] == 200 &&
                 transactionsData['status'] == 'OK') {
-              fetchedTransactions =
-                  (transactionsData['data'] as List).map((item) {
-                String transactionType = item['transaction_type'] == 'CREDIT'
-                    ? 'Setoran'
-                    : 'Penarikan';
-                return {
-                  'jenisTransaksi': transactionType,
-                  'tanggalTransaksi': DateTime.parse(item['completed_at']),
-                  'jumlahTransaksi': (item['amount'] as num).toDouble(),
-                  'memberName': item['goals_member']['user']['customer']
-                          ['name'] ??
-                      'Unknown Member',
-                };
-              }).toList();
-              fetchedTransactions.sort((a, b) => b['tanggalTransaksi']
-                  .compareTo(a['tanggalTransaksi'])); // Sort by date descending
+              if (transactionsData['data'] != null) {
+                // Null check for transactionsData['data']
+                fetchedTransactions =
+                    (transactionsData['data'] as List).map((item) {
+                  String transactionType = item['transaction_type'] == 'CREDIT'
+                      ? 'Setoran'
+                      : 'Penarikan';
+                  return {
+                    'jenisTransaksi': transactionType,
+                    'tanggalTransaksi': DateTime.parse(item['completed_at']),
+                    'jumlahTransaksi': (item['amount'] as num).toDouble(),
+                    'memberName': item['goals_member']['user']['customer']
+                            ['name'] ??
+                        'Unknown Member',
+                  };
+                }).toList();
+                fetchedTransactions.sort((a, b) => b['tanggalTransaksi']
+                    .compareTo(
+                        a['tanggalTransaksi'])); // Sort by date descending
+              }
             } else {
               // Handle transaction fetch error if needed, for now just keep historiTransaksi empty
             }
@@ -212,6 +221,8 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
             double fetchedSaldoTabungan = 0.0;
             if (balanceData['code'] == 200 &&
                 balanceData['status'] == 'OK' &&
+                balanceData['data'] !=
+                    null && // Null check for balanceData['data']
                 (balanceData['data'] as List).isNotEmpty) {
               for (var balanceItem in balanceData['data']) {
                 if (balanceItem['saving_group_id'] == widget.savingGroupId) {
@@ -241,6 +252,7 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
                 'savingGroupType': savingGroupType,
               });
               _allMembers = fetchedMembers;
+              members = fetchedMembers; // Assign fetchedMembers to members list
               _historiTransaksi = fetchedTransactions;
               _filteredHistoriTransaksi =
                   List.from(_historiTransaksi); // Initialize filtered list
@@ -878,7 +890,10 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () {
-          Navigator.pop(context);
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const OurGoals()),
+            (Route<dynamic> route) => false,
+          );
         },
       ),
       title: const Text(
@@ -892,12 +907,6 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
       ),
       centerTitle: true,
       actions: [
-        currentUserRole == 'ADMIN'
-            ? IconButton(
-                icon: const Icon(Icons.settings, color: Colors.white),
-                onPressed: _showSettingsModal,
-              )
-            : const SizedBox.shrink(),
         Container(
           margin: const EdgeInsets.only(right: 16),
           height: 12,
@@ -1090,14 +1099,26 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TambahUangBersama(goalsData: _goalsData),
-            ),
-          );
-        },
+        onPressed: members.length < 2
+            ? () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Tambah Uang hanya dapat dilakukan jika anggota tabungan lebih dari satu.',
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            : () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        TambahUangBersama(goalsData: _goalsData),
+                  ),
+                );
+              },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.yellow.shade700,
           shape: RoundedRectangleBorder(
@@ -1120,14 +1141,26 @@ class _DetailTabunganBersamaState extends State<DetailTabunganBersama> {
       width: double.infinity,
       height: 48,
       child: OutlinedButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TarikUangBersama(goalsData: _goalsData),
-            ),
-          );
-        },
+        onPressed: saldoTabungan == 0
+            ? () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Tidak ada saldo yang dapat ditarik.',
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            : () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        TarikUangBersama(goalsData: _goalsData),
+                  ),
+                );
+              },
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: Colors.yellow.shade700),
           shape: RoundedRectangleBorder(

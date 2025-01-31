@@ -240,7 +240,7 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
                   'OK',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    color: Colors.blue.shade800,
                   ),
                 ),
               ),

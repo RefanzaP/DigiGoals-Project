@@ -188,8 +188,7 @@ class _GilirTabunganState extends State<GilirTabungan>
                     color: Colors.yellow.shade700,
                   ),
                   SizedBox(height: 16),
-                  Text(
-                    'Selamat kepada Anggota ${_winnerName ?? "Tidak dapat menentukan pemenang"} yang beruntung!',
+                  Text('Selamat kepada Anggota ${_winnerName ?? "Pemenang belum dapat ditentukan"} yang beruntung!',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,

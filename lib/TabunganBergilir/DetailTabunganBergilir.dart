@@ -45,6 +45,8 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
   String?
       durasiTabunganDisplay; // Added to store formatted duration for display
   int jumlahKontribusi = 0; // Added to store contribution_amount
+  double currentUserMemberBalance =
+      0.0; // To store current user's member balance
 
   late String goalsName = ''; // Initialize with empty string
   late String statusTabungan = 'INACTIVE'; // Initialize with default value
@@ -66,7 +68,8 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
   final NumberFormat currencyFormat = NumberFormat.currency(
     locale: 'id_ID',
     symbol: 'IDR ',
-    decimalDigits: 2,
+    decimalDigits:
+        0, // Changed to 0 to match typical Indonesian currency display
   );
 
   // Format tanggal
@@ -130,6 +133,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
     await _fetchMembers();
     await _fetchTransactions(); // Fetch transactions
     await _fetchBalance(); // Fetch balance
+    await _fetchCurrentUserMemberBalance(); // Fetch current user member balance
 
     if (mounted) {
       // ADD MOUNTED CHECK HERE
@@ -143,6 +147,59 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
             jumlahKontribusi; // Add jumlahKontribusi to _goalsData
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> _fetchCurrentUserMemberBalance() async {
+    String? token = await _tokenManager.getToken();
+    String? userId = await _tokenManager.getUserId();
+    if (token == null || userId == null) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = "Token atau User ID tidak ditemukan";
+        });
+      }
+      return;
+    }
+
+    final balanceUrl = Uri.parse(
+        '$baseUrl/transactions/balance?savingGroupId=${widget.savingGroupId}&userId=$userId');
+    final headers = {'Authorization': 'Bearer $token'};
+
+    try {
+      final balanceResponse = await http.get(balanceUrl, headers: headers);
+
+      if (balanceResponse.statusCode == 200) {
+        final responseBody = utf8.decode(balanceResponse.bodyBytes);
+        final balanceData = json.decode(responseBody);
+
+        double fetchedMemberBalance = 0.0;
+        if (balanceData['code'] == 200 &&
+            balanceData['status'] == 'OK' &&
+            balanceData['data'] != null) {
+          fetchedMemberBalance =
+              (balanceData['data']['balance'] as num?)?.toDouble() ?? 0.0;
+        }
+        if (mounted) {
+          setState(() {
+            currentUserMemberBalance = fetchedMemberBalance;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _errorMessage =
+                "Gagal mengambil saldo member. Status code: ${balanceResponse.statusCode}";
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage =
+              "Terjadi kesalahan saat mengambil saldo member: ${e.toString()}";
+        });
+      }
     }
   }
 
@@ -165,23 +222,30 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
       final balanceResponse = await http.get(balanceUrl, headers: headers);
 
       if (balanceResponse.statusCode == 200) {
-        final balanceData = json
-            .decode(utf8.decode(balanceResponse.bodyBytes)); // Data for balance
+        final responseBody = utf8.decode(balanceResponse.bodyBytes);
+        final balanceData = json.decode(responseBody); // Data for balance
 
         double fetchedSaldoTabungan = 0.0;
-        if (balanceData['code'] == 200 &&
-            balanceData['status'] == 'OK' &&
-            (balanceData['data'] as List).isNotEmpty) {
-          for (var balanceItem in balanceData['data']) {
-            if (balanceItem['saving_group_id'] == widget.savingGroupId) {
-              fetchedSaldoTabungan +=
-                  (balanceItem['balance'] as num).toDouble();
+        if (balanceData['code'] == 200 && balanceData['status'] == 'OK') {
+          // Null check for balanceData['data'] and ensure it's a List
+          List<dynamic> balanceListData =
+              balanceData['data'] is List ? balanceData['data'] : [];
+          if (balanceListData.isNotEmpty) {
+            for (var balanceItem in balanceListData) {
+              if (balanceItem['saving_group_id'] == widget.savingGroupId) {
+                fetchedSaldoTabungan +=
+                    (balanceItem['balance'] as num?)?.toDouble() ??
+                        0.0; // Safe casting and null handling
+              }
             }
           }
         }
         if (mounted) {
           setState(() {
             saldoTabungan = fetchedSaldoTabungan;
+            progressTabungan = targetSaldoTabungan > 0
+                ? saldoTabungan / targetSaldoTabungan
+                : 0.0;
           });
         }
       } else {
@@ -217,19 +281,23 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
           await http.get(transactionsUrl, headers: headers);
 
       if (transactionsResponse.statusCode == 200) {
-        final transactionsData =
-            json.decode(utf8.decode(transactionsResponse.bodyBytes));
+        final responseBody = utf8.decode(transactionsResponse.bodyBytes);
+        final transactionsData = json.decode(responseBody);
 
         List<Map<String, dynamic>> fetchedTransactions = [];
         if (transactionsData['code'] == 200 &&
             transactionsData['status'] == 'OK') {
-          fetchedTransactions = (transactionsData['data'] as List).map((item) {
+          // Null check for transactionsData['data'] and ensure it's a List
+          List<dynamic> transactionsListData =
+              transactionsData['data'] is List ? transactionsData['data'] : [];
+          fetchedTransactions = transactionsListData.map((item) {
             String transactionType =
                 item['transaction_type'] == 'CREDIT' ? 'Setoran' : 'Penarikan';
             return {
               'jenisTransaksi': transactionType,
               'tanggalTransaksi': DateTime.parse(item['completed_at']),
-              'jumlahTransaksi': (item['amount'] as num).toDouble(),
+              'jumlahTransaksi': (item['amount'] as num?)?.toDouble() ??
+                  0.0, // Safe casting and null handling
               'memberName': item['goals_member']['user']['customer']['name'] ??
                   'Unknown Member',
             };
@@ -927,450 +995,491 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                 ),
               ),
             )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Stack(
-                children: [
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: _userRole == 'ADMIN' // Conditional rendering here
-                        ? IconButton(
-                            icon: Icon(Icons.settings,
-                                color: Colors.blue.shade900),
-                            onPressed: _showSettingsModal,
-                          )
-                        : const SizedBox
-                            .shrink(), // Or any other widget if you want to show something else when not admin
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Icon(
-                        Icons.celebration,
-                        size: 64,
-                        color: Colors.blue.shade400,
-                      ),
-                      const SizedBox(height: 16),
-                      isLoading
-                          ? _buildShimmerText(height: 24)
-                          : Text(
-                              goalsName,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                      const SizedBox(height: 8),
-                      isLoading
-                          ? _buildShimmerText(height: 32)
-                          : Text(
-                              currencyFormat.format(saldoTabungan),
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue.shade900,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                      const SizedBox(height: 8),
-                      isLoading
-                          ? _buildShimmerText(height: 16)
-                          : Text(
-                              statusTabungan == 'ACTIVE'
-                                  ? 'Aktif'
-                                  : 'Tidak Aktif', // Updated status text here
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: statusTabungan == 'ACTIVE'
-                                    ? Colors.green
-                                    : Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                      const SizedBox(height: 24),
-                      if (statusTabungan == 'INACTIVE')
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => UndangAnggotaBergilir(
-                                    savingGroupId: widget.savingGroupId,
-                                    goalsName: goalsName,
-                                  ),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.yellow.shade700,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Text(
-                              'Undang Anggota',
-                              style: TextStyle(
-                                color: Colors.blue.shade900,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+          : RefreshIndicator(
+              // Wrap SingleChildScrollView with RefreshIndicator
+              onRefresh: fetchSavingGroupDetails,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Stack(
+                  children: [
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: _userRole == 'ADMIN' // Conditional rendering here
+                          ? IconButton(
+                              icon: Icon(Icons.settings,
+                                  color: Colors.blue.shade900),
+                              onPressed: _showSettingsModal,
+                            )
+                          : const SizedBox
+                              .shrink(), // Or any other widget if you want to show something else when not admin
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Icon(
+                          Icons.celebration,
+                          size: 64,
+                          color: Colors.blue.shade400,
                         ),
-                      if (statusTabungan == 'INACTIVE')
                         const SizedBox(height: 16),
-                      // Circle Avatar Anggota Tabungan (muncul sebelum tombol aktivasi ketika tidak aktif)
-                      if (statusTabungan == 'INACTIVE')
-                        Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
+                        isLoading
+                            ? _buildShimmerText(height: 24)
+                            : Text(
+                                goalsName,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                        const SizedBox(height: 8),
+                        isLoading
+                            ? _buildShimmerText(height: 32)
+                            : Text(
+                                currencyFormat.format(saldoTabungan),
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade900,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                        const SizedBox(height: 8),
+                        isLoading
+                            ? _buildShimmerText(height: 16)
+                            : Text(
+                                statusTabungan == 'ACTIVE'
+                                    ? 'Aktif'
+                                    : 'Tidak Aktif', // Updated status text here
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: statusTabungan == 'ACTIVE'
+                                      ? Colors.green
+                                      : Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                        const SizedBox(height: 24),
+                        if (statusTabungan == 'INACTIVE')
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        RincianAnggotaBergilir(
-                                      savingGroupId: widget
-                                          .savingGroupId, // Menggunakan savingGroupId yang sudah ada di DetailTabunganBergilir
-                                      goalsName:
-                                          goalsName, // Menggunakan goalsName yang sudah ada di DetailTabunganBergilir
-                                      isActive: widget.isActive,
+                                    builder: (context) => UndangAnggotaBergilir(
+                                      savingGroupId: widget.savingGroupId,
+                                      goalsName: goalsName,
                                     ),
                                   ),
                                 );
                               },
-                              child: Row(
-                                children: isLoading
-                                    ? _buildShimmerCircleAvatars()
-                                    : [
-                                        ..._allMembers.take(2).map(
-                                              (member) => Padding(
-                                                padding: const EdgeInsets.only(
-                                                    right: 8.0),
-                                                child: CircleAvatar(
-                                                  radius: 20,
-                                                  backgroundColor: Colors
-                                                      .primaries[_allMembers
-                                                          .indexOf(member) %
-                                                      Colors.primaries.length],
-                                                  child: Text(
-                                                    member.isNotEmpty
-                                                        ? member[0]
-                                                            .toUpperCase()
-                                                        : 'U',
-                                                    style: const TextStyle(
-                                                        color: Colors.white),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                        if (_allMembers.length > 3)
-                                          CircleAvatar(
-                                            radius: 20,
-                                            backgroundColor: Colors.purple,
-                                            child: Text(
-                                              '+${_allMembers.length - 2}',
-                                              style: const TextStyle(
-                                                  color: Colors.white),
-                                            ),
-                                          ),
-                                      ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      if (statusTabungan == 'INACTIVE')
-                        const SizedBox(height: 16),
-                      if (statusTabungan == 'INACTIVE' &&
-                          _userRole ==
-                              'ADMIN') // Kondisi button aktivasi hanya untuk ADMIN
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      AktivasiTabunganBergilir(
-                                    allMembers: _allMembers,
-                                    savingGroupId: widget.savingGroupId,
-                                  ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.yellow.shade700,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
                               ),
-                            ),
-                            child: const Text(
-                              'Aktivasi Tabungan Bergilir',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                              child: Text(
+                                'Undang Anggota',
+                                style: TextStyle(
+                                  color: Colors.blue.shade900,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      // Circle Avatar Anggota Tabungan (hanya satu baris ketika aktif)
-                      if (statusTabungan == 'ACTIVE')
-                        Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        RincianAnggotaBergilir(
-                                      savingGroupId: widget
-                                          .savingGroupId, // Menggunakan savingGroupId yang sudah ada di DetailTabunganBergilir
-                                      goalsName:
-                                          goalsName, // Menggunakan goalsName yang sudah ada di DetailTabunganBergilir
-                                      isActive: widget.isActive,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: Row(
-                                children: isLoading
-                                    ? _buildShimmerCircleAvatars()
-                                    : [
-                                        ..._allMembers.take(2).map(
-                                              (member) => Padding(
-                                                padding: const EdgeInsets.only(
-                                                    right: 8.0),
-                                                child: CircleAvatar(
-                                                  radius: 20,
-                                                  backgroundColor: Colors
-                                                      .primaries[_allMembers
-                                                          .indexOf(member) %
-                                                      Colors.primaries.length],
-                                                  child: Text(
-                                                    member.isNotEmpty
-                                                        ? member[0]
-                                                            .toUpperCase()
-                                                        : 'U',
-                                                    style: const TextStyle(
-                                                        color: Colors.white),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                        if (_allMembers.length > 3)
-                                          CircleAvatar(
-                                            radius: 20,
-                                            backgroundColor: Colors.purple,
-                                            child: Text(
-                                              '+${_allMembers.length - 2}',
-                                              style: const TextStyle(
-                                                  color: Colors.white),
-                                            ),
-                                          ),
-                                      ],
-                              ),
-                            ),
-                            const Spacer(),
-                            if (_userRole ==
-                                'ADMIN') // Conditional rendering based on user role
-                              ElevatedButton(
-                                onPressed: () {
-                                  Navigator.push<void>(
+                        if (statusTabungan == 'INACTIVE')
+                          const SizedBox(height: 16),
+                        // Circle Avatar Anggota Tabungan (muncul sebelum tombol aktivasi ketika tidak aktif)
+                        if (statusTabungan == 'INACTIVE')
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
                                     context,
-                                    MaterialPageRoute<void>(
-                                      builder: (BuildContext context) =>
-                                          GilirTabungan(
-                                        goalsData: _goalsData,
-                                        isActive: widget.isActive,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          RincianAnggotaBergilir(
                                         savingGroupId: widget
-                                            .savingGroupId, // Pass savingGroupId here
+                                            .savingGroupId, // Menggunakan savingGroupId yang sudah ada di DetailTabunganBergilir
+                                        goalsName:
+                                            goalsName, // Menggunakan goalsName yang sudah ada di DetailTabunganBergilir
+                                        isActive: widget.isActive,
                                       ),
                                     ),
                                   );
                                 },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.yellow.shade700,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Gilir Tabungan',
-                                  style: TextStyle(
-                                    color: Colors.blue.shade900,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              )
-                            else
-                              const SizedBox
-                                  .shrink(), // Or you can show a disabled button if you prefer, e.g., a greyed out button:  ElevatedButton(onPressed: null, child: Text('Gilir Tabungan', style: TextStyle(color: Colors.grey),)),
-                          ],
-                        ),
-                      if (statusTabungan == 'ACTIVE')
-                        const SizedBox(height: 12),
-                      if (statusTabungan == 'ACTIVE')
-                        // Wrap Card with InkWell for click action
-                        InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    DetailTargetTabunganBergilir(
-                                  savingGroupId: widget.savingGroupId,
-                                  goalsData: _goalsData,
-                                  isActive: widget.isActive,
-                                  targetKontribusi: jumlahKontribusi.toDouble(),
-                                  targetSaldoTabungan: targetSaldoTabungan
-                                      .toDouble(), // Pass targetSaldoTabungan
-                                  saldoTabungan:
-                                      saldoTabungan, // Pass saldoTabungan
+                                child: Row(
+                                  children: isLoading
+                                      ? _buildShimmerCircleAvatars()
+                                      : [
+                                          ..._allMembers.take(2).map(
+                                                (member) => Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          right: 8.0),
+                                                  child: CircleAvatar(
+                                                    radius: 20,
+                                                    backgroundColor: Colors
+                                                        .primaries[_allMembers
+                                                            .indexOf(member) %
+                                                        Colors
+                                                            .primaries.length],
+                                                    child: Text(
+                                                      member.isNotEmpty
+                                                          ? member[0]
+                                                              .toUpperCase()
+                                                          : 'U',
+                                                      style: const TextStyle(
+                                                          color: Colors.white),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                          if (_allMembers.length > 3)
+                                            CircleAvatar(
+                                              radius: 20,
+                                              backgroundColor: Colors.purple,
+                                              child: Text(
+                                                '+${_allMembers.length - 2}',
+                                                style: const TextStyle(
+                                                    color: Colors.white),
+                                              ),
+                                            ),
+                                        ],
                                 ),
                               ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(
-                              12), // Match card borderRadius for InkWell
-                          child: Card(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                            ],
+                          ),
+                        if (statusTabungan == 'INACTIVE')
+                          const SizedBox(height: 16),
+                        if (statusTabungan == 'INACTIVE' &&
+                            _userRole ==
+                                'ADMIN') // Kondisi button aktivasi hanya untuk ADMIN
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                if (_allMembers.length < 5) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Aktivasi tabungan memerlukan minimal 5 anggota.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return; // Prevent activation if less than 5 members
+                                }
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        AktivasiTabunganBergilir(
+                                      allMembers: _allMembers,
+                                      savingGroupId: widget.savingGroupId,
+                                    ),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: const Text(
+                                'Aktivasi Tabungan Bergilir',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildProgressHeader(),
-                                  const SizedBox(height: 14),
-                                  isLoading
-                                      ? _buildShimmerText(height: 18)
-                                      : Text(
-                                          '${currencyFormat.format(saldoTabungan)} / ${currencyFormat.format(targetSaldoTabungan)}', // Use _goalsData['saldoTabungan']
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                            color: Colors.blue.shade900,
+                          ),
+                        // Circle Avatar Anggota Tabungan (hanya satu baris ketika aktif)
+                        if (statusTabungan == 'ACTIVE')
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          RincianAnggotaBergilir(
+                                        savingGroupId: widget
+                                            .savingGroupId, // Menggunakan savingGroupId yang sudah ada di DetailTabunganBergilir
+                                        goalsName:
+                                            goalsName, // Menggunakan goalsName yang sudah ada di DetailTabunganBergilir
+                                        isActive: widget.isActive,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Row(
+                                  children: isLoading
+                                      ? _buildShimmerCircleAvatars()
+                                      : [
+                                          ..._allMembers.take(2).map(
+                                                (member) => Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          right: 8.0),
+                                                  child: CircleAvatar(
+                                                    radius: 20,
+                                                    backgroundColor: Colors
+                                                        .primaries[_allMembers
+                                                            .indexOf(member) %
+                                                        Colors
+                                                            .primaries.length],
+                                                    child: Text(
+                                                      member.isNotEmpty
+                                                          ? member[0]
+                                                              .toUpperCase()
+                                                          : 'U',
+                                                      style: const TextStyle(
+                                                          color: Colors.white),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                          if (_allMembers.length > 3)
+                                            CircleAvatar(
+                                              radius: 20,
+                                              backgroundColor: Colors.purple,
+                                              child: Text(
+                                                '+${_allMembers.length - 2}',
+                                                style: const TextStyle(
+                                                    color: Colors.white),
+                                              ),
+                                            ),
+                                        ],
+                                ),
+                              ),
+                              const Spacer(),
+                              if (_userRole ==
+                                  'ADMIN') // Conditional rendering based on user role
+                                ElevatedButton(
+                                  onPressed: () {
+                                    if (saldoTabungan != targetSaldoTabungan) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'Gilir tabungan hanya bisa dilakukan jika saldo tabungan sudah mencapai target.'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                      return; // Prevent Gilir if saldo not equal to targetSaldoTabungan
+                                    }
+                                    Navigator.push<void>(
+                                      context,
+                                      MaterialPageRoute<void>(
+                                        builder: (BuildContext context) =>
+                                            GilirTabungan(
+                                          goalsData: _goalsData,
+                                          isActive: widget.isActive,
+                                          savingGroupId: widget
+                                              .savingGroupId, // Pass savingGroupId here
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.yellow.shade700,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Gilir Tabungan',
+                                    style: TextStyle(
+                                      color: Colors.blue.shade900,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                )
+                              else
+                                const SizedBox
+                                    .shrink(), // Or you can show a disabled button if you prefer, e.g., a greyed out button:  ElevatedButton(onPressed: null, child: Text('Gilir Tabungan', style: TextStyle(color: Colors.grey),)),
+                            ],
+                          ),
+                        if (statusTabungan == 'ACTIVE')
+                          const SizedBox(height: 12),
+                        if (statusTabungan == 'ACTIVE')
+                          // Wrap Card with InkWell for click action
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      DetailTargetTabunganBergilir(
+                                    savingGroupId: widget.savingGroupId,
+                                    goalsData: _goalsData,
+                                    isActive: widget.isActive,
+                                    targetKontribusi:
+                                        jumlahKontribusi.toDouble(),
+                                    targetSaldoTabungan: targetSaldoTabungan
+                                        .toDouble(), // Pass targetSaldoTabungan
+                                    saldoTabungan:
+                                        saldoTabungan, // Pass saldoTabungan
+                                  ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(
+                                12), // Match card borderRadius for InkWell
+                            child: Card(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildProgressHeader(),
+                                    const SizedBox(height: 14),
+                                    isLoading
+                                        ? _buildShimmerText(height: 18)
+                                        : Text(
+                                            '${currencyFormat.format(saldoTabungan)} / ${currencyFormat.format(targetSaldoTabungan)}', // Use _goalsData['saldoTabungan']
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                              color: Colors.blue.shade900,
+                                            ),
                                           ),
-                                        ),
-                                  const SizedBox(height: 8),
-                                  isLoading
-                                      ? _buildShimmerProgress()
-                                      : LinearProgressIndicator(
-                                          value: isLoading
-                                              ? 0
-                                              : progressTabungan.clamp(0.0,
-                                                  1.0), // Use progressTabungan
-                                          backgroundColor: Colors.grey.shade300,
-                                          color: Colors.blue.shade400,
-                                        ),
-                                  const SizedBox(height: 8),
-                                  _buildProgressFooter(),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: cariTransaksiController,
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.search),
-                          fillColor: Colors.blue.shade50,
-                          filled: true,
-                          hintText: 'Cari Transaksi',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        onChanged: _filterTransactions,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTransactionHistoryList(),
-                      if (_filteredHistoriTransaksi.length >
-                          _visibleTransactionCount)
-                        Center(
-                          child: TextButton(
-                            onPressed: _loadMoreTransactions,
-                            child: const Text(
-                              'Lihat Lainnya',
-                              style: TextStyle(color: Colors.amber),
-                            ),
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                      if (statusTabungan == 'ACTIVE')
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      TambahUangBergilir(goalsData: _goalsData),
+                                    const SizedBox(height: 8),
+                                    isLoading
+                                        ? _buildShimmerProgress()
+                                        : LinearProgressIndicator(
+                                            value: isLoading
+                                                ? 0
+                                                : progressTabungan.clamp(0.0,
+                                                    1.0), // Use progressTabungan
+                                            backgroundColor:
+                                                Colors.grey.shade300,
+                                            color: Colors.blue.shade400,
+                                          ),
+                                    const SizedBox(height: 8),
+                                    _buildProgressFooter(),
+                                  ],
                                 ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.yellow.shade700,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Text(
-                              'Tambah Uang',
-                              style: TextStyle(
-                                color: Colors.blue.shade900,
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: cariTransaksiController,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.search),
+                            fillColor: Colors.blue.shade50,
+                            filled: true,
+                            hintText: 'Cari Transaksi',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          onChanged: _filterTransactions,
                         ),
-                      if (statusTabungan == 'ACTIVE')
                         const SizedBox(height: 16),
-                      if (statusTabungan == 'ACTIVE')
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      TarikUangBergilir(goalsData: _goalsData),
-                                ),
-                              );
-                            },
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: Colors.yellow.shade700),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Text(
-                              'Tarik Uang',
-                              style: TextStyle(
-                                color: Colors.yellow.shade700,
-                                fontWeight: FontWeight.bold,
+                        _buildTransactionHistoryList(),
+                        if (_filteredHistoriTransaksi.length >
+                            _visibleTransactionCount)
+                          Center(
+                            child: TextButton(
+                              onPressed: _loadMoreTransactions,
+                              child: const Text(
+                                'Lihat Lainnya',
+                                style: TextStyle(color: Colors.amber),
                               ),
                             ),
                           ),
-                        )
-                    ],
-                  ),
-                ],
+                        const SizedBox(height: 16),
+                        if (statusTabungan == 'ACTIVE')
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => TambahUangBergilir(
+                                        goalsData: _goalsData),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.yellow.shade700,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: Text(
+                                'Tambah Uang',
+                                style: TextStyle(
+                                  color: Colors.blue.shade900,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (statusTabungan == 'ACTIVE')
+                          const SizedBox(height: 16),
+                        if (statusTabungan == 'ACTIVE')
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: OutlinedButton(
+                              onPressed: () {
+                                if (currentUserMemberBalance == 0) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Anda tidak dapat menarik uang karena saldo anda 0.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return; // Prevent Tarik Uang if currentUserMemberBalance is 0
+                                }
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => TarikUangBergilir(
+                                        goalsData: _goalsData),
+                                  ),
+                                );
+                              },
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: Colors.yellow.shade700),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: Text(
+                                'Tarik Uang',
+                                style: TextStyle(
+                                  color: Colors.yellow.shade700,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          )
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
     );

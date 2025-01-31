@@ -160,7 +160,7 @@ class _BuatTabunganBergilirState extends State<BuatTabunganBergilir> {
                   'OK',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    color: Colors.blue.shade800,
                   ),
                 ),
               ),

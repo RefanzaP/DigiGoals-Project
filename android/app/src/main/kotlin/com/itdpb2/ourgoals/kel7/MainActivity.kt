@@ -1,4 +1,4 @@
-package com.example.digigoals_app
+package com.itdpb2.ourgoals.kel7
 
 import io.flutter.embedding.android.FlutterActivity
 

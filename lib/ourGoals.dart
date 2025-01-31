@@ -157,7 +157,9 @@ class _OurGoalsState extends State<OurGoals> {
 
         if (savingGroupsData['code'] == 200 &&
             savingGroupsData['status'] == 'OK' &&
-            (savingGroupsData['data'] as List).isNotEmpty) {
+            savingGroupsData['data'] != null && // Add null check here
+            savingGroupsData['data'] is List) {
+          // Add is List check here
           List<SavingGroup> savingGroups = (savingGroupsData['data'] as List)
               .map((item) => SavingGroup.fromJson(item))
               .toList();
@@ -315,7 +317,10 @@ class _OurGoalsState extends State<OurGoals> {
                                   },
                                 )
                               : const Center(
-                                  child: Text('No goals available.'),
+                                  child: Text(
+                                    'Tidak Ada Goals.\nSegera Buat Goals Kamu!',
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ),
                 )
               ],
