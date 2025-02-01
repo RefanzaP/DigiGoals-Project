@@ -700,21 +700,7 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
                         }
                       });
                     },
-                    validator: (value) {
-                      try {
-                        if (value == null || value.isEmpty) {
-                          return 'Nominal tabungan tidak boleh kosong';
-                        }
-                        final nominal = double.parse(
-                            value.replaceAll(RegExp(r'[^0-9]'), ''));
-                        if (nominal < 5000000) {
-                          return 'Nominal minimal adalah Rp 5.000.000';
-                        }
-                      } catch (e) {
-                        return 'Input tidak valid, masukkan angka saja';
-                      }
-                      return null;
-                    },
+                    // Validator removed from here
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -770,7 +756,41 @@ class _BuatTabunganBersamaState extends State<BuatTabunganBersama> {
               child: ElevatedButton(
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
-                    _showTermsAndConditions();
+                    String nominalText = _nominalGoalsController.text;
+                    if (nominalText.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Nominal tabungan tidak boleh kosong'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    try {
+                      final nominal = double.parse(
+                          nominalText.replaceAll(RegExp(r'[^0-9]'), ''));
+                      if (nominal < 5000000) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content:
+                                Text('Nominal minimal adalah Rp 5.000.000'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                      _showTermsAndConditions();
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Input nominal tidak valid, masukkan angka saja'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(

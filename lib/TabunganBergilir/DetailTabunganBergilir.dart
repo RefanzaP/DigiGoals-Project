@@ -14,8 +14,6 @@ import 'package:shimmer/shimmer.dart';
 import 'package:digigoals_app/api/api_config.dart';
 import 'package:digigoals_app/auth/token_manager.dart';
 import 'package:http/http.dart' as http;
-
-// Import the new DetailTargetTabunganBergilir page (assuming it's in this location)
 import 'package:digigoals_app/TabunganBergilir/DetailTargetTabunganBergilir.dart';
 
 class DetailTabunganBergilir extends StatefulWidget {
@@ -604,7 +602,10 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
+                            backgroundColor: _allMembers.length <= 1
+                                ? Colors.red
+                                : Colors
+                                    .grey, // Change color based on member count
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
@@ -618,10 +619,13 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _archiveSavingGroupBergilir();
-                          },
+                          onPressed: _allMembers.length <= 1
+                              ? () {
+                                  // Enable delete only if member count is 1 or less
+                                  Navigator.pop(context);
+                                  _archiveSavingGroupBergilir();
+                                }
+                              : null, // Disable button if members > 1
                         ),
                       ),
                     ],
@@ -1267,7 +1271,8 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                                   'ADMIN') // Conditional rendering based on user role
                                 ElevatedButton(
                                   onPressed: () {
-                                    if (saldoTabungan != targetSaldoTabungan) {
+                                    // Modified condition: Enable if saldoTabungan >= targetSaldoTabungan
+                                    if (saldoTabungan < targetSaldoTabungan) {
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         const SnackBar(
@@ -1276,7 +1281,7 @@ class _DetailTabunganBergilirState extends State<DetailTabunganBergilir> {
                                           backgroundColor: Colors.red,
                                         ),
                                       );
-                                      return; // Prevent Gilir if saldo not equal to targetSaldoTabungan
+                                      return; // Prevent Gilir if saldo less than targetSaldoTabungan
                                     }
                                     Navigator.push<void>(
                                       context,
